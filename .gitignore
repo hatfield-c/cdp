@@ -4,3 +4,9 @@
 *.ptx
 *.cubin
 *.fatbin
+
+# [CDP] CudaPilot
+
+cdp/.vs
+cdp/x64
+cdp/cdp/x64
