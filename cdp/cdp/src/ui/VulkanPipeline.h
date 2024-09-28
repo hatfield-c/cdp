@@ -67,6 +67,7 @@ public:
 	bool Update();
 	void Render(ImVec4 clear_color);
 	void Cleanup();
+	bool IsWindowClosed();
 
 	void SetupVulkan(ImVector<const char*> extensions);
 	VkPhysicalDevice SetupVulkan_SelectPhysicalDevice();

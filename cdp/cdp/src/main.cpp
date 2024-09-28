@@ -4,7 +4,9 @@ int main(int, char**)
 {
     MainGui main_gui = MainGui::MainGui();
 
-    main_gui.Loop();
+    while (!main_gui.IsWindowClosed()) {
+        main_gui.Update();
+    }
 
     return 0;
 }
