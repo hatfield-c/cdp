@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Dear ImGui: standalone example application for Glfw + Vulkan
 // Learn about Dear ImGui:
 // - FAQ                  https://dearimgui.com/faq
@@ -18,30 +17,19 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-#include <stdio.h>          // printf, fprintf
-#include <stdlib.h>         // abort
+#include <stdio.h>
+#include <stdlib.h>
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
-// To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
-// Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
-#if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
-#pragma comment(lib, "legacy_stdio_definitions")
-#endif
-
-//#define APP_USE_UNLIMITED_FRAME_RATE
-#ifdef _DEBUG
-#define APP_USE_VULKAN_DEBUG_REPORT
-#endif
 
 class VulkanPipeline {
 	public:
-		GLFWwindow* window;
-		ImGuiIO* io;
-		ImGui_ImplVulkanH_Window* wd;
-		VkResult err;
+		GLFWwindow* window = nullptr;
+		ImGuiIO* io = nullptr;
+		ImGui_ImplVulkanH_Window* wd = nullptr;
+		VkResult err = VK_NOT_READY;
 
 		VkAllocationCallbacks* g_Allocator = nullptr;
 		VkInstance               g_Instance = VK_NULL_HANDLE;
@@ -64,6 +52,9 @@ class VulkanPipeline {
 		bool IsWindowClosed();
 
 		void SetupVulkan(ImVector<const char*> extensions);
+		void CreateInstance(ImVector<const char*> instance_extensions);
+		void SetupDevice();
+		void CreateDescriptorPool();
 		VkPhysicalDevice SetupVulkan_SelectPhysicalDevice();
 		static void glfw_error_callback(int error, const char* description);
 		static void check_vk_result(VkResult err);
