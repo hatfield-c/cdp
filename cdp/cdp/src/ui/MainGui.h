@@ -24,4 +24,6 @@ class MainGui {
 		void Update();
 		void Cleanup();
 		bool IsWindowClosed();
+		void DrawViewport();
+		void DrawInspector();
 };

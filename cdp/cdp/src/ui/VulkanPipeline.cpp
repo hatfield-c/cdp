@@ -9,9 +9,9 @@ VulkanPipeline::VulkanPipeline() {
         return;
     }
 
-    // Create window with Vulkan context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    this->window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", nullptr, nullptr);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    this->window = glfwCreateWindow(1280, 720, "[CDP] CudaPilot - Playground", nullptr, nullptr);
     if (!glfwVulkanSupported())
     {
         printf("GLFW: Vulkan Not Supported\n");
@@ -30,26 +30,21 @@ VulkanPipeline::VulkanPipeline() {
     VkResult err = glfwCreateWindowSurface(g_Instance, this->window, g_Allocator, &surface);
     VulkanPipeline::check_vk_result(err);
 
-    // Create Framebuffers
     int w, h;
     glfwGetFramebufferSize(this->window, &w, &h);
     this->wd = &g_MainWindowData;
     this->SetupVulkanWindow(this->wd, surface, w, h);
 
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     
     ImGuiIO* io = &(ImGui::GetIO());
     this->io = io;
-    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
 
-    // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(this->window, true);
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = g_Instance;
@@ -68,33 +63,12 @@ VulkanPipeline::VulkanPipeline() {
     init_info.CheckVkResultFn = VulkanPipeline::check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != nullptr);
-
+    this->io->Fonts->AddFontFromFileTTF("data/media/fonts/Roboto-Medium.ttf", 15.0f);
 }
 
 bool VulkanPipeline::Update() {
-    // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
 
-    // Resize swap chain?
     int fb_width, fb_height;
     glfwGetFramebufferSize(this->window, &fb_width, &fb_height);
     if (fb_width > 0 && fb_height > 0 && (this->g_SwapChainRebuild || this->g_MainWindowData.Width != fb_width || this->g_MainWindowData.Height != fb_height))
@@ -120,7 +94,6 @@ bool VulkanPipeline::Update() {
         return false;
     }
 
-    // Start the Dear ImGui frame
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -129,7 +102,6 @@ bool VulkanPipeline::Update() {
 }
 
 void VulkanPipeline::Render(ImVec4 clear_color) {
-    // Rendering
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
     const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
@@ -145,7 +117,6 @@ void VulkanPipeline::Render(ImVec4 clear_color) {
 }
 
 void VulkanPipeline::Cleanup() {
-    // Cleanup
     err = vkDeviceWaitIdle(g_Device);
     VulkanPipeline::check_vk_result(err);
     ImGui_ImplVulkan_Shutdown();
@@ -163,13 +134,11 @@ bool VulkanPipeline::IsWindowClosed() {
     return glfwWindowShouldClose(this->window);
 }
 
-void VulkanPipeline::glfw_error_callback(int error, const char* description)
-{
+void VulkanPipeline::glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-void VulkanPipeline::check_vk_result(VkResult err)
-{
+void VulkanPipeline::check_vk_result(VkResult err) {
     if (err == 0)
         return;
     fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
@@ -177,25 +146,14 @@ void VulkanPipeline::check_vk_result(VkResult err)
         abort();
 }
 
-#ifdef APP_USE_VULKAN_DEBUG_REPORT
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
-{
-    (void)flags; (void)object; (void)location; (void)messageCode; (void)pUserData; (void)pLayerPrefix; // Unused arguments
-    fprintf(stderr, "[vulkan] Debug report from ObjectType: %i\nMessage: %s\n\n", objectType, pMessage);
-    return VK_FALSE;
-}
-#endif // APP_USE_VULKAN_DEBUG_REPORT
-
-static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension)
-{
+bool VulkanPipeline::IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension) {
     for (const VkExtensionProperties& p : properties)
         if (strcmp(p.extensionName, extension) == 0)
             return true;
     return false;
 }
 
-VkPhysicalDevice VulkanPipeline::SetupVulkan_SelectPhysicalDevice()
-{
+VkPhysicalDevice VulkanPipeline::SetupVulkan_SelectPhysicalDevice() {
     uint32_t gpu_count;
     VkResult err = vkEnumeratePhysicalDevices(this->g_Instance, &gpu_count, nullptr);
     VulkanPipeline::check_vk_result(err);
@@ -206,9 +164,6 @@ VkPhysicalDevice VulkanPipeline::SetupVulkan_SelectPhysicalDevice()
     err = vkEnumeratePhysicalDevices(this->g_Instance, &gpu_count, gpus.Data);
     VulkanPipeline::check_vk_result(err);
 
-    // If a number >1 of GPUs got reported, find discrete GPU if present, or use first one available. This covers
-    // most common cases (multi-gpu/integrated+dedicated graphics). Handling more complicated setups (multiple
-    // dedicated GPUs) is out of scope of this sample.
     for (VkPhysicalDevice& device : gpus)
     {
         VkPhysicalDeviceProperties properties;
@@ -217,9 +172,10 @@ VkPhysicalDevice VulkanPipeline::SetupVulkan_SelectPhysicalDevice()
             return device;
     }
 
-    // Use first GPU (Integrated) is a Discrete one is not available.
-    if (gpu_count > 0)
+    if (gpu_count > 0) {
         return gpus[0];
+    }
+
     return VK_NULL_HANDLE;
 }
 
@@ -244,23 +200,16 @@ void VulkanPipeline::SetupVulkan(ImVector<const char*> instance_extensions)
         VulkanPipeline::check_vk_result(err);
 
         // Enable required extensions
-        if (IsExtensionAvailable(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+        if (VulkanPipeline::IsExtensionAvailable(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
             instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-        if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
+        if (VulkanPipeline::IsExtensionAvailable(properties, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
         {
             instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
             create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 #endif
 
-        // Enabling validation layers
-#ifdef APP_USE_VULKAN_DEBUG_REPORT
-        const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
-        create_info.enabledLayerCount = 1;
-        create_info.ppEnabledLayerNames = layers;
-        instance_extensions.push_back("VK_EXT_debug_report");
-#endif
 
         // Create Vulkan Instance
         create_info.enabledExtensionCount = (uint32_t)instance_extensions.Size;
@@ -271,18 +220,6 @@ void VulkanPipeline::SetupVulkan(ImVector<const char*> instance_extensions)
         volkLoadInstance(g_Instance);
 #endif
 
-        // Setup the debug report callback
-#ifdef APP_USE_VULKAN_DEBUG_REPORT
-        auto f_vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
-        IM_ASSERT(f_vkCreateDebugReportCallbackEXT != nullptr);
-        VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
-        debug_report_ci.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-        debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-        debug_report_ci.pfnCallback = debug_report;
-        debug_report_ci.pUserData = nullptr;
-        err = f_vkCreateDebugReportCallbackEXT(g_Instance, &debug_report_ci, g_Allocator, &g_DebugReport);
-        VulkanPipeline::check_vk_result(err);
-#endif
     }
 
     // Select Physical Device (GPU)
@@ -316,7 +253,7 @@ void VulkanPipeline::SetupVulkan(ImVector<const char*> instance_extensions)
         properties.resize(properties_count);
         vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &properties_count, properties.Data);
 #ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-        if (IsExtensionAvailable(properties, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
+        if (VulkanPipeline::IsExtensionAvailable(properties, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
             device_extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 #endif
 
@@ -393,13 +330,6 @@ void VulkanPipeline::SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKH
 void VulkanPipeline::CleanupVulkan()
 {
     vkDestroyDescriptorPool(g_Device, g_DescriptorPool, g_Allocator);
-
-#ifdef APP_USE_VULKAN_DEBUG_REPORT
-    // Remove the debug report callback
-    auto f_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkDestroyDebugReportCallbackEXT");
-    f_vkDestroyDebugReportCallbackEXT(g_Instance, g_DebugReport, g_Allocator);
-#endif // APP_USE_VULKAN_DEBUG_REPORT
-
     vkDestroyDevice(g_Device, g_Allocator);
     vkDestroyInstance(g_Instance, g_Allocator);
 }

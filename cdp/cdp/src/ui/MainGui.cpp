@@ -15,6 +15,43 @@ void MainGui::Update() {
     }
 
     //ImGui::ShowDemoWindow(&show_demo_window);
+    this->DrawViewport();
+    this->DrawInspector();
+
+    this->vulkan_pipeline->Render(this->desktop_color);
+}
+
+void MainGui::DrawViewport() {
+    ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(30, 30), ImGuiCond_Once);
+
+    ImGui::Begin("Render Viewport");
+
+    if (ImGui::CollapsingHeader("Metadata")) {
+        ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->io->Framerate);
+        ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->io->Framerate);
+        ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->io->MousePos[0], this->vulkan_pipeline->io->MousePos[1]);
+    }
+
+    if (ImGui::CollapsingHeader("Text")) {
+        ImGui::Text("This is some useful text.");
+        ImGui::Text("This is some useful text.");
+        ImGui::Text("This is some useful text.");
+    }
+
+    if (ImGui::CollapsingHeader("Checkbox")) {
+        ImGui::Checkbox("Checkbox0", &this->is_checked0);
+        ImGui::Checkbox("Checkbox1", &this->is_checked1);
+        ImGui::Checkbox("Checkbox2", &this->is_checked2);
+    }
+
+    ImGui::End();
+}
+
+void MainGui::DrawInspector() {
+    ImGui::SetNextWindowSize(ImVec2(300, 660), ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(940, 30), ImGuiCond_Once);
+
     ImGui::Begin("Inspector");
 
     if (ImGui::CollapsingHeader("Metadata")) {
@@ -62,10 +99,8 @@ void MainGui::Update() {
             empty = 3;
         }
     }
-    
-    ImGui::End();
 
-    this->vulkan_pipeline->Render(this->desktop_color);
+    ImGui::End();
 }
 
 void MainGui::Cleanup() {

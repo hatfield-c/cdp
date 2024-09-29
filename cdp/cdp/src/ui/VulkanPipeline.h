@@ -24,12 +24,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// Volk headers
-#ifdef IMGUI_IMPL_VULKAN_USE_VOLK
-#define VOLK_IMPLEMENTATION
-#include <volk.h>
-#endif
-
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
 // Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
@@ -73,6 +67,7 @@ class VulkanPipeline {
 		VkPhysicalDevice SetupVulkan_SelectPhysicalDevice();
 		static void glfw_error_callback(int error, const char* description);
 		static void check_vk_result(VkResult err);
+		static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension);
 		void SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int w, int h);
 		void FrameRender(ImGui_ImplVulkanH_Window* wd, ImDrawData* draw_data);
 		void FramePresent(ImGui_ImplVulkanH_Window* wd);
