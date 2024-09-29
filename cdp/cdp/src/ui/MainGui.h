@@ -18,7 +18,7 @@ class MainGui {
 		ImVec4 color1 = ImVec4(0.5f, 0.5f, 0.5f, 1.00f);
 		ImVec4 color2 = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
 
-		VulkanPipeline vulkan_pipeline = VulkanPipeline();
+		VulkanPipeline* vulkan_pipeline;
 
 		MainGui();
 		void Update();

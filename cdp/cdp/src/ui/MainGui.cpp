@@ -2,25 +2,27 @@
 #include "MainGui.h"
 
 MainGui::MainGui() {
-    
+    this->vulkan_pipeline = new VulkanPipeline();
 }
 
 void MainGui::Update() {
     bool show_demo_window = true;
 
-    bool is_renderable = this->vulkan_pipeline.Update();
+    bool is_renderable = this->vulkan_pipeline->Update();
 
     if (!is_renderable) {
         return;
     }
-    ImGui::ShowDemoWindow(&show_demo_window);
+
+    //ImGui::ShowDemoWindow(&show_demo_window);
     ImGui::Begin("Inspector");
 
     if (ImGui::CollapsingHeader("Metadata")) {
-        ImGui::Text("%.2f ms/frame %.1f FPS", 1000.0f / this->vulkan_pipeline.io.Framerate);
-        ImGui::Text("%.1f FPS", this->vulkan_pipeline.io.Framerate);
+        ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->io->Framerate);
+        ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->io->Framerate);
+        ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->io->MousePos[0], this->vulkan_pipeline->io->MousePos[1]);
     }
-    /*
+
     if (ImGui::CollapsingHeader("Text")) {
         ImGui::Text("This is some useful text.");
         ImGui::Text("This is some useful text.");
@@ -60,37 +62,16 @@ void MainGui::Update() {
             empty = 3;
         }
     }
-    */
+    
     ImGui::End();
 
-    //ImGui::ShowDemoWindow(&show_demo_window);
-    /*
-    static float f = 0.0f;
-    static int counter = 0;
-
-    ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-    ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-    ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::ColorEdit3("clear color", (float*)&this->clear_color); // Edit 3 floats representing a color
-
-    if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-        counter++;
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
-
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / this->vulkan_pipeline.io.Framerate, this->vulkan_pipeline.io.Framerate);
-    ImGui::End();
-    */
-    this->vulkan_pipeline.Render(this->desktop_color);
+    this->vulkan_pipeline->Render(this->desktop_color);
 }
 
 void MainGui::Cleanup() {
-    this->vulkan_pipeline.Cleanup();
+    this->vulkan_pipeline->Cleanup();
 }
 
 bool MainGui::IsWindowClosed() {
-    return this->vulkan_pipeline.IsWindowClosed();
+    return this->vulkan_pipeline->IsWindowClosed();
 }

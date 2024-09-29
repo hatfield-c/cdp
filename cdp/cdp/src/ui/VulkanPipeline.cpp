@@ -1,5 +1,6 @@
 
 #include "VulkanPipeline.h"
+#include <iostream>
 
 VulkanPipeline::VulkanPipeline() {
     glfwSetErrorCallback(VulkanPipeline::glfw_error_callback);
@@ -38,9 +39,11 @@ VulkanPipeline::VulkanPipeline() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    this->io = ImGui::GetIO(); //(void)io;
-    this->io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    this->io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    
+    ImGuiIO* io = &(ImGui::GetIO());
+    this->io = io;
+    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();

@@ -2,10 +2,10 @@
 
 int main(int, char**)
 {
-    MainGui main_gui = MainGui::MainGui();
+    MainGui* main_gui = new MainGui();
 
-    while (!main_gui.IsWindowClosed()) {
-        main_gui.Update();
+    while (!main_gui->IsWindowClosed()) {
+        main_gui->Update();
     }
 
     return 0;
