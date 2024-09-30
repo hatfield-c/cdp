@@ -19,10 +19,7 @@
 #include "imgui_impl_vulkan.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
 
 class VulkanPipeline {
 	public:

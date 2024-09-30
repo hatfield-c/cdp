@@ -181,8 +181,6 @@ VkPhysicalDevice VulkanPipeline::SetupVulkan_SelectPhysicalDevice() {
 
 void VulkanPipeline::SetupVulkan(ImVector<const char*> instance_extensions)
 {
-    VkResult err;
-
     this->CreateInstance(instance_extensions);
     this->SetupDevice();
     this->CreateDescriptorPool();
@@ -265,12 +263,12 @@ void VulkanPipeline::CreateDescriptorPool() {
 
     VkDescriptorPoolSize pool_sizes[] =
     {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 },
     };
     VkDescriptorPoolCreateInfo pool_info = {};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1;
+    pool_info.maxSets = 2;
     pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes = pool_sizes;
     err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);

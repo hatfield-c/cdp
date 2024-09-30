@@ -3,6 +3,10 @@
 
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
+    this->vulkan_image = new VulkanImageTexture(this->vulkan_pipeline);
+    bool result = this->vulkan_image->LoadImage("data/media/test.jpg");
+
+    printf("Image Load Result: %u", result);
 }
 
 void MainGui::Update() {
@@ -31,6 +35,9 @@ void MainGui::DrawViewport() {
         ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->io->Framerate);
         ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->io->Framerate);
         ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->io->MousePos[0], this->vulkan_pipeline->io->MousePos[1]);
+        ImGui::Text("pointer = %p", this->vulkan_image->instance_descriptor);
+        ImGui::Text("size = %d x %d", this->vulkan_image->width, this->vulkan_image->height);
+        ImGui::Image((ImTextureID)this->vulkan_image->instance_descriptor, ImVec2(this->vulkan_image->width, this->vulkan_image->height));
     }
 
     if (ImGui::CollapsingHeader("Text")) {
@@ -104,6 +111,7 @@ void MainGui::DrawInspector() {
 }
 
 void MainGui::Cleanup() {
+    this->vulkan_image->RemoveTexture();
     this->vulkan_pipeline->Cleanup();
 }
 
