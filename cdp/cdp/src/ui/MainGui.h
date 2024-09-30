@@ -16,6 +16,9 @@ class MainGui {
 		float slider1 = 0.5f;
 		float slider2 = 1.0f;
 
+		float uv_offset = 0.0f;
+		float uv_delta = 0.00005f;
+
 		ImVec4 desktop_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 		ImVec4 color0 = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
 		ImVec4 color1 = ImVec4(0.5f, 0.5f, 0.5f, 1.00f);
@@ -28,6 +31,7 @@ class MainGui {
 		void Update();
 		void Cleanup();
 		bool IsWindowClosed();
+		void DrawBackground();
 		void DrawViewport();
 		void DrawInspector();
 };

@@ -4,9 +4,7 @@
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
     this->vulkan_image = new VulkanImageTexture(this->vulkan_pipeline);
-    bool result = this->vulkan_image->LoadImage("data/media/test.jpg");
-
-    printf("Image Load Result: %u", result);
+    bool result = this->vulkan_image->LoadImage("data/media/desktop.jpg");
 }
 
 void MainGui::Update() {
@@ -19,13 +17,45 @@ void MainGui::Update() {
     }
 
     //ImGui::ShowDemoWindow(&show_demo_window);
+    this->DrawBackground();
     this->DrawViewport();
     this->DrawInspector();
 
     this->vulkan_pipeline->Render(this->desktop_color);
 }
 
+void MainGui::DrawBackground() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(this->vulkan_pipeline->io->DisplaySize.x, this->vulkan_pipeline->io->DisplaySize.y));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+    ImGuiWindowFlags window_settings = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize 
+        | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground 
+        | ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration;
+    bool is_open;
+
+    float uv_start = this->uv_offset;
+    float uv_end = this->uv_offset + 1.5f;
+
+    ImVec2 uv0 = ImVec2(uv_start, uv_start);
+    ImVec2 uv1 = ImVec2(uv_end, uv_end);
+
+    this->uv_offset += this->uv_delta;
+
+    if (this->uv_offset >= 1000.0f) {
+        this->uv_offset = 0;
+    }
+
+    ImGui::Begin("Background", &is_open, window_settings);
+    ImGui::Image((ImTextureID)this->vulkan_image->instance_descriptor, ImVec2(this->vulkan_pipeline->io->DisplaySize.x, this->vulkan_pipeline->io->DisplaySize.y), uv0, uv1);
+    ImGui::End();
+
+    ImGui::PopStyleVar(2);
+}
+
 void MainGui::DrawViewport() {
+
     ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
     ImGui::SetNextWindowPos(ImVec2(30, 30), ImGuiCond_Once);
 
@@ -111,8 +141,13 @@ void MainGui::DrawInspector() {
 }
 
 void MainGui::Cleanup() {
+    printf("Removing textures...\n");
     this->vulkan_image->RemoveTexture();
+    printf("    Done!\n");
+
+    printf("Cleaning Vulkan...\n");
     this->vulkan_pipeline->Cleanup();
+    printf("    Done!\n");
 }
 
 bool MainGui::IsWindowClosed() {

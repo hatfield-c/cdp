@@ -117,15 +117,22 @@ void VulkanPipeline::Render(ImVec4 clear_color) {
 }
 
 void VulkanPipeline::Cleanup() {
+    printf("    Waiting for device to finish...\n");
     err = vkDeviceWaitIdle(g_Device);
     VulkanPipeline::check_vk_result(err);
+    printf("    ImGUI-Vulkan Shutdown...\n");
     ImGui_ImplVulkan_Shutdown();
+    printf("    ImGUI-GLFW Shutdown...\n");
     ImGui_ImplGlfw_Shutdown();
+    printf("    Destroying ImGUI Context...\n");
     ImGui::DestroyContext();
 
+    printf("    Cleaning Vulkan Window...\n");
     this->CleanupVulkanWindow();
+    printf("    Cleaning Vulkan Instance...\n");
     this->CleanupVulkan();
 
+    printf("    GLFW terminate...\n");
     glfwDestroyWindow(this->window);
     glfwTerminate();
 }
