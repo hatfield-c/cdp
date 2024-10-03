@@ -66,7 +66,7 @@ void MainGui::DrawViewport() {
     ImGui::Begin("Render Viewport");
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
-    ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[0]->instance_descriptor, img_size);
+    ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor, img_size);
 
     ImGui::End();
     ImGui::PopStyleVar(1);
