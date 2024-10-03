@@ -25,12 +25,12 @@ VulkanCore::VulkanCore() {
 
     // Create Window Surface
     VkSurfaceKHR surface;
-    VkResult err = glfwCreateWindowSurface(g_Instance, this->window, g_Allocator, &surface);
-    VulkanCore::check_vk_result(err);
+    VkResult err = glfwCreateWindowSurface(this->g_Instance, this->window, this->g_Allocator, &surface);
+    this->check_vk_result(err);
 
     int w, h;
     glfwGetFramebufferSize(this->window, &w, &h);
-    this->wd = &g_MainWindowData;
+    this->wd = &this->g_MainWindowData;
     this->SetupVulkanWindow(this->wd, surface, w, h);
 
     IMGUI_CHECKVERSION();
@@ -45,19 +45,19 @@ VulkanCore::VulkanCore() {
 
     ImGui_ImplGlfw_InitForVulkan(this->window, true);
     ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = g_Instance;
-    init_info.PhysicalDevice = g_PhysicalDevice;
-    init_info.Device = g_Device;
-    init_info.QueueFamily = g_QueueFamily;
-    init_info.Queue = g_Queue;
-    init_info.PipelineCache = g_PipelineCache;
-    init_info.DescriptorPool = g_DescriptorPool;
+    init_info.Instance = this->g_Instance;
+    init_info.PhysicalDevice = this->g_PhysicalDevice;
+    init_info.Device = this->g_Device;
+    init_info.QueueFamily = this->g_QueueFamily;
+    init_info.Queue = this->g_Queue;
+    init_info.PipelineCache = this->g_PipelineCache;
+    init_info.DescriptorPool = this->g_DescriptorPool;
     init_info.RenderPass = this->wd->RenderPass;
     init_info.Subpass = 0;
-    init_info.MinImageCount = g_MinImageCount;
+    init_info.MinImageCount = this->g_MinImageCount;
     init_info.ImageCount = this->wd->ImageCount;
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.Allocator = g_Allocator;
+    init_info.Allocator = this->g_Allocator;
     init_info.CheckVkResultFn = VulkanCore::check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
 
@@ -86,13 +86,13 @@ bool VulkanCore::IsExtensionAvailable(const ImVector<VkExtensionProperties>& pro
 VkPhysicalDevice VulkanCore::SetupVulkan_SelectPhysicalDevice() {
     uint32_t gpu_count;
     VkResult err = vkEnumeratePhysicalDevices(this->g_Instance, &gpu_count, nullptr);
-    VulkanCore::check_vk_result(err);
+    this->check_vk_result(err);
     IM_ASSERT(gpu_count > 0);
 
     ImVector<VkPhysicalDevice> gpus;
     gpus.resize(gpu_count);
     err = vkEnumeratePhysicalDevices(this->g_Instance, &gpu_count, gpus.Data);
-    VulkanCore::check_vk_result(err);
+    this->check_vk_result(err);
 
     for (VkPhysicalDevice& device : gpus)
     {
@@ -128,8 +128,8 @@ void VulkanCore::CreateInstance(ImVector<const char*> instance_extensions) {
     ImVector<VkExtensionProperties> properties;
     vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, nullptr);
     properties.resize(properties_count);
-    err = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.Data);
-    VulkanCore::check_vk_result(err);
+    this->err = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.Data);
+    this->check_vk_result(this->err);
 
     if (VulkanCore::IsExtensionAvailable(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
         instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
@@ -145,8 +145,8 @@ void VulkanCore::CreateInstance(ImVector<const char*> instance_extensions) {
 
     create_info.enabledExtensionCount = (uint32_t)instance_extensions.Size;
     create_info.ppEnabledExtensionNames = instance_extensions.Data;
-    err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
-    VulkanCore::check_vk_result(err);
+    this->err = vkCreateInstance(&create_info, this->g_Allocator, &this->g_Instance);
+    this->check_vk_result(this->err);
 }
 
 void VulkanCore::SetupDevice() {
@@ -159,11 +159,11 @@ void VulkanCore::SetupDevice() {
     for (uint32_t i = 0; i < count; i++)
         if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            g_QueueFamily = i;
+            this->g_QueueFamily = i;
             break;
         }
     free(queues);
-    IM_ASSERT(g_QueueFamily != (uint32_t)-1);
+    IM_ASSERT(this->g_QueueFamily != (uint32_t)-1);
 
     // Create Logical Device (with 1 queue)
     ImVector<const char*> device_extensions;
@@ -179,7 +179,7 @@ void VulkanCore::SetupDevice() {
     const float queue_priority[] = { 1.0f };
     VkDeviceQueueCreateInfo queue_info[1] = {};
     queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_info[0].queueFamilyIndex = g_QueueFamily;
+    queue_info[0].queueFamilyIndex = this->g_QueueFamily;
     queue_info[0].queueCount = 1;
     queue_info[0].pQueuePriorities = queue_priority;
     VkDeviceCreateInfo create_info = {};
@@ -188,9 +188,9 @@ void VulkanCore::SetupDevice() {
     create_info.pQueueCreateInfos = queue_info;
     create_info.enabledExtensionCount = (uint32_t)device_extensions.Size;
     create_info.ppEnabledExtensionNames = device_extensions.Data;
-    err = vkCreateDevice(g_PhysicalDevice, &create_info, g_Allocator, &g_Device);
-    VulkanCore::check_vk_result(err);
-    vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &g_Queue);
+    this->err = vkCreateDevice(this->g_PhysicalDevice, &create_info, this->g_Allocator, &this->g_Device);
+    this->check_vk_result(this->err);
+    vkGetDeviceQueue(this->g_Device, this->g_QueueFamily, 0, &this->g_Queue);
 }
 
 void VulkanCore::CreateDescriptorPool() {
@@ -208,8 +208,8 @@ void VulkanCore::CreateDescriptorPool() {
     pool_info.maxSets = 2;
     pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes = pool_sizes;
-    err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);
-    VulkanCore::check_vk_result(err);
+    this->err = vkCreateDescriptorPool(this->g_Device, &pool_info, this->g_Allocator, &this->g_DescriptorPool);
+    this->check_vk_result(this->err);
 }
 
 bool VulkanCore::CheckValidationLayerSupport() {
@@ -242,7 +242,7 @@ void VulkanCore::SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR su
     wd->Surface = surface;
 
     VkBool32 res;
-    vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, g_QueueFamily, wd->Surface, &res);
+    vkGetPhysicalDeviceSurfaceSupportKHR(this->g_PhysicalDevice, this->g_QueueFamily, wd->Surface, &res);
     if (res != VK_TRUE)
     {
         fprintf(stderr, "Error no WSI support on physical device 0\n");
@@ -251,11 +251,11 @@ void VulkanCore::SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR su
 
     const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
     const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+    wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(this->g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
+    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(this->g_PhysicalDevice, wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
 
     IM_ASSERT(g_MinImageCount >= 2);
-    ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
+    ImGui_ImplVulkanH_CreateOrResizeWindow(this->g_Instance, this->g_PhysicalDevice, this->g_Device, wd, this->g_QueueFamily, this->g_Allocator, width, height, this->g_MinImageCount);
 }

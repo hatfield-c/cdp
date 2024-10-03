@@ -37,26 +37,4 @@ class VulkanPipeline {
 		bool Update();
 		void Render();
 		void Cleanup();
-
-		/*
-		bool Update();
-		void Render(ImVec4 clear_color);
-		void Cleanup();
-		bool IsWindowClosed();
-
-		void SetupVulkan(ImVector<const char*> extensions);
-		void CreateInstance(ImVector<const char*> instance_extensions);
-		void SetupDevice();
-		void CreateDescriptorPool();
-		VkPhysicalDevice SetupVulkan_SelectPhysicalDevice();
-		static void glfw_error_callback(int error, const char* description);
-		static void check_vk_result(VkResult err);
-		static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension);
-		void SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int w, int h);
-		void FrameRender(ImGui_ImplVulkanH_Window* wd, ImDrawData* draw_data);
-		void FramePresent(ImGui_ImplVulkanH_Window* wd);
-		void CleanupVulkan();
-		void CleanupVulkanWindow();
-		bool CheckValidationLayerSupport();
-		*/
 };
