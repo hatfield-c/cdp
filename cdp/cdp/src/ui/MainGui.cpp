@@ -3,8 +3,12 @@
 
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
-    this->vulkan_image = new VulkanImageTexture(this->vulkan_pipeline);
-    bool result = this->vulkan_image->LoadImage("data/media/desktop.jpg");
+    //this->vulkan_image = new VulkanImageTexture(this->vulkan_pipeline);
+    //bool result = this->vulkan_image->LoadImage("data/media/desktop.jpg");
+
+    //this->vulkan_texture = new VulkanTexture(this->vulkan_pipeline);
+    //bool result = this->vulkan_texture->LoadImage("data/media/desktop.jpg");
+    //this->vulkan_pipeline->AddTexture(this->vulkan_texture);
 }
 
 void MainGui::Update() {
@@ -21,13 +25,13 @@ void MainGui::Update() {
     this->DrawViewport();
     this->DrawInspector();
 
-    this->vulkan_pipeline->Render(this->desktop_color);
+    this->vulkan_pipeline->Render();
 }
 
 void MainGui::DrawBackground() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(ImVec2(this->vulkan_pipeline->io->DisplaySize.x, this->vulkan_pipeline->io->DisplaySize.y));
+    ImGui::SetNextWindowSize(ImVec2(this->vulkan_pipeline->vulkan_core->io->DisplaySize.x, this->vulkan_pipeline->vulkan_core->io->DisplaySize.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
 
     ImGuiWindowFlags window_settings = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize 
@@ -48,7 +52,7 @@ void MainGui::DrawBackground() {
     }
 
     ImGui::Begin("Background", &is_open, window_settings);
-    ImGui::Image((ImTextureID)this->vulkan_image->instance_descriptor, ImVec2(this->vulkan_pipeline->io->DisplaySize.x, this->vulkan_pipeline->io->DisplaySize.y), uv0, uv1);
+    ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[0]->instance_descriptor, ImVec2(this->vulkan_pipeline->vulkan_core->io->DisplaySize.x, this->vulkan_pipeline->vulkan_core->io->DisplaySize.y), uv0, uv1);
     ImGui::End();
 
     ImGui::PopStyleVar(2);
@@ -56,33 +60,16 @@ void MainGui::DrawBackground() {
 
 void MainGui::DrawViewport() {
 
-    ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowPos(ImVec2(30, 30), ImGuiCond_Once);
 
     ImGui::Begin("Render Viewport");
 
-    if (ImGui::CollapsingHeader("Metadata")) {
-        ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->io->Framerate);
-        ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->io->Framerate);
-        ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->io->MousePos[0], this->vulkan_pipeline->io->MousePos[1]);
-        ImGui::Text("pointer = %p", this->vulkan_image->instance_descriptor);
-        ImGui::Text("size = %d x %d", this->vulkan_image->width, this->vulkan_image->height);
-        ImGui::Image((ImTextureID)this->vulkan_image->instance_descriptor, ImVec2(this->vulkan_image->width, this->vulkan_image->height));
-    }
-
-    if (ImGui::CollapsingHeader("Text")) {
-        ImGui::Text("This is some useful text.");
-        ImGui::Text("This is some useful text.");
-        ImGui::Text("This is some useful text.");
-    }
-
-    if (ImGui::CollapsingHeader("Checkbox")) {
-        ImGui::Checkbox("Checkbox0", &this->is_checked0);
-        ImGui::Checkbox("Checkbox1", &this->is_checked1);
-        ImGui::Checkbox("Checkbox2", &this->is_checked2);
-    }
+    ImVec2 img_size = ImGui::GetContentRegionAvail();
+    ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[0]->instance_descriptor, img_size);
 
     ImGui::End();
+    ImGui::PopStyleVar(1);
 }
 
 void MainGui::DrawInspector() {
@@ -92,9 +79,9 @@ void MainGui::DrawInspector() {
     ImGui::Begin("Inspector");
 
     if (ImGui::CollapsingHeader("Metadata")) {
-        ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->io->Framerate);
-        ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->io->Framerate);
-        ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->io->MousePos[0], this->vulkan_pipeline->io->MousePos[1]);
+        ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->vulkan_core->io->Framerate);
+        ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->vulkan_core->io->Framerate);
+        ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->vulkan_core->io->MousePos[0], this->vulkan_pipeline->vulkan_core->io->MousePos[1]);
     }
 
     if (ImGui::CollapsingHeader("Text")) {
@@ -141,15 +128,11 @@ void MainGui::DrawInspector() {
 }
 
 void MainGui::Cleanup() {
-    printf("Removing textures...\n");
-    this->vulkan_image->RemoveTexture();
-    printf("    Done!\n");
-
     printf("Cleaning Vulkan...\n");
     this->vulkan_pipeline->Cleanup();
     printf("    Done!\n");
 }
 
 bool MainGui::IsWindowClosed() {
-    return this->vulkan_pipeline->IsWindowClosed();
+    return this->vulkan_pipeline->vulkan_renderer->IsWindowClosed();
 }

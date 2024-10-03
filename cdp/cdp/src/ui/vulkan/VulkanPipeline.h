@@ -14,35 +14,31 @@
 //   the backend itself (imgui_impl_vulkan.cpp), but should PROBABLY NOT be used by your own engine/app code.
 // Read comments in imgui_impl_vulkan.h.
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <GLFW/glfw3.h>
+#include <iostream>
+#include <vector>
+
+#include "VulkanCore.h"
+#include "VulkanRenderer.h"
+#include "VulkanCleaner.h"
+#include "VulkanTexture.h"
 
 class VulkanPipeline {
 	public:
-		GLFWwindow* window = nullptr;
-		ImGuiIO* io = nullptr;
-		ImGui_ImplVulkanH_Window* wd = nullptr;
-		VkResult err = VK_NOT_READY;
 
-		VkAllocationCallbacks* g_Allocator = nullptr;
-		VkInstance               g_Instance = VK_NULL_HANDLE;
-		VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
-		VkDevice                 g_Device = VK_NULL_HANDLE;
-		uint32_t                 g_QueueFamily = (uint32_t)-1;
-		VkQueue                  g_Queue = VK_NULL_HANDLE;
-		VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
-		VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
-		VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
+		VulkanCore* vulkan_core;
+		VulkanRenderer* vulkan_renderer;
+		VulkanCleaner* vulkan_cleaner;
 
-		ImGui_ImplVulkanH_Window g_MainWindowData;
-		int                      g_MinImageCount = 2;
-		bool                     g_SwapChainRebuild = false;
+		std::vector<VulkanTexture*> texture_list;
 
 		VulkanPipeline();
+		bool Update();
+		void Render();
+		void Cleanup();
+
+		/*
 		bool Update();
 		void Render(ImVec4 clear_color);
 		void Cleanup();
@@ -61,4 +57,6 @@ class VulkanPipeline {
 		void FramePresent(ImGui_ImplVulkanH_Window* wd);
 		void CleanupVulkan();
 		void CleanupVulkanWindow();
+		bool CheckValidationLayerSupport();
+		*/
 };

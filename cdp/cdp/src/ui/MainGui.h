@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VulkanPipeline.h"
-#include "VulkanImageTexture.h"
+#include "vulkan/VulkanPipeline.h"
+#include "vulkan/VulkanTexture.h"
 
 #include <iostream>
 #include <string>
@@ -25,7 +25,6 @@ class MainGui {
 		ImVec4 color2 = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
 
 		VulkanPipeline* vulkan_pipeline;
-		VulkanImageTexture* vulkan_image;
 
 		MainGui();
 		void Update();

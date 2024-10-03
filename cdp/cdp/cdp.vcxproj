@@ -152,8 +152,11 @@
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\ui\MainGui.cpp" />
-    <ClCompile Include="src\ui\VulkanImageTexture.cpp" />
-    <ClCompile Include="src\ui\VulkanPipeline.cpp" />
+    <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp" />
+    <ClCompile Include="src\ui\vulkan\VulkanCore.cpp" />
+    <ClCompile Include="src\ui\vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="src\ui\vulkan\VulkanRenderer.cpp" />
+    <ClCompile Include="src\ui\vulkan\VulkanTexture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\imgui\imconfig.h" />
@@ -166,8 +169,11 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\ui\MainGui.h" />
-    <ClInclude Include="src\ui\VulkanImageTexture.h" />
-    <ClInclude Include="src\ui\VulkanPipeline.h" />
+    <ClInclude Include="src\ui\vulkan\VulkanCleaner.h" />
+    <ClInclude Include="src\ui\vulkan\VulkanCore.h" />
+    <ClInclude Include="src\ui\vulkan\VulkanPipeline.h" />
+    <ClInclude Include="src\ui\vulkan\VulkanRenderer.h" />
+    <ClInclude Include="src\ui\vulkan\VulkanTexture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,10 +1,10 @@
-#include "VulkanImageTexture.h"
+#include "VulkanTexture.h"
 
-VulkanImageTexture::VulkanImageTexture(VulkanPipeline* vulkan_pipeline) {
-    this->vulkan_pipeline = vulkan_pipeline;
+VulkanTexture::VulkanTexture(VulkanCore* vulkan_core) {
+    this->vulkan_core = vulkan_core;
 }
 
-bool VulkanImageTexture::LoadImage(const char* filename) {
+bool VulkanTexture::LoadImage(const char* filename) {
     unsigned char* image_data = stbi_load(filename, &this->width, &this->height, 0, this->channels);
 
     if (image_data == NULL)
@@ -30,7 +30,7 @@ bool VulkanImageTexture::LoadImage(const char* filename) {
     return true;
 }
 
-void VulkanImageTexture::AllocateImage() {
+void VulkanTexture::AllocateImage() {
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.imageType = VK_IMAGE_TYPE_2D;
@@ -46,24 +46,24 @@ void VulkanImageTexture::AllocateImage() {
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    this->error = vkCreateImage(this->vulkan_pipeline->g_Device, &info, this->vulkan_pipeline->g_Allocator, &this->vulkan_image);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkCreateImage(this->vulkan_core->g_Device, &info, this->vulkan_core->g_Allocator, &this->vulkan_image);
+    this->vulkan_core->check_vk_result(this->error);
 
     VkMemoryRequirements req;
-    vkGetImageMemoryRequirements(this->vulkan_pipeline->g_Device, this->vulkan_image, &req);
+    vkGetImageMemoryRequirements(this->vulkan_core->g_Device, this->vulkan_image, &req);
 
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = this->FindMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    this->error = vkAllocateMemory(this->vulkan_pipeline->g_Device, &alloc_info, this->vulkan_pipeline->g_Allocator, &this->image_memory);
-    this->vulkan_pipeline->check_vk_result(this->error);
-    this->error = vkBindImageMemory(this->vulkan_pipeline->g_Device, this->vulkan_image, this->image_memory, 0);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkAllocateMemory(this->vulkan_core->g_Device, &alloc_info, this->vulkan_core->g_Allocator, &this->image_memory);
+    this->vulkan_core->check_vk_result(this->error);
+    this->error = vkBindImageMemory(this->vulkan_core->g_Device, this->vulkan_image, this->image_memory, 0);
+    this->vulkan_core->check_vk_result(this->error);
 }
 
-void VulkanImageTexture::CreateImageView() {
+void VulkanTexture::CreateImageView() {
     VkImageViewCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     info.image = this->vulkan_image;
@@ -72,11 +72,11 @@ void VulkanImageTexture::CreateImageView() {
     info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     info.subresourceRange.levelCount = 1;
     info.subresourceRange.layerCount = 1;
-    this->error = vkCreateImageView(this->vulkan_pipeline->g_Device, &info, this->vulkan_pipeline->g_Allocator, &this->image_view);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkCreateImageView(this->vulkan_core->g_Device, &info, this->vulkan_core->g_Allocator, &this->image_view);
+    this->vulkan_core->check_vk_result(this->error);
 }
 
-void VulkanImageTexture::CreateSampler() {
+void VulkanTexture::CreateSampler() {
     VkSamplerCreateInfo sampler_info{};
     sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     sampler_info.magFilter = VK_FILTER_LINEAR;
@@ -88,50 +88,50 @@ void VulkanImageTexture::CreateSampler() {
     sampler_info.minLod = -1000;
     sampler_info.maxLod = 1000;
     sampler_info.maxAnisotropy = 1.0f;
-    this->error = vkCreateSampler(this->vulkan_pipeline->g_Device, &sampler_info, this->vulkan_pipeline->g_Allocator, &this->sampler);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkCreateSampler(this->vulkan_core->g_Device, &sampler_info, this->vulkan_core->g_Allocator, &this->sampler);
+    this->vulkan_core->check_vk_result(this->error);
 }
 
-void VulkanImageTexture::AllocateBuffer(size_t image_size) {
+void VulkanTexture::AllocateBuffer(size_t image_size) {
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = image_size;
     buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    this->error = vkCreateBuffer(this->vulkan_pipeline->g_Device, &buffer_info, this->vulkan_pipeline->g_Allocator, &this->upload_buffer);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkCreateBuffer(this->vulkan_core->g_Device, &buffer_info, this->vulkan_core->g_Allocator, &this->upload_buffer);
+    this->vulkan_core->check_vk_result(this->error);
 
     VkMemoryRequirements req;
-    vkGetBufferMemoryRequirements(this->vulkan_pipeline->g_Device, this->upload_buffer, &req);
+    vkGetBufferMemoryRequirements(this->vulkan_core->g_Device, this->upload_buffer, &req);
 
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = this->FindMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-    this->error = vkAllocateMemory(this->vulkan_pipeline->g_Device, &alloc_info, this->vulkan_pipeline->g_Allocator, &this->upload_buffer_memory);
-    this->vulkan_pipeline->check_vk_result(this->error);
-    this->error = vkBindBufferMemory(this->vulkan_pipeline->g_Device, this->upload_buffer, this->upload_buffer_memory, 0);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkAllocateMemory(this->vulkan_core->g_Device, &alloc_info, this->vulkan_core->g_Allocator, &this->upload_buffer_memory);
+    this->vulkan_core->check_vk_result(this->error);
+    this->error = vkBindBufferMemory(this->vulkan_core->g_Device, this->upload_buffer, this->upload_buffer_memory, 0);
+    this->vulkan_core->check_vk_result(this->error);
 }
 
-void VulkanImageTexture::UploadToBuffer(size_t image_size, unsigned char* image_data) {
+void VulkanTexture::UploadToBuffer(size_t image_size, unsigned char* image_data) {
     void* map = NULL;
-    this->error = vkMapMemory(this->vulkan_pipeline->g_Device, this->upload_buffer_memory, 0, image_size, 0, &map);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkMapMemory(this->vulkan_core->g_Device, this->upload_buffer_memory, 0, image_size, 0, &map);
+    this->vulkan_core->check_vk_result(this->error);
     memcpy(map, image_data, image_size);
     VkMappedMemoryRange range[1] = {};
     range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     range[0].memory = this->upload_buffer_memory;
     range[0].size = image_size;
-    this->error = vkFlushMappedMemoryRanges(this->vulkan_pipeline->g_Device, 1, range);
-    this->vulkan_pipeline->check_vk_result(this->error);
-    vkUnmapMemory(this->vulkan_pipeline->g_Device, this->upload_buffer_memory);
+    this->error = vkFlushMappedMemoryRanges(this->vulkan_core->g_Device, 1, range);
+    this->vulkan_core->check_vk_result(this->error);
+    vkUnmapMemory(this->vulkan_core->g_Device, this->upload_buffer_memory);
 }
 
-VkCommandBuffer VulkanImageTexture::CreateCommandBuffer() {
-    VkCommandPool command_pool = this->vulkan_pipeline->g_MainWindowData.Frames[this->vulkan_pipeline->g_MainWindowData.FrameIndex].CommandPool;
+VkCommandBuffer VulkanTexture::CreateCommandBuffer() {
+    VkCommandPool command_pool = this->vulkan_core->g_MainWindowData.Frames[this->vulkan_core->g_MainWindowData.FrameIndex].CommandPool;
     VkCommandBuffer command_buffer;
 
     VkCommandBufferAllocateInfo alloc_info{};
@@ -140,19 +140,19 @@ VkCommandBuffer VulkanImageTexture::CreateCommandBuffer() {
     alloc_info.commandPool = command_pool;
     alloc_info.commandBufferCount = 1;
 
-    this->error = vkAllocateCommandBuffers(this->vulkan_pipeline->g_Device, &alloc_info, &command_buffer);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->error = vkAllocateCommandBuffers(this->vulkan_core->g_Device, &alloc_info, &command_buffer);
+    this->vulkan_core->check_vk_result(this->error);
 
     VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     this->error = vkBeginCommandBuffer(command_buffer, &begin_info);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->vulkan_core->check_vk_result(this->error);
 
     return command_buffer;
 }
 
-void VulkanImageTexture::SendCopyImageCommand(VkCommandBuffer command_buffer) {
+void VulkanTexture::SendCopyImageCommand(VkCommandBuffer command_buffer) {
     VkImageMemoryBarrier copy_barrier[1] = {};
     copy_barrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     copy_barrier[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -189,36 +189,33 @@ void VulkanImageTexture::SendCopyImageCommand(VkCommandBuffer command_buffer) {
     vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, use_barrier);
 }
 
-void VulkanImageTexture::CloseCommandBuffer(VkCommandBuffer command_buffer) {
+void VulkanTexture::CloseCommandBuffer(VkCommandBuffer command_buffer) {
     VkSubmitInfo end_info = {};
     end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     end_info.commandBufferCount = 1;
     end_info.pCommandBuffers = &command_buffer;
     this->error = vkEndCommandBuffer(command_buffer);
-    this->vulkan_pipeline->check_vk_result(this->error);
-    this->error = vkQueueSubmit(this->vulkan_pipeline->g_Queue, 1, &end_info, VK_NULL_HANDLE);
-    this->vulkan_pipeline->check_vk_result(this->error);
-    this->error = vkDeviceWaitIdle(this->vulkan_pipeline->g_Device);
-    this->vulkan_pipeline->check_vk_result(this->error);
+    this->vulkan_core->check_vk_result(this->error);
+    this->error = vkQueueSubmit(this->vulkan_core->g_Queue, 1, &end_info, VK_NULL_HANDLE);
+    this->vulkan_core->check_vk_result(this->error);
+    this->error = vkDeviceWaitIdle(this->vulkan_core->g_Device);
+    this->vulkan_core->check_vk_result(this->error);
 }
 
-// Helper function to cleanup an image loaded with LoadTextureFromFile
-void VulkanImageTexture::RemoveTexture()
+void VulkanTexture::RemoveTexture()
 {
-    vkFreeMemory(this->vulkan_pipeline->g_Device, this->upload_buffer_memory, nullptr);
-    vkDestroyBuffer(this->vulkan_pipeline->g_Device, this->upload_buffer, nullptr);
-    vkDestroySampler(this->vulkan_pipeline->g_Device, this->sampler, nullptr);
-    vkDestroyImageView(this->vulkan_pipeline->g_Device, this->image_view, nullptr);
-    vkDestroyImage(this->vulkan_pipeline->g_Device, this->vulkan_image, nullptr);
-    vkFreeMemory(this->vulkan_pipeline->g_Device, this->image_memory, nullptr);
-    ImGui_ImplVulkan_RemoveTexture(this->instance_descriptor);
+    vkFreeMemory(this->vulkan_core->g_Device, this->upload_buffer_memory, nullptr);
+    vkDestroyBuffer(this->vulkan_core->g_Device, this->upload_buffer, nullptr);
+    vkDestroySampler(this->vulkan_core->g_Device, this->sampler, nullptr);
+    vkDestroyImageView(this->vulkan_core->g_Device, this->image_view, nullptr);
+    vkDestroyImage(this->vulkan_core->g_Device, this->vulkan_image, nullptr);
+    vkFreeMemory(this->vulkan_core->g_Device, this->image_memory, nullptr);
 }
 
-// Helper function to find Vulkan memory type bits. See ImGui_ImplVulkan_MemoryType() in imgui_impl_vulkan.cpp
-uint32_t VulkanImageTexture::FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties)
+uint32_t VulkanTexture::FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
-    vkGetPhysicalDeviceMemoryProperties(this->vulkan_pipeline->g_PhysicalDevice, &mem_properties);
+    vkGetPhysicalDeviceMemoryProperties(this->vulkan_core->g_PhysicalDevice, &mem_properties);
 
     for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
         if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties)

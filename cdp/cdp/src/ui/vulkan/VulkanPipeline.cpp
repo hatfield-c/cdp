@@ -1,7 +1,31 @@
 
 #include "VulkanPipeline.h"
-#include <iostream>
 
+VulkanPipeline::VulkanPipeline() {
+    this->vulkan_core = new VulkanCore();
+    this->vulkan_renderer = new VulkanRenderer(this->vulkan_core);
+    this->vulkan_cleaner = new VulkanCleaner(this->vulkan_core);
+
+    VulkanTexture* vulkan_texture = new VulkanTexture(this->vulkan_core);
+    bool result = vulkan_texture->LoadImage("data/media/desktop.jpg");
+    
+    this->texture_list.push_back(vulkan_texture);
+
+}
+
+bool VulkanPipeline::Update() {
+    return this->vulkan_renderer->Update();
+}
+
+void VulkanPipeline::Render() {
+    this->vulkan_renderer->Render();
+}
+
+void VulkanPipeline::Cleanup() {
+    this->vulkan_cleaner->Cleanup(this->texture_list);
+}
+
+/*
 VulkanPipeline::VulkanPipeline() {
     glfwSetErrorCallback(VulkanPipeline::glfw_error_callback);
     if (!glfwInit()) {
@@ -194,6 +218,10 @@ void VulkanPipeline::SetupVulkan(ImVector<const char*> instance_extensions)
 }
 
 void VulkanPipeline::CreateInstance(ImVector<const char*> instance_extensions) {
+    if (!this->CheckValidationLayerSupport()) {
+        throw std::runtime_error("validation layers requested, but not available!");
+    }
+
     VkInstanceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
@@ -212,6 +240,9 @@ void VulkanPipeline::CreateInstance(ImVector<const char*> instance_extensions) {
         instance_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
         create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
+
+    create_info.enabledLayerCount = static_cast<uint32_t>(this->validation_layers.size());
+    create_info.ppEnabledLayerNames = this->validation_layers.data();
 
     create_info.enabledExtensionCount = (uint32_t)instance_extensions.Size;
     create_info.ppEnabledExtensionNames = instance_extensions.Data;
@@ -301,7 +332,6 @@ void VulkanPipeline::SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKH
     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
     wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
 
-    // Create SwapChain, RenderPass, Framebuffer, etc.
     IM_ASSERT(g_MinImageCount >= 2);
     ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
 }
@@ -309,6 +339,7 @@ void VulkanPipeline::SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKH
 void VulkanPipeline::CleanupVulkan()
 {
     vkDestroyDescriptorPool(g_Device, g_DescriptorPool, g_Allocator);
+    // Destroy textures here
     vkDestroyDevice(g_Device, g_Allocator);
     vkDestroyInstance(g_Instance, g_Allocator);
 }
@@ -406,3 +437,29 @@ void VulkanPipeline::FramePresent(ImGui_ImplVulkanH_Window* wd)
     // Now we can use the next set of semaphores
     wd->SemaphoreIndex = (wd->SemaphoreIndex + 1) % wd->SemaphoreCount; 
 }
+
+bool VulkanPipeline::CheckValidationLayerSupport() {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : this->validation_layers) {
+        bool layerFound = false;
+
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound) {
+            return false;
+        }
+    }
+
+    return true;
+}
+*/
