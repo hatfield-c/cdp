@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="include\imgui\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -55,6 +52,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,5 +104,9 @@
     <ClInclude Include="src\ui\vulkan\VulkanCleaner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Tester.cuh" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\Tester.cu" />
   </ItemGroup>
 </Project>
