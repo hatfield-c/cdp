@@ -3,23 +3,18 @@
 
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
-    //this->vulkan_image = new VulkanImageTexture(this->vulkan_pipeline);
-    //bool result = this->vulkan_image->LoadImage("data/media/desktop.jpg");
-
-    //this->vulkan_texture = new VulkanTexture(this->vulkan_pipeline);
-    //bool result = this->vulkan_texture->LoadImage("data/media/desktop.jpg");
-    //this->vulkan_pipeline->AddTexture(this->vulkan_texture);
+    this->viewport_renderer = new ViewportRenderer();
 }
 
 void MainGui::Update() {
     bool show_demo_window = true;
-
+    
     bool is_renderable = this->vulkan_pipeline->Update();
 
     if (!is_renderable) {
         return;
     }
-
+    
     //ImGui::ShowDemoWindow(&show_demo_window);
     this->DrawBackground();
     this->DrawViewport();
@@ -78,6 +73,10 @@ void MainGui::DrawInspector() {
 
     ImGui::Begin("Inspector");
 
+    if (ImGui::Button("Start Viewport")) {
+        this->viewport_renderer->Render();
+    }
+
     if (ImGui::CollapsingHeader("Metadata")) {
         ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->vulkan_core->io->Framerate);
         ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->vulkan_core->io->Framerate);
@@ -128,6 +127,10 @@ void MainGui::DrawInspector() {
 }
 
 void MainGui::Cleanup() {
+    printf("Cleaning Cuda...\n");
+    this->viewport_renderer->Cleanup();
+    printf("    Done!\n");
+
     printf("Cleaning Vulkan...\n");
     this->vulkan_pipeline->Cleanup();
     printf("    Done!\n");

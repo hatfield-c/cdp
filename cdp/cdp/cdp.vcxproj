@@ -154,6 +154,7 @@
     <ClCompile Include="src\main.cpp">
       <FileType>Document</FileType>
     </ClCompile>
+    <ClCompile Include="src\render\ViewportRenderer.cpp" />
     <ClCompile Include="src\ui\MainGui.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanCore.cpp" />
@@ -171,6 +172,8 @@
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\stb\stb_image.h" />
+    <ClInclude Include="src\render\CudaRender.cuh" />
+    <ClInclude Include="src\render\ViewportRenderer.h" />
     <ClInclude Include="src\Tester.cuh" />
     <ClInclude Include="src\ui\MainGui.h" />
     <ClInclude Include="src\ui\vulkan\VulkanCleaner.h" />
@@ -180,6 +183,7 @@
     <ClInclude Include="src\ui\vulkan\VulkanTexture.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="src\render\CudaRender.cu" />
     <CudaCompile Include="src\Tester.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

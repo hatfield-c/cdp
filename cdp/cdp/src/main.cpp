@@ -1,13 +1,24 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "ui/MainGui.h"
-#include "Tester.cuh"
 
 #include <stdlib.h>
 
+int main(int, char**)
+{
+    MainGui* main_gui = new MainGui();
+
+    while (!main_gui->IsWindowClosed()) {
+        main_gui->Update();
+    }
+
+    main_gui->Cleanup();
+
+    return 0;
+}
 
 // Host code
-
+/*
 int main()
 {
     int N = 5;
@@ -36,12 +47,6 @@ int main()
     cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
 
-    /*
-    // Invoke kernel
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
-    VecAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, N);
-    */
     VecAddWrapper(d_A, d_B, d_C, N);
 
     // Copy result from device memory to host memory
@@ -61,23 +66,5 @@ int main()
     free(h_A);
     free(h_B);
     free(h_C);
-}
-
-/*
-#define STB_IMAGE_IMPLEMENTATION
-
-#include "ui/MainGui.h"
-
-int main(int, char**)
-{
-    MainGui* main_gui = new MainGui();
-
-    while (!main_gui->IsWindowClosed()) {
-        main_gui->Update();
-    }
-
-    main_gui->Cleanup();
-
-    return 0;
 }
 */

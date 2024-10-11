@@ -31,11 +31,11 @@ bool VulkanRenderer::Update() {
         ImGui_ImplGlfw_Sleep(10);
         return false;
     }
-
+    
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
+    
     return true;
 }
 

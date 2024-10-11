@@ -7,6 +7,8 @@
 #include <string>
 #include <format>
 
+#include "../render/ViewportRenderer.h"
+
 class MainGui {
 	public:
 		bool is_checked0 = false;
@@ -25,6 +27,7 @@ class MainGui {
 		ImVec4 color2 = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
 
 		VulkanPipeline* vulkan_pipeline;
+		ViewportRenderer* viewport_renderer;
 
 		MainGui();
 		void Update();
