@@ -11,5 +11,5 @@ __global__ void RenderViewport_Kernel(float* A, int N)
 void RenderViewport(float* A, int N) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
-    RenderViewport_Kernel <<<blocksPerGrid, threadsPerBlock>>>(A, N);
+    RenderViewport_Kernel<<<blocksPerGrid, threadsPerBlock>>>(A, N);
 }
