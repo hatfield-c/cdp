@@ -2,11 +2,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "driver_types.h"
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+#include <windows.h>
+#include <fileapi.h>
+#include <errhandlingapi.h>
 
 #include "stb_image.h"
 
@@ -15,6 +20,7 @@
 class VulkanTexture {
 	public:
 		CUdeviceptr cuda_memory_address;
+
 		VkDescriptorSet instance_descriptor;
 		int width;
 		int height;
@@ -44,5 +50,6 @@ class VulkanTexture {
 		void CloseCommandBuffer(VkCommandBuffer command_buffer);
 		uint32_t FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties);
 		void RemoveTexture();
-		CUdeviceptr ExportAsCuda();
+		void ExportAsCuda();
+		void CheckCudaError(cudaError_enum result, const char* file, int line);
 };

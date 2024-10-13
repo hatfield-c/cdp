@@ -16,6 +16,8 @@
 #include <iostream>
 #include <vector>
 
+#include "../../windows/WindowsSecurityAttributes.h"
+
 class VulkanCore {
 	public:
 		GLFWwindow* window = nullptr;

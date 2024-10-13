@@ -161,6 +161,7 @@
     <ClCompile Include="src\ui\vulkan\VulkanPipeline.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanRenderer.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanTexture.cpp" />
+    <ClCompile Include="src\windows\WindowsSecurityAttributes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\imgui\imconfig.h" />
@@ -181,6 +182,7 @@
     <ClInclude Include="src\ui\vulkan\VulkanPipeline.h" />
     <ClInclude Include="src\ui\vulkan\VulkanRenderer.h" />
     <ClInclude Include="src\ui\vulkan\VulkanTexture.h" />
+    <ClInclude Include="src\windows\WindowsSecurityAttributes.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\render\CudaRender.cu" />

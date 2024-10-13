@@ -6,14 +6,15 @@ VulkanPipeline::VulkanPipeline() {
     this->vulkan_renderer = new VulkanRenderer(this->vulkan_core);
     this->vulkan_cleaner = new VulkanCleaner(this->vulkan_core);
 
-    VulkanTexture* desktop_texture = new VulkanTexture(this->vulkan_core);
-    bool result = desktop_texture->LoadImage("data/media/desktop.jpg");
+    //VulkanTexture* desktop_texture = new VulkanTexture(this->vulkan_core);
+    //bool result = desktop_texture->LoadImage("data/media/desktop.jpg");
     
-    this->texture_list.push_back(desktop_texture);
+    //this->texture_list.push_back(desktop_texture);
 
     VulkanTexture* viewport_texture = new VulkanTexture(this->vulkan_core);
-    result = viewport_texture->LoadImage("data/media/viewport_default.jpg");
+    bool result = viewport_texture->LoadImage("data/media/viewport_default.jpg");
 
+    this->texture_list.push_back(viewport_texture);
     this->texture_list.push_back(viewport_texture);
 }
 

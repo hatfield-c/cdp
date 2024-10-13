@@ -1,6 +1,6 @@
 #include "ViewportRenderer.h"
 
-ViewportRenderer::ViewportRenderer() {
+ViewportRenderer::ViewportRenderer(VulkanTexture* viewport_image) {
     this->N = 5;
     this->size = this->N * sizeof(float);
 
@@ -21,10 +21,16 @@ ViewportRenderer::ViewportRenderer() {
 
     this->image = h_A;
     this->image_cuda = d_A;
+
+    this->viewport_image = viewport_image;
 }
 
 void ViewportRenderer::Render() {
     
+    this->viewport_image->ExportAsCuda();
+
+    return;
+
     RenderViewport(this->image_cuda, 5);
 
     // Copy result from device memory to host memory

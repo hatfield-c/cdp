@@ -22,7 +22,10 @@ VulkanCore::VulkanCore() {
     for (uint32_t i = 0; i < extensions_count; i++)
         extensions.push_back(glfw_extensions[i]);
 
+    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+    extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
 
     SetupVulkan(extensions);
 
@@ -170,10 +173,12 @@ void VulkanCore::SetupDevice() {
 
     // Create Logical Device (with 1 queue)
     ImVector<const char*> device_extensions;
-    device_extensions.push_back("VK_KHR_swapchain");
+    device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+    device_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
     device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-
+    device_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+    
     // Enumerate physical device extension
     uint32_t properties_count;
     ImVector<VkExtensionProperties> properties;

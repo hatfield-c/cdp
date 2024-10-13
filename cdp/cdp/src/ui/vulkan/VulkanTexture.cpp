@@ -28,7 +28,8 @@ bool VulkanTexture::LoadImage(const char* filename) {
     this->SendCopyImageCommand(command_buffer);
     this->CloseCommandBuffer(command_buffer);
 
-    this->cuda_memory_address = this->ExportAsCuda();
+    //this->cuda_memory_address = this->ExportAsCuda();
+    //this->ExportAsCuda();
 
     return true;
 }
@@ -45,26 +46,119 @@ void VulkanTexture::AllocateImage() {
     info.arrayLayers = 1;
     info.samples = VK_SAMPLE_COUNT_1_BIT;
     info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+    VkExternalMemoryImageCreateInfo vkExternalMemImageCreateInfo = {};
+    vkExternalMemImageCreateInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+    vkExternalMemImageCreateInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+    vkExternalMemImageCreateInfo.pNext = NULL;
+
+    info.pNext = &vkExternalMemImageCreateInfo;
+    
     this->error = vkCreateImage(this->vulkan_core->g_Device, &info, this->vulkan_core->g_Allocator, &this->vulkan_image);
     this->vulkan_core->check_vk_result(this->error);
 
     VkMemoryRequirements req;
     vkGetImageMemoryRequirements(this->vulkan_core->g_Device, this->vulkan_image, &req);
-    this->memory_size = req.size;
+    //this->memory_size = req.size;
+
+    WindowsSecurityAttributes win_security_attributes = WindowsSecurityAttributes();
+    VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR{ };
+    vulkanExportMemoryWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+    vulkanExportMemoryWin32HandleInfoKHR.pNext = NULL;
+    //vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &win_security_attributes;
+    vulkanExportMemoryWin32HandleInfoKHR.dwAccess = DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+    vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR)NULL;
+
+    VkExportMemoryAllocateInfoKHR vulkanExportMemoryAllocateInfoKHR = {};
+    vulkanExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+    vulkanExportMemoryAllocateInfoKHR.pNext = &vulkanExportMemoryWin32HandleInfoKHR;
+    vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = this->FindMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    alloc_info.pNext = &vulkanExportMemoryAllocateInfoKHR;
+
+    VkMemoryRequirements vkMemoryRequirements = {};
+    vkGetImageMemoryRequirements(this->vulkan_core->g_Device, this->vulkan_image, &vkMemoryRequirements);
+    this->memory_size = vkMemoryRequirements.size;
+    printf("[vk Memory Size]: %u\n", this->memory_size);
 
     this->error = vkAllocateMemory(this->vulkan_core->g_Device, &alloc_info, this->vulkan_core->g_Allocator, &this->image_memory);
     this->vulkan_core->check_vk_result(this->error);
     this->error = vkBindImageMemory(this->vulkan_core->g_Device, this->vulkan_image, this->image_memory, 0);
     this->vulkan_core->check_vk_result(this->error);
+}
+
+void VulkanTexture::ExportAsCuda() {
+    PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR;
+    fpGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(this->vulkan_core->g_Instance, "vkGetMemoryWin32HandleKHR");
+
+    HANDLE handle;
+
+    VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR = {};
+    vkMemoryGetWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
+    vkMemoryGetWin32HandleInfoKHR.memory = this->image_memory;
+    vkMemoryGetWin32HandleInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+    this->error = fpGetMemoryWin32HandleKHR(this->vulkan_core->g_Device, &vkMemoryGetWin32HandleInfoKHR, &handle);
+    this->vulkan_core->check_vk_result(this->error);
+
+    //CUexternalMemory externalMemory{};
+    //CUDA_EXTERNAL_MEMORY_HANDLE_DESC handle_description{};
+
+    //handle_description.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32;
+    //handle_description.handle.win32.handle = handle;
+    //handle_description.size = this->memory_size;
+
+    cudaExternalMemory_t cudaExtMemImageBuffer;
+    cudaExternalMemoryHandleDesc cudaExtMemHandleDesc;
+    memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
+
+    cudaExtMemHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueWin32;
+    cudaExtMemHandleDesc.handle.win32.handle = handle;
+    cudaExtMemHandleDesc.size = this->memory_size;
+
+    printf("Handle: %u\n", handle);
+    this->CheckCudaError((cudaError_enum)cudaImportExternalMemory(&cudaExtMemImageBuffer, &cudaExtMemHandleDesc), __FILE__, __LINE__);
+    printf("Handle: %u\n", handle);
+
+    void* cuda_memory_pointer = NULL;
+    
+    cudaExternalMemoryBufferDesc buffer_description;
+    buffer_description.flags = 0; // must be zero
+    buffer_description.offset = 0;
+    buffer_description.size = this->memory_size;
+
+    printf("Dptr: %u\n", cuda_memory_pointer);
+    this->CheckCudaError((cudaError_enum)cudaExternalMemoryGetMappedBuffer(&cuda_memory_pointer, cudaExtMemImageBuffer, &buffer_description), __FILE__, __LINE__);
+    printf("Dptr: %u\n", cuda_memory_pointer);
+
+    exit(0);
+    /*if (cuImportExternalMemory(&externalMemory, &handle_description) != CUDA_SUCCESS) {
+        printf("\n[Error]: Cuda could not import external VulkanTexture memory.\n");
+        exit(1);
+    }
+
+    //CUdeviceptr cuda_memory_pointer;
+    /*
+    CUDA_EXTERNAL_MEMORY_BUFFER_DESC buffer_description;
+    buffer_description.flags = 0; // must be zero
+    buffer_description.offset = 0;
+    buffer_description.size = this->memory_size;
+
+    if (cuExternalMemoryGetMappedBuffer(&cuda_memory_pointer, externalMemory, &buffer_description) != CUDA_SUCCESS) {
+        printf("\n[Error]: Cuda could not map with external VulkanTexture memory.\n");
+        exit(1);
+    }
+    */
+    //CloseHandle(handle);
+    //return cuda_memory_pointer;
 }
 
 void VulkanTexture::CreateImageView() {
@@ -228,94 +322,17 @@ uint32_t VulkanTexture::FindMemoryType(uint32_t type_filter, VkMemoryPropertyFla
     return 0xFFFFFFFF; // Unable to find memoryType
 }
 
-CUdeviceptr VulkanTexture::ExportAsCuda() {
-    SECURITY_DESCRIPTOR* securityDescriptor = (SECURITY_DESCRIPTOR*)malloc(SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void**));
-    if (InitializeSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION) == 0) {
-        printf("\n[Error]: VulkanTexture could not initialize a security descriptor.\n");
-        exit(1);
+void VulkanTexture::CheckCudaError(cudaError_enum result, const char* file, int line) {
+    if (result) {
+        fprintf(
+            stderr, 
+            "CUDA error in %s at line %d.\n    [Error:%d %s] %s\n", 
+            file, 
+            line, 
+            static_cast<unsigned int>(result), 
+            (const char*)cudaGetErrorName((cudaError_t)result), 
+            cudaGetErrorString((cudaError_t)result)
+        );
+        exit(EXIT_FAILURE);
     }
-
-    PSID* sid = (PSID*)((PBYTE)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-    SID_IDENTIFIER_AUTHORITY sid_identifier = SECURITY_WORLD_SID_AUTHORITY;
-    if (AllocateAndInitializeSid(&sid_identifier, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, sid) == 0) {
-        printf("\n[Error]: VulkanTexture could not initialize an identifier authority.\n");
-        exit(1);
-    }
-
-    EXPLICIT_ACCESS explicitAccess;
-    memset((void*)&explicitAccess, 0, sizeof(explicitAccess));
-    explicitAccess.grfAccessPermissions = STANDARD_RIGHTS_ALL | SPECIFIC_RIGHTS_ALL;
-    explicitAccess.grfAccessMode = SET_ACCESS;
-    explicitAccess.grfInheritance = INHERIT_ONLY;
-    explicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-    explicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-    explicitAccess.Trustee.ptstrName = (LPTSTR)*sid;
-
-    PACL* acl = (PACL*)((PBYTE)sid + sizeof(PSID*));
-    if (SetEntriesInAcl(1, &explicitAccess, nullptr, acl) != ERROR_SUCCESS) {
-        printf("\n[Error]: VulkanTexture could set entires into ACL.\n");
-        exit(1);
-    }
-    if (SetSecurityDescriptorDacl(securityDescriptor, TRUE, *acl, FALSE) == 0) {
-        printf("\n[Error]: VulkanTexture could not set security descriptor.\n");
-        exit(1);
-    }
-
-    SECURITY_ATTRIBUTES securityAttributes;
-    securityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-    securityAttributes.lpSecurityDescriptor = securityDescriptor;
-    securityAttributes.bInheritHandle = TRUE;
-
-    VkExportMemoryWin32HandleInfoKHR handleInfo;
-    handleInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
-    handleInfo.pAttributes = &securityAttributes;
-    handleInfo.dwAccess = DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
-
-    VkExportMemoryAllocateInfoKHR exportInfo;
-    exportInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-    exportInfo.pNext = &handleInfo;
-
-    ////
-    HANDLE handle;
-
-    PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(this->vulkan_core->g_Instance, "vkGetMemoryWin32HandleKHR");
-    if (vkGetMemoryWin32HandleKHR == nullptr) {
-        printf("\n[Error]: VulkanTexture could not find function 'vkGetMemoryWin32HandleKHR'.\n");
-        exit(1);
-    }
-
-    VkMemoryGetWin32HandleInfoKHR info = { VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR };
-    info.memory = this->image_memory;
-    info.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-
-    if (vkGetMemoryWin32HandleKHR(this->vulkan_core->g_Device, &info, &handle) != VK_SUCCESS) {
-        printf("\n[Error]: VulkanTexture could not get win32 memory handle.\n");
-        exit(1);
-    }
-
-    CUexternalMemory externalMemory;
-    CUDA_EXTERNAL_MEMORY_HANDLE_DESC handle_description;
-
-    handle_description.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32;
-    handle_description.handle.win32.handle = handle;
-    handle_description.size = this->memory_size;
-
-    if (cuImportExternalMemory(&externalMemory, &handle_description) != CUDA_SUCCESS) {
-        printf("\n[Error]: Cuda could not import external VulkanTexture memory.\n");
-        exit(1);
-    }
-
-    CUdeviceptr cuda_memory_pointer;
-
-    CUDA_EXTERNAL_MEMORY_BUFFER_DESC buffer_description;
-    buffer_description.flags = 0; // must be zero
-    buffer_description.offset = 0;
-    buffer_description.size = this->memory_size;
-
-    if (cuExternalMemoryGetMappedBuffer(&cuda_memory_pointer, externalMemory, &buffer_description) != CUDA_SUCCESS) {
-        printf("\n[Error]: Cuda could not map with external VulkanTexture memory.\n");
-        exit(1);
-    }
-
-    return cuda_memory_pointer;
 }

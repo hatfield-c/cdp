@@ -3,7 +3,7 @@
 
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
-    this->viewport_renderer = new ViewportRenderer();
+    this->viewport_renderer = new ViewportRenderer(this->vulkan_pipeline->texture_list[1]);
 }
 
 void MainGui::Update() {
