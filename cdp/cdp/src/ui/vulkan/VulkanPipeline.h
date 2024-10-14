@@ -37,4 +37,5 @@ class VulkanPipeline {
 		bool Update();
 		void Render();
 		void Cleanup();
+		CUdeviceptr GetViewportImage();
 };

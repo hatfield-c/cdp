@@ -50,6 +50,6 @@ class VulkanTexture {
 		void CloseCommandBuffer(VkCommandBuffer command_buffer);
 		uint32_t FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties);
 		void RemoveTexture();
-		void ExportAsCuda();
+		CUdeviceptr ExportAsCuda();
 		void CheckCudaError(cudaError_enum result, const char* file, int line);
 };

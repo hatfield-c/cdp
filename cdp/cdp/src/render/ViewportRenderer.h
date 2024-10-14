@@ -7,14 +7,14 @@
 
 class ViewportRenderer {
 	public:
-		VulkanTexture* viewport_image;
+		CUdeviceptr viewport_image;
 
 		int N;
 		size_t size;
-		float* image;
-		float* image_cuda;
+		byte* image;
+		byte* image_cuda;
 
-		ViewportRenderer(VulkanTexture* viewport_image);
+		ViewportRenderer(CUdeviceptr viewport_image);
 
 		void Render();
 		void Cleanup();

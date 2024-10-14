@@ -28,9 +28,6 @@ bool VulkanTexture::LoadImage(const char* filename) {
     this->SendCopyImageCommand(command_buffer);
     this->CloseCommandBuffer(command_buffer);
 
-    //this->cuda_memory_address = this->ExportAsCuda();
-    //this->ExportAsCuda();
-
     return true;
 }
 
@@ -86,7 +83,6 @@ void VulkanTexture::AllocateImage() {
     VkMemoryRequirements vkMemoryRequirements = {};
     vkGetImageMemoryRequirements(this->vulkan_core->g_Device, this->vulkan_image, &vkMemoryRequirements);
     this->memory_size = vkMemoryRequirements.size;
-    printf("[vk Memory Size]: %u\n", this->memory_size);
 
     this->error = vkAllocateMemory(this->vulkan_core->g_Device, &alloc_info, this->vulkan_core->g_Allocator, &this->image_memory);
     this->vulkan_core->check_vk_result(this->error);
@@ -94,7 +90,7 @@ void VulkanTexture::AllocateImage() {
     this->vulkan_core->check_vk_result(this->error);
 }
 
-void VulkanTexture::ExportAsCuda() {
+CUdeviceptr VulkanTexture::ExportAsCuda() {
     PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR;
     fpGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(this->vulkan_core->g_Instance, "vkGetMemoryWin32HandleKHR");
 
@@ -109,13 +105,6 @@ void VulkanTexture::ExportAsCuda() {
     this->error = fpGetMemoryWin32HandleKHR(this->vulkan_core->g_Device, &vkMemoryGetWin32HandleInfoKHR, &handle);
     this->vulkan_core->check_vk_result(this->error);
 
-    //CUexternalMemory externalMemory{};
-    //CUDA_EXTERNAL_MEMORY_HANDLE_DESC handle_description{};
-
-    //handle_description.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32;
-    //handle_description.handle.win32.handle = handle;
-    //handle_description.size = this->memory_size;
-
     cudaExternalMemory_t cudaExtMemImageBuffer;
     cudaExternalMemoryHandleDesc cudaExtMemHandleDesc;
     memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
@@ -124,9 +113,7 @@ void VulkanTexture::ExportAsCuda() {
     cudaExtMemHandleDesc.handle.win32.handle = handle;
     cudaExtMemHandleDesc.size = this->memory_size;
 
-    printf("Handle: %u\n", handle);
     this->CheckCudaError((cudaError_enum)cudaImportExternalMemory(&cudaExtMemImageBuffer, &cudaExtMemHandleDesc), __FILE__, __LINE__);
-    printf("Handle: %u\n", handle);
 
     void* cuda_memory_pointer = NULL;
     
@@ -135,30 +122,11 @@ void VulkanTexture::ExportAsCuda() {
     buffer_description.offset = 0;
     buffer_description.size = this->memory_size;
 
-    printf("Dptr: %u\n", cuda_memory_pointer);
     this->CheckCudaError((cudaError_enum)cudaExternalMemoryGetMappedBuffer(&cuda_memory_pointer, cudaExtMemImageBuffer, &buffer_description), __FILE__, __LINE__);
-    printf("Dptr: %u\n", cuda_memory_pointer);
 
-    exit(0);
-    /*if (cuImportExternalMemory(&externalMemory, &handle_description) != CUDA_SUCCESS) {
-        printf("\n[Error]: Cuda could not import external VulkanTexture memory.\n");
-        exit(1);
-    }
+    CloseHandle(handle);
 
-    //CUdeviceptr cuda_memory_pointer;
-    /*
-    CUDA_EXTERNAL_MEMORY_BUFFER_DESC buffer_description;
-    buffer_description.flags = 0; // must be zero
-    buffer_description.offset = 0;
-    buffer_description.size = this->memory_size;
-
-    if (cuExternalMemoryGetMappedBuffer(&cuda_memory_pointer, externalMemory, &buffer_description) != CUDA_SUCCESS) {
-        printf("\n[Error]: Cuda could not map with external VulkanTexture memory.\n");
-        exit(1);
-    }
-    */
-    //CloseHandle(handle);
-    //return cuda_memory_pointer;
+    return (CUdeviceptr)cuda_memory_pointer;
 }
 
 void VulkanTexture::CreateImageView() {

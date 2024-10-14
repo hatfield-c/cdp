@@ -3,7 +3,9 @@
 
 MainGui::MainGui() {
     this->vulkan_pipeline = new VulkanPipeline();
-    this->viewport_renderer = new ViewportRenderer(this->vulkan_pipeline->texture_list[1]);
+
+    CUdeviceptr viewport_image = this->vulkan_pipeline->GetViewportImage();
+    this->viewport_renderer = new ViewportRenderer(viewport_image);
 }
 
 void MainGui::Update() {

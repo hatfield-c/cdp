@@ -2,6 +2,8 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-__global__ void RenderViewport_Kernel(float* A, int N);
+#include <windows.h>
 
-void RenderViewport(float* A, int N);
+__global__ void RenderViewport_Kernel(CUdeviceptr viewport_image, byte* A, int N);
+
+void RenderViewport(CUdeviceptr viewport_image, byte* A, int N);
