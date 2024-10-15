@@ -58,6 +58,7 @@ void MainGui::DrawBackground() {
 void MainGui::DrawViewport() {
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
     ImGui::SetNextWindowPos(ImVec2(30, 30), ImGuiCond_Once);
 
     ImGui::Begin("Render Viewport");
