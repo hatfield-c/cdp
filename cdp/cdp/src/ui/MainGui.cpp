@@ -1,11 +1,15 @@
 
 #include "MainGui.h"
 
-MainGui::MainGui() {
-    this->vulkan_pipeline = new VulkanPipeline();
+MainGui::MainGui(int camera_count) {
+    this->camera_count = camera_count;
 
-    CUdeviceptr viewport_image = this->vulkan_pipeline->GetViewportImage();
-    this->viewport_renderer = new ViewportRenderer(viewport_image);
+    for (int i = 0; i < this->camera_count; i++) {
+        std::string camera_label = "Camera " + std::to_string(i);
+        this->camera_labels.push_back(camera_label);
+    }
+
+    this->vulkan_pipeline = new VulkanPipeline(this->camera_count);
 }
 
 void MainGui::Update() {
@@ -64,6 +68,7 @@ void MainGui::DrawViewport() {
     ImGui::Begin("Render Viewport");
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
+    //ImGui::Image((ImTextureID)this->vulkan_pipeline->camera_textures[this->camera_index]->instance_descriptor, img_size);
     ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor, img_size);
 
     ImGui::End();
@@ -76,9 +81,8 @@ void MainGui::DrawInspector() {
 
     ImGui::Begin("Inspector");
 
-    if (ImGui::Button("Start Viewport")) {
-        this->viewport_renderer->Render();
-    }
+    this->ToggleButton("is_simulating", "Run Simulation", &this->is_simulating);
+    this->DrawCameraSelector();
 
     if (ImGui::CollapsingHeader("Metadata")) {
         ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->vulkan_core->io->Framerate);
@@ -129,11 +133,61 @@ void MainGui::DrawInspector() {
     ImGui::End();
 }
 
-void MainGui::Cleanup() {
-    printf("Cleaning Cuda...\n");
-    this->viewport_renderer->Cleanup();
-    printf("    Done!\n");
+void MainGui::ToggleButton(const char* str_id, const char* label, bool* v)
+{
+    ImVec4* colors = ImGui::GetStyle().Colors;
+    ImVec2 p = ImGui::GetCursorScreenPos();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
+    float height = ImGui::GetFrameHeight();
+    float width = height * 1.55f;
+    float radius = height * 0.50f;
+    float rounding = 0.2f;
+
+    ImGui::InvisibleButton(str_id, ImVec2(width, height));
+    if (ImGui::IsItemClicked()) *v = !*v;
+    ImGuiContext& gg = *GImGui;
+    float ANIM_SPEED = 0.085f;
+    if (gg.LastActiveId == gg.CurrentWindow->GetID(str_id))
+        float t_anim = ImSaturate(gg.LastActiveIdTimer / ANIM_SPEED);
+    if (ImGui::IsItemHovered())
+        draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), ImGui::GetColorU32(*v ? colors[ImGuiCol_ButtonActive] : ImVec4(0.78f, 0.78f, 0.78f, 1.0f)), height * rounding);
+    else
+        draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), ImGui::GetColorU32(*v ? colors[ImGuiCol_Button] : ImVec4(0.85f, 0.85f, 0.85f, 1.0f)), height * rounding);
+
+    ImVec2 center = ImVec2(radius + (*v ? 1 : 0) * (width - radius * 1.85f), radius);
+    draw_list->AddRectFilled(ImVec2((p.x + center.x) - 9.0f, p.y + 1.5f),
+        ImVec2((p.x + (width / 2) + center.x) - 9.0f, p.y + height - 1.5f), IM_COL32(255, 255, 255, 255), height * rounding);
+    
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text(label);
+}
+
+void MainGui::DrawCameraSelector() {
+    bool item_highlight = false;
+    int item_highlighted_idx = -1;
+
+    ImGui::Text("Camera Select");
+    if (ImGui::BeginListBox("listbox 1"))
+    {
+        for (int i = 0; i < this->camera_count; i++)
+        {
+            const bool is_selected = (this->camera_index == i);
+            if (ImGui::Selectable(this->camera_labels[i].c_str(), is_selected))
+                this->camera_index = i;
+
+            if (item_highlight && ImGui::IsItemHovered())
+                item_highlighted_idx = i;
+
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndListBox();
+    }
+}
+
+void MainGui::Cleanup() {
     printf("Cleaning Vulkan...\n");
     this->vulkan_pipeline->Cleanup();
     printf("    Done!\n");

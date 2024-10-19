@@ -1,6 +1,8 @@
 #include "VulkanCore.h"
 
-VulkanCore::VulkanCore() {
+VulkanCore::VulkanCore(int descriptor_count) {
+    this->descriptor_count = descriptor_count;
+
     glfwSetErrorCallback(VulkanCore::glfw_error_callback);
     if (!glfwInit()) {
         printf("GLFW: Failed during init\n");
@@ -119,7 +121,7 @@ void VulkanCore::SetupVulkan(ImVector<const char*> instance_extensions)
 {
     this->CreateInstance(instance_extensions);
     this->SetupDevice();
-    this->CreateDescriptorPool();
+    this->CreateDescriptorPool(this->descriptor_count);
 }
 
 void VulkanCore::CreateInstance(ImVector<const char*> instance_extensions) {
@@ -203,7 +205,7 @@ void VulkanCore::SetupDevice() {
     vkGetDeviceQueue(this->g_Device, this->g_QueueFamily, 0, &this->g_Queue);
 }
 
-void VulkanCore::CreateDescriptorPool() {
+void VulkanCore::CreateDescriptorPool(int max_sets) {
     // Create Descriptor Pool
     // The example only requires a single combined image sampler descriptor for the font image and only uses one descriptor set (for that)
     // If you wish to load e.g. additional textures you may need to alter pools sizes.
@@ -215,7 +217,7 @@ void VulkanCore::CreateDescriptorPool() {
     VkDescriptorPoolCreateInfo pool_info = {};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 3;
+    pool_info.maxSets = max_sets;
     pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes = pool_sizes;
     this->err = vkCreateDescriptorPool(this->g_Device, &pool_info, this->g_Allocator, &this->g_DescriptorPool);

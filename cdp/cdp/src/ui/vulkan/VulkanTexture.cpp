@@ -1,5 +1,4 @@
 #include "VulkanTexture.h"
-#include <vulkan/vulkan_win32.h>
 
 VulkanTexture::VulkanTexture(VulkanCore* vulkan_core) {
     this->vulkan_core = vulkan_core;

@@ -31,11 +31,12 @@ class VulkanPipeline {
 		VulkanRenderer* vulkan_renderer;
 		VulkanCleaner* vulkan_cleaner;
 
+		std::vector<VulkanTexture*> camera_textures;
 		std::vector<VulkanTexture*> texture_list;
 
-		VulkanPipeline();
+		VulkanPipeline(int camera_count);
 		bool Update();
 		void Render();
 		void Cleanup();
-		CUdeviceptr GetViewportImage();
+		std::vector<CUdeviceptr> GetCameraTextures();
 };

@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../../windows/WindowsSecurityAttributes.h"
+#include "../../system/WindowsSecurityAttributes.h"
 
 class VulkanCore {
 	public:
@@ -39,11 +39,13 @@ class VulkanCore {
 		int                      g_MinImageCount = 2;
 		bool                     g_SwapChainRebuild = false;
 
+		int descriptor_count = 0;
+
 		const std::vector<const char*> validation_layers = {
 			"VK_LAYER_KHRONOS_validation"
 		};
 
-		VulkanCore();
+		VulkanCore(int descriptor_count);
 		static void glfw_error_callback(int error, const char* description);
 		static void check_vk_result(VkResult err);
 		static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension);
@@ -51,7 +53,7 @@ class VulkanCore {
 		void SetupVulkan(ImVector<const char*> instance_extensions);
 		void CreateInstance(ImVector<const char*> instance_extensions);
 		void SetupDevice();
-		void CreateDescriptorPool();
+		void CreateDescriptorPool(int max_sets);
 		bool CheckValidationLayerSupport();
 		void SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int width, int height);
 };
