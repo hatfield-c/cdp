@@ -6,11 +6,13 @@ __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max)
     return index;
 }
 
-__global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data, VoxelData* space)
+__global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data)
 {
     //int index = blockDim.x * blockIdx.x + threadIdx.x;
 
     byte* image_data = camera_data.gpu_texture;
+
+    space_data.space_cuda[100] = VoxelData{ 1, 1 };
 
     for (int i = 0; i < 640; i++) {
         int index = GetIndexCWH(0, i, 200, 4, 640, 480);
@@ -28,6 +30,7 @@ __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data
 
     //if (i < N)
     //    A[i] = -420.69f;
+    
 }
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
@@ -37,6 +40,6 @@ void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     int threadsPerBlock = 1;
     int blocksPerGrid = 1;
 
-    RenderCamera_Kernel<<<blocksPerGrid, threadsPerBlock>>>(camera_data, world_space->space_data, world_space->space_cuda);
+    RenderCamera_Kernel<<<blocksPerGrid, threadsPerBlock>>>(camera_data, world_space->space_data);
 
 }

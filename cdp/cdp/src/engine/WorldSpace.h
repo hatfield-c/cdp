@@ -12,11 +12,10 @@
 class WorldSpace {
 	public:
 		SpaceData space_data;
-		VoxelData* space;
-		VoxelData* space_cuda;
-
+		
 		WorldSpace();
 		void LoadWorldVoxels();
 		void SetWorldRegion(std::vector<int> v0, std::vector<int> v1, VoxelData voxel_data);
+		void CheckCudaError(cudaError_enum result, const char* file, int line);
 		void Cleanup();
 };

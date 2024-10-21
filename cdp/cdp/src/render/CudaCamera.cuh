@@ -9,6 +9,6 @@
 #include "../engine/WorldSpace.h"
 #include "../entity/CameraData.h"
 
-__global__ void RenderCamera_Kernel(CameraData camera_data, VoxelData* voxel_data);
+__global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data, VoxelData* space);
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space);

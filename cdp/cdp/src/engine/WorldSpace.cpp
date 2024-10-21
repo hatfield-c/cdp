@@ -1,14 +1,18 @@
 #include "WorldSpace.h"
 
+#include <iostream>
+
 WorldSpace::WorldSpace() {
-	this->space_data.voxel_count = this->space_data.world_size.x * this->space_data.world_size.y * this->space_data.world_size.z;
-	this->space = new VoxelData[this->space_data.voxel_count];
+	this->space_data.voxel_count = (unsigned int)this->space_data.world_size.x * (unsigned int)this->space_data.world_size.y * (unsigned int)this->space_data.world_size.z;
+	this->space_data.space = new VoxelData[this->space_data.voxel_count];
 
 	this->LoadWorldVoxels();
 
-	int size = this->space_data.voxel_count * sizeof(VoxelData);
-	cudaMalloc(&this->space_cuda, size);
-	cudaMemcpy(this->space_cuda, this->space, size, cudaMemcpyHostToDevice);
+	unsigned int size = ((unsigned int)this->space_data.voxel_count) * sizeof(VoxelData);
+	//int size = 10 * sizeof(VoxelData);
+	printf("%u\n", size);
+	this->CheckCudaError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, size), __FILE__, __LINE__);
+	this->CheckCudaError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 }
 
 void WorldSpace::LoadWorldVoxels() {
@@ -38,13 +42,28 @@ void WorldSpace::SetWorldRegion(std::vector<int> lower, std::vector<int> upper, 
 					0, k, (int)this->space_data.world_size.z
 				);
 
-				this->space[index] = voxel_data;
+				this->space_data.space[index] = voxel_data;
 			}
 		}
 	}
 }
 
 void WorldSpace::Cleanup() {
-	cudaFree(this->space_cuda);
-	free(this->space);
+	cudaFree(this->space_data.space_cuda);
+	free(this->space_data.space);
+}
+
+void WorldSpace::CheckCudaError(cudaError_enum result, const char* file, int line) {
+	if (result) {
+		fprintf(
+			stderr,
+			"CUDA error in %s at line %d.\n    [Error:%d %s] %s\n",
+			file,
+			line,
+			static_cast<unsigned int>(result),
+			(const char*)cudaGetErrorName((cudaError_t)result),
+			cudaGetErrorString((cudaError_t)result)
+		);
+		exit(EXIT_FAILURE);
+	}
 }
