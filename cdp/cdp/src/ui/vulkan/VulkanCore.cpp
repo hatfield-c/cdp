@@ -47,7 +47,6 @@ VulkanCore::VulkanCore(int descriptor_count) {
     ImGuiIO* io = &(ImGui::GetIO());
     this->io = io;
     this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    this->io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
     ImGui::StyleColorsDark();
 

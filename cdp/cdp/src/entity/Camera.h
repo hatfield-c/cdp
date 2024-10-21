@@ -5,6 +5,7 @@
 #include "cuda.h"
 
 #include "../engine/WorldSpace.h"
+#include "../render/CudaCamera.cuh"
 #include "CameraData.h"
 
 class Camera {

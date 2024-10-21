@@ -146,8 +146,8 @@ int indexer::index012(int i_min, int i, int i_max, int j_min, int j, int j_max,
     value =
         index_min
         + (i - i_min)
-        + (i_max + 1 - i_min) * (j - j_min) *
-        +(i_max + 1 - i_min) * (j_max + 1 - j_min) * (k - k_min);
+        + (i_max + 1 - i_min) * (j - j_min)
+        + (i_max + 1 - i_min) * (j_max + 1 - j_min) * (k - k_min);
 
     return value;
 }

@@ -1,4 +1,4 @@
-#include "CudaRender.cuh"
+#include "CudaCamera.cuh"
 
 __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max) {
     int index = c + (w * c_max) + (h * c_max * w_max);
@@ -6,15 +6,11 @@ __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max)
     return index;
 }
 
-__global__ void RenderViewport_Kernel(CUdeviceptr viewport_image, byte* A, int N)
+__global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data, VoxelData* space)
 {
     //int index = blockDim.x * blockIdx.x + threadIdx.x;
 
-    byte* image_data = (byte*)viewport_image;
-
-    for (int i = 0; i < 32; i++) {
-        A[i] = image_data[i];
-    }
+    byte* image_data = camera_data.gpu_texture;
 
     for (int i = 0; i < 640; i++) {
         int index = GetIndexCWH(0, i, 200, 4, 640, 480);
@@ -34,13 +30,13 @@ __global__ void RenderViewport_Kernel(CUdeviceptr viewport_image, byte* A, int N
     //    A[i] = -420.69f;
 }
 
-void RenderViewport(CUdeviceptr viewport_image, byte* A, int N) {
+void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     //int threadsPerBlock = 32;
     //int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
      
     int threadsPerBlock = 1;
     int blocksPerGrid = 1;
 
-    RenderViewport_Kernel<<<blocksPerGrid, threadsPerBlock >>>(viewport_image, A, N);
+    RenderCamera_Kernel<<<blocksPerGrid, threadsPerBlock>>>(camera_data, world_space->space_data, world_space->space_cuda);
 
 }

@@ -26,6 +26,7 @@ ViewportRenderer::ViewportRenderer(CUdeviceptr viewport_image) {
 }
 
 void ViewportRenderer::Render() {
+    /*
     RenderViewport(this->viewport_image, this->image_cuda, 1);
     //RenderViewport(this->image_cuda, 5);
 
@@ -36,7 +37,7 @@ void ViewportRenderer::Render() {
     for (int i = 0; i < 32; i++) {
         printf("%d: %u\n", i, this->image[i]);
     }
-    
+    */
 }
 
 void ViewportRenderer::Cleanup() {

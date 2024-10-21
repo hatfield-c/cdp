@@ -2,7 +2,8 @@
 #include "VulkanPipeline.h"
 
 VulkanPipeline::VulkanPipeline(int camera_count) {
-    int descriptor_count = camera_count + 32;
+    int ui_texture_count = 3;
+    int descriptor_count = camera_count + ui_texture_count;
 
     this->vulkan_core = new VulkanCore(descriptor_count);
     this->vulkan_renderer = new VulkanRenderer(this->vulkan_core);

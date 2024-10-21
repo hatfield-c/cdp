@@ -2,16 +2,19 @@
 
 #include <string>
 #include <numbers>
+
 #include "../engine/Transform.h"
+
+typedef unsigned char byte;
 
 struct CameraData {
 	std::string name = "camera";
 	Transform::Transform transform{};
 	Transform::Vector2 resolution{ 640, 480 };
-	Transform::Vector2 fov{ std::numbers::pi / 2, std::numbers::pi / 2 };
-	float min_render_distance = 0.05;
-	float max_render_distance = 350;
+	Transform::Vector2 fov{ };
+	float min_render_distance = 0.05f;
+	float max_render_distance = 350.0f;
 
 	Transform::Vector3 target_offset{ 0, -15, 7 };
-	CUdeviceptr gpu_texture;
+	byte* gpu_texture;
 };

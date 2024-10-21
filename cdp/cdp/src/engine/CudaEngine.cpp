@@ -33,5 +33,5 @@ void CudaEngine::RenderUpdate() {
 }
 
 void CudaEngine::Cleanup() {
-
+	this->world_space->Cleanup();
 }

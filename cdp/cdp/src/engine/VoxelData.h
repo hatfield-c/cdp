@@ -1,6 +1,6 @@
 #pragma once
 
-struct Voxel {
+struct VoxelData {
 	int material_id = 0;
 	int entity_id = 0;
 };

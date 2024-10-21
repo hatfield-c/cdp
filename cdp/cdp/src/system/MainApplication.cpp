@@ -1,7 +1,7 @@
 #include "MainApplication.h"
 
 MainApplication::MainApplication() {
-    this->main_gui = new MainGui(3);
+    this->main_gui = new MainGui(1);
 
     std::vector<CUdeviceptr> camera_textures = this->main_gui->vulkan_pipeline->GetCameraTextures();
 

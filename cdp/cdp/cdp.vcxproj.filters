@@ -131,7 +131,7 @@
     <ClInclude Include="src\ui\vulkan\VulkanCleaner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\render\CudaRender.cuh" />
+    <ClInclude Include="src\render\CudaCamera.cuh" />
     <ClInclude Include="src\render\ViewportRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -153,7 +153,7 @@
     <ClInclude Include="src\entity\EntityInterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\Voxel.h">
+    <ClInclude Include="src\engine\VoxelData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\index\index.hpp">
@@ -171,8 +171,11 @@
     <ClInclude Include="src\entity\CameraData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\SpaceData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\render\CudaRender.cu" />
+    <CudaCompile Include="src\render\CudaCamera.cu" />
   </ItemGroup>
 </Project>

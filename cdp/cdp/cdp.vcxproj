@@ -79,6 +79,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\index;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,6 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\index;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +117,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\index;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +136,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\index;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -183,14 +187,15 @@
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\engine\CudaEngine.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
-    <ClInclude Include="src\engine\Voxel.h" />
+    <ClInclude Include="src\engine\SpaceData.h" />
+    <ClInclude Include="src\engine\VoxelData.h" />
     <ClInclude Include="src\engine\WorldSpace.h" />
     <ClInclude Include="src\entity\Camera.h" />
     <ClInclude Include="src\entity\CameraData.h" />
     <ClInclude Include="src\entity\DroneAlpha.h" />
     <ClInclude Include="src\engine\Transform.h" />
     <ClInclude Include="src\entity\EntityInterface.h" />
-    <ClInclude Include="src\render\CudaRender.cuh" />
+    <ClInclude Include="src\render\CudaCamera.cuh" />
     <ClInclude Include="src\render\ViewportRenderer.h" />
     <ClInclude Include="src\system\MainApplication.h" />
     <ClInclude Include="src\ui\MainGui.h" />
@@ -202,7 +207,7 @@
     <ClInclude Include="src\system\WindowsSecurityAttributes.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\render\CudaRender.cu" />
+    <CudaCompile Include="src\render\CudaCamera.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

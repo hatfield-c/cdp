@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "../ui/vulkan/VulkanTexture.h"
-#include "CudaRender.cuh"
 
 class ViewportRenderer {
 	public:

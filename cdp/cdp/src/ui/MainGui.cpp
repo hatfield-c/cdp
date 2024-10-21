@@ -13,6 +13,7 @@ MainGui::MainGui(int camera_count) {
 }
 
 void MainGui::Update() {
+    
     bool show_demo_window = true;
     
     bool is_renderable = this->vulkan_pipeline->Update();
@@ -21,11 +22,11 @@ void MainGui::Update() {
         return;
     }
     
-    //ImGui::ShowDemoWindow(&show_demo_window);
     this->DrawBackground();
     this->DrawViewport();
     this->DrawInspector();
-
+    //ImGui::ShowDemoWindow(&show_demo_window);
+    
     this->vulkan_pipeline->Render();
 }
 
@@ -68,9 +69,14 @@ void MainGui::DrawViewport() {
     ImGui::Begin("Render Viewport");
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
-    //ImGui::Image((ImTextureID)this->vulkan_pipeline->camera_textures[this->camera_index]->instance_descriptor, img_size);
-    ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor, img_size);
-
+    
+    if(this->is_simulating and this->camera_count > 0) {
+        ImGui::Image((ImTextureID)this->vulkan_pipeline->camera_textures[this->camera_index]->instance_descriptor, img_size);
+    }
+    else {
+        ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor, img_size);
+    }
+    
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -168,8 +174,8 @@ void MainGui::DrawCameraSelector() {
     bool item_highlight = false;
     int item_highlighted_idx = -1;
 
-    ImGui::Text("Camera Select");
-    if (ImGui::BeginListBox("listbox 1"))
+    ImGui::SeparatorText("Camera Select");
+    if (ImGui::BeginListBox("##camera_select"))
     {
         for (int i = 0; i < this->camera_count; i++)
         {
@@ -185,6 +191,7 @@ void MainGui::DrawCameraSelector() {
         }
         ImGui::EndListBox();
     }
+    ImGui::Separator();
 }
 
 void MainGui::Cleanup() {
