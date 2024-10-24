@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <iostream>
 
 Camera::Camera(std::string name, CUdeviceptr gpu_texture) {
 	this->camera_data.name = name;

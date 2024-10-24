@@ -8,38 +8,37 @@ __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max)
 
 __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data)
 {
-    //int index = blockDim.x * blockIdx.x + threadIdx.x;
+    int x_index = blockDim.x * blockIdx.x + threadIdx.x;
+    int y_index = blockDim.y * blockIdx.y + threadIdx.y;
+
+    if(x_index >= camera_data.resolution.x || y_index >= camera_data.resolution.y){
+        return;
+    }
 
     byte* image_data = camera_data.gpu_texture;
 
-    space_data.space_cuda[100] = VoxelData{ 1, 1 };
+    int gpu_index_r = GetIndexCWH(0, x_index, y_index, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_g = GetIndexCWH(1, x_index, y_index, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_b = GetIndexCWH(2, x_index, y_index, 4, camera_data.resolution.x, camera_data.resolution.y);
 
-    for (int i = 0; i < 640; i++) {
-        int index = GetIndexCWH(0, i, 200, 4, 640, 480);
-        image_data[index] = 255;
-
-        index = GetIndexCWH(1, i, 280, 4, 640, 480);
-        image_data[index] = 255;
-
-        index = GetIndexCWH(2, i, 360, 4, 640, 480);
-        image_data[index] = 255;
-
-        index = GetIndexCWH(3, i, 120, 4, 640, 480);
-        image_data[index] = 0;
-    }
-
-    //if (i < N)
-    //    A[i] = -420.69f;
+    image_data[gpu_index_r] = 255;
+    image_data[gpu_index_g] = 0;
+    image_data[gpu_index_b] = 0;
     
+    //space_data.space_cuda[100] = VoxelData{ 1, 1 };
+
 }
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
-    //int threadsPerBlock = 32;
-    //int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
-     
-    int threadsPerBlock = 1;
-    int blocksPerGrid = 1;
+    
+    Transform::Vector2 resolution = camera_data.resolution;
+    
+    dim3 threads_per_block(16, 16, 1);
 
-    RenderCamera_Kernel<<<blocksPerGrid, threadsPerBlock>>>(camera_data, world_space->space_data);
+    int x_blocks = ceil(resolution.x / threads_per_block.x);
+    int y_blocks = ceil(resolution.y / threads_per_block.y);
 
+    dim3 blocks_per_grid(x_blocks, y_blocks, 1);
+    
+    RenderCamera_Kernel<<<blocks_per_grid, threads_per_block >>>(camera_data, world_space->space_data);
 }

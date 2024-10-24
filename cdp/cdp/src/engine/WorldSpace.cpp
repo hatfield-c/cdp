@@ -49,7 +49,9 @@ void WorldSpace::SetWorldRegion(std::vector<int> lower, std::vector<int> upper, 
 }
 
 void WorldSpace::Cleanup() {
+	printf("    Freeing cuda memory...\n");
 	cudaFree(this->space_data.space_cuda);
+	printf("    Freeing cpu memory...\n");
 	free(this->space_data.space);
 }
 

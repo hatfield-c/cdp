@@ -33,5 +33,7 @@ void CudaEngine::RenderUpdate() {
 }
 
 void CudaEngine::Cleanup() {
+	printf("Cleaning CudaEngine...\n");
 	this->world_space->Cleanup();
+	printf("    Done!\n");
 }
