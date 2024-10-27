@@ -186,6 +186,7 @@
     <ClInclude Include="include\index\index.hpp" />
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\engine\CudaEngine.h" />
+    <ClInclude Include="src\engine\RaycastHitData.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
     <ClInclude Include="src\engine\SpaceData.h" />
     <ClInclude Include="src\engine\VoxelData.h" />

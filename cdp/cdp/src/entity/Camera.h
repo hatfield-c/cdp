@@ -11,6 +11,7 @@
 class Camera {
 	public:
 		CameraData camera_data{};
+		std::string name;
 
 		Camera(std::string name, CUdeviceptr gpu_texture);
 		void Render(WorldSpace* world_space);

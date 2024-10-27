@@ -8,7 +8,6 @@
 typedef unsigned char byte;
 
 struct CameraData {
-	std::string name = "camera";
 	Transform::Transform transform{};
 	Transform::Vector2 resolution{ 640, 480 };
 	Transform::Vector2 fov{ 1.4, 1.4 };
