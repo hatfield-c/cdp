@@ -8,7 +8,8 @@
 struct SpaceData {
 	const float indices_per_meter = 10;
 	Transform::Vector3 world_size{ 1000, 1000, 300 };
-	unsigned int voxel_count;
+	unsigned long long voxel_count;
+	unsigned long long memory_size;
 
 	VoxelData* space;
 	VoxelData* space_cuda;

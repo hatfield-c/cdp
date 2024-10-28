@@ -92,11 +92,9 @@ __device__ Transform::Vector3 RotatePoint(Transform::Vector3 position, Transform
     return result;
 }
 
-//__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 query_point, Transform::Vector3 ray_direction) {
-__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 query_point, Transform::Vector3 ray_direction) {
+__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 query_point, Transform::Vector3 ray_direction, Transform::Vector2 pixel_position) {
     
     RaycastHitData hit_data{};
-    
     VoxelData voxel_data{};
     Transform::Vector3 hit_position{};
     
@@ -117,7 +115,7 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
         int world_index = GetIndexCWH(x_index, y_index, z_index, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
 
         voxel_data = space_data.space_cuda[world_index];
-
+        
         hit_position.x = x_index;
         hit_position.y = y_index;
         hit_position.z = z_index;
@@ -126,11 +124,12 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
         hit_data.hit_voxel_data = voxel_data;
         hit_data.distance_traveled = distance_traveled;
 
-        if (voxel_data.material_id != 0) {
+        if (voxel_data.entity_id != 0) {
             break;
         }
-
+        
         distance_traveled += 1;
+
     }
     
     return hit_data;
@@ -140,6 +139,19 @@ __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max)
     int index = c + (w * c_max) + (h * c_max * w_max);
 
     return index;
+}
+
+__device__ void WriteRGBA(byte* image, CameraData camera_data, Transform::Vector2 pixel_position, Transform::Vector4 rgba) {
+    int gpu_index_r = GetIndexCWH(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_g = GetIndexCWH(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_b = GetIndexCWH(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_a = GetIndexCWH(3, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+
+    image[gpu_index_r] = rgba.x;
+    image[gpu_index_g] = rgba.y;
+    image[gpu_index_b] = rgba.z;
+    image[gpu_index_a] = rgba.w;
+
 }
 
 __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data)
@@ -153,32 +165,20 @@ __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data
     }
 
     byte* image_data = camera_data.gpu_texture;
+    Transform::Vector4 red_color{ 255, 0, 0, 255 };
+    Transform::Vector4 blue_color{ 0, 0, 255, 255 };
 
-    int gpu_index_r = GetIndexCWH(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    int gpu_index_g = GetIndexCWH(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    int gpu_index_b = GetIndexCWH(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-
-    image_data[gpu_index_r] = 255;
-    image_data[gpu_index_g] = 0;
-    image_data[gpu_index_b] = 0;
-
+    WriteRGBA(image_data, camera_data, pixel_position, red_color);
     Transform::Vector3 ray_direction = GetCameraRayDirection(camera_data, pixel_position);
-
+    
     Transform::Vector3 query_point{};
     query_point.x = camera_data.transform.position.x;
     query_point.y = camera_data.transform.position.y;
     query_point.z = camera_data.transform.position.z;
 
-    RaycastHitData hit_data = Raycast(space_data, camera_data, query_point, ray_direction);
+    RaycastHitData hit_data = Raycast(space_data, camera_data, query_point, ray_direction, pixel_position);
     
-    gpu_index_r = GetIndexCWH(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    gpu_index_g = GetIndexCWH(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    gpu_index_b = GetIndexCWH(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-
-    image_data[gpu_index_r] = 0;
-    image_data[gpu_index_g] = 0;
-    image_data[gpu_index_b] = 255;
-
+    WriteRGBA(image_data, camera_data, pixel_position, blue_color);
 }
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
@@ -193,4 +193,6 @@ void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     dim3 blocks_per_grid(x_blocks, y_blocks, 1);
     
     RenderCamera_Kernel<<<blocks_per_grid, threads_per_block >>>(camera_data, world_space->space_data);
+
+    world_space->CheckCudaError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
 }

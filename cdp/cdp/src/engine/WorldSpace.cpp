@@ -3,16 +3,22 @@
 #include <iostream>
 
 WorldSpace::WorldSpace() {
-	this->space_data.voxel_count = (unsigned int)this->space_data.world_size.x * (unsigned int)this->space_data.world_size.y * (unsigned int)this->space_data.world_size.z;
-	this->space_data.space = new VoxelData[this->space_data.voxel_count];
+	this->space_data.voxel_count = (unsigned long long)(this->space_data.world_size.x * this->space_data.world_size.y * this->space_data.world_size.z);
+	this->space_data.memory_size = this->space_data.voxel_count * sizeof(VoxelData);
+
+	this->space_data.space = (VoxelData*)malloc(this->space_data.memory_size);
+
+	printf("Voxel Count: %lld\n", this->space_data.voxel_count);
+	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
+	printf("    Total Memory: %.2f MB\n\n", this->space_data.memory_size / 1000000.0f);
 
 	this->LoadWorldVoxels();
+	VoxelData data = this->space_data.space[this->space_data.voxel_count - 1];
 
-	unsigned int size = ((unsigned int)this->space_data.voxel_count) * sizeof(VoxelData);
-	//int size = 10 * sizeof(VoxelData);
-	printf("%u\n", size);
-	this->CheckCudaError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, size), __FILE__, __LINE__);
-	this->CheckCudaError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+	//exit(0);
+
+	this->CheckCudaError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
+	this->CheckCudaError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 }
 
 void WorldSpace::LoadWorldVoxels() {
@@ -26,7 +32,8 @@ void WorldSpace::LoadWorldVoxels() {
 	lower = std::vector<int>{ 480, 480, 60 };
 	upper = std::vector<int>{ 520, 520, 110 };
 
-	ground_data = VoxelData{ 1, 0 };
+	//ground_data = VoxelData{ 1, Transform::Vector4{ 255, 255, 255, 255 } };
+	ground_data = VoxelData{ 1, 1 };
 
 	this->SetWorldRegion(lower, upper, ground_data);
 }
