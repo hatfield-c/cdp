@@ -12,47 +12,51 @@ WorldSpace::WorldSpace() {
 	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
 	printf("    Total Memory: %.2f MB\n\n", this->space_data.memory_size / 1000000.0f);
 
+	printf("Loading Voxel World...\n");
 	this->LoadWorldVoxels();
-	VoxelData data = this->space_data.space[this->space_data.voxel_count - 1];
-
-	//exit(0);
+	printf("    Done!\n");
 
 	this->CheckCudaError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
 	this->CheckCudaError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 }
 
 void WorldSpace::LoadWorldVoxels() {
-	std::vector<int> lower{ 0, 0, 0 };
-	std::vector<int> upper{ (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, 10 };
+	Transform::Vector3 lower{ 0, 0, 0 };
+	Transform::Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
 
-	VoxelData ground_data{ 0, 0 };
+	VoxelData init_data{ 0, Transform::Vector4{ 0, 0, 0, 0 } };
 
-	this->SetWorldRegion(lower, upper, ground_data);
+	this->SetWorldRegion(lower, upper, init_data);
 
-	lower = std::vector<int>{ 480, 480, 60 };
-	upper = std::vector<int>{ 520, 520, 110 };
+	lower = Transform::Vector3{ 480, 480, 60 };
+	upper = Transform::Vector3{ 520, 520, 110 };
 
-	//ground_data = VoxelData{ 1, Transform::Vector4{ 255, 255, 255, 255 } };
-	ground_data = VoxelData{ 1, 1 };
+	VoxelData ground_data{ 1, Transform::Vector4{ 255, 255, 255, 255 } };
 
 	this->SetWorldRegion(lower, upper, ground_data);
 }
 
-void WorldSpace::SetWorldRegion(std::vector<int> lower, std::vector<int> upper, VoxelData voxel_data) {
+void WorldSpace::SetWorldRegion(Transform::Vector3 lower, Transform::Vector3 upper, VoxelData voxel_data) {
 
-	for (int i = lower[0]; i < upper[0]; i++) {
-		for (int j = lower[1]; j < upper[1]; j++) {
-			for (int k = lower[2]; k < upper[2]; k++) {
-				int index = indexer::index012(
-					0, i, (int)this->space_data.world_size.x,
-					0, j, (int)this->space_data.world_size.y,
-					0, k, (int)this->space_data.world_size.z
-				);
+	for (int i = lower.x; i < upper.x; i++) {
+		for (int j = lower.y; j < upper.y; j++) {
+			for (int k = lower.z; k < upper.z; k++) {
+				int index = this->GetIndexCWH(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
 
-				this->space_data.space[index] = voxel_data;
+				this->space_data.space[index].entity_id = voxel_data.entity_id;
+				this->space_data.space[index].color.x = voxel_data.color.x;
+				this->space_data.space[index].color.y = voxel_data.color.y;
+				this->space_data.space[index].color.z = voxel_data.color.z;
+				this->space_data.space[index].color.w = voxel_data.color.w;
 			}
 		}
 	}
+}
+
+int WorldSpace::GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max) {
+	int index = c + (w * c_max) + (h * c_max * w_max);
+
+	return index;
 }
 
 void WorldSpace::Cleanup() {

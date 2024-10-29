@@ -75,9 +75,6 @@
     <ClCompile Include="src\entity\DroneAlpha.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="include\index\index.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\system\MainApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -154,9 +151,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\engine\VoxelData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\index\index.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\system\MainApplication.h">

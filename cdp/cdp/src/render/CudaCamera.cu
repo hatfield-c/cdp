@@ -29,9 +29,9 @@ __device__ Transform::Vector3 GetCameraRayDirection(CameraData camera_data, Tran
     screen_interpolation.y = ((2 * pixel_position.y) / camera_data.resolution.y) - 1;
 
     Transform::Vector3 ray_anchor{};
-    ray_anchor.x = fov_offset.x * screen_interpolation.x;
+    ray_anchor.x = 1;
     ray_anchor.y = fov_offset.y * screen_interpolation.y;
-    ray_anchor.z = 1;
+    ray_anchor.z = fov_offset.x * screen_interpolation.x;
 
     ray_anchor = RotatePoint(ray_anchor, camera_data.transform.rotation);
 
@@ -92,11 +92,16 @@ __device__ Transform::Vector3 RotatePoint(Transform::Vector3 position, Transform
     return result;
 }
 
-__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 query_point, Transform::Vector3 ray_direction, Transform::Vector2 pixel_position) {
+__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 ray_direction, Transform::Vector2 pixel_position) {
     
     RaycastHitData hit_data{};
     VoxelData voxel_data{};
     Transform::Vector3 hit_position{};
+
+    Transform::Vector3 query_point{};
+    query_point.x = camera_data.transform.position.x;
+    query_point.y = camera_data.transform.position.y;
+    query_point.z = camera_data.transform.position.z;
     
     float distance_traveled = 0;
     while (distance_traveled < camera_data.max_render_distance) {
@@ -120,9 +125,9 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
         hit_position.y = y_index;
         hit_position.z = z_index;
 
-        hit_data.hit_position = hit_position;
-        hit_data.hit_voxel_data = voxel_data;
-        hit_data.distance_traveled = distance_traveled;
+        hit_data.position = hit_position;
+        hit_data.voxel_data = voxel_data;
+        hit_data.distance = distance_traveled;
 
         if (voxel_data.entity_id != 0) {
             break;
@@ -168,17 +173,23 @@ __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data
     Transform::Vector4 red_color{ 255, 0, 0, 255 };
     Transform::Vector4 blue_color{ 0, 0, 255, 255 };
 
-    WriteRGBA(image_data, camera_data, pixel_position, red_color);
     Transform::Vector3 ray_direction = GetCameraRayDirection(camera_data, pixel_position);
     
-    Transform::Vector3 query_point{};
-    query_point.x = camera_data.transform.position.x;
-    query_point.y = camera_data.transform.position.y;
-    query_point.z = camera_data.transform.position.z;
-
-    RaycastHitData hit_data = Raycast(space_data, camera_data, query_point, ray_direction, pixel_position);
+    RaycastHitData hit_data = Raycast(space_data, camera_data, ray_direction, pixel_position);
+    float depth = 0;
     
-    WriteRGBA(image_data, camera_data, pixel_position, blue_color);
+    if (hit_data.voxel_data.entity_id == 1) {
+        depth = hit_data.distance / camera_data.max_render_distance;
+        depth = 255 * (1 - depth);
+
+        if (depth < 0) {
+            depth = 0;
+        }
+    }
+
+    Transform::Vector4 depth_color{ depth, depth, depth, 255 };
+
+    WriteRGBA(image_data, camera_data, pixel_position, depth_color);
 }
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
