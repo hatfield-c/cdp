@@ -1,6 +1,6 @@
 #include "CudaCamera.cuh"
 
-__device__ float Magnitude3(Transform::Vector3 vector) {
+__device__ float Magnitude3(Vector3 vector) {
     float magnitude = 0.0f;
     magnitude += vector.x * vector.x;
     magnitude += vector.y * vector.y;
@@ -9,7 +9,7 @@ __device__ float Magnitude3(Transform::Vector3 vector) {
     return sqrt(magnitude);
 }
 
-__device__ float Magnitude4(Transform::Vector4 vector) {
+__device__ float Magnitude4(Vector4 vector) {
     float magnitude = 0.0f;
     magnitude += vector.x * vector.x;
     magnitude += vector.y * vector.y;
@@ -19,23 +19,23 @@ __device__ float Magnitude4(Transform::Vector4 vector) {
     return sqrt(magnitude);
 }
 
-__device__ Transform::Vector3 GetCameraRayDirection(CameraData camera_data, Transform::Vector2 pixel_position) {
-    Transform::Vector2 fov_offset{};
+__device__ Vector3 GetCameraRayDirection(CameraData camera_data, Vector2 pixel_position) {
+    Vector2 fov_offset{};
     fov_offset.x = sinf(camera_data.fov.x / 2);
     fov_offset.y = sinf(camera_data.fov.y / 2);
 
-    Transform::Vector2 screen_interpolation{};
+    Vector2 screen_interpolation{};
     screen_interpolation.x = ((2 * pixel_position.x) / camera_data.resolution.x) - 1;
     screen_interpolation.y = ((2 * pixel_position.y) / camera_data.resolution.y) - 1;
 
-    Transform::Vector3 ray_anchor{};
+    Vector3 ray_anchor{};
     ray_anchor.x = 1;
     ray_anchor.y = fov_offset.y * screen_interpolation.y;
     ray_anchor.z = fov_offset.x * screen_interpolation.x;
 
     ray_anchor = RotatePoint(ray_anchor, camera_data.transform.rotation);
 
-    Transform::Vector3 ray_direction{};
+    Vector3 ray_direction{};
     float anchor_magnitude = Magnitude3(ray_anchor);
     ray_direction.x = ray_anchor.x / anchor_magnitude;
     ray_direction.y = ray_anchor.y / anchor_magnitude;
@@ -43,8 +43,8 @@ __device__ Transform::Vector3 GetCameraRayDirection(CameraData camera_data, Tran
 
     return ray_direction;
 }
-__device__ Transform::Vector4 GetQuaternionConjugate(Transform::Vector4 original) {
-    Transform::Vector4 conjugate{};
+__device__ Vector4 GetQuaternionConjugate(Vector4 original) {
+    Vector4 conjugate{};
     conjugate.x = -original.x;
     conjugate.y = -original.y;
     conjugate.z = -original.z;
@@ -53,8 +53,8 @@ __device__ Transform::Vector4 GetQuaternionConjugate(Transform::Vector4 original
     return conjugate;
 }
 
-__device__ Transform::Vector4 MultiplyQuaternions(Transform::Vector4 q0, Transform::Vector4 q1, bool is_normalized) {
-    Transform::Vector4 result{};
+__device__ Vector4 MultiplyQuaternions(Vector4 q0, Vector4 q1, bool is_normalized) {
+    Vector4 result{};
     
     result.w = (q0.w * q1.w) - (q0.x * q1.x) - (q0.y * q1.y) - (q0.z * q1.z);
     result.x = (q0.w * q1.x) + (q0.x * q1.w) + (q0.y * q1.z) - (q0.z * q1.y);
@@ -73,18 +73,18 @@ __device__ Transform::Vector4 MultiplyQuaternions(Transform::Vector4 q0, Transfo
     return result;
 }
 
-__device__ Transform::Vector3 RotatePoint(Transform::Vector3 position, Transform::Vector4 quaternion) {
-    Transform::Vector4 position_quaternized{};
+__device__ Vector3 RotatePoint(Vector3 position, Vector4 quaternion) {
+    Vector4 position_quaternized{};
     position_quaternized.x = position.x;
     position_quaternized.y = position.y;
     position_quaternized.z = position.z;
     position_quaternized.w = 0;
 
-    Transform::Vector4 conjugate = GetQuaternionConjugate(quaternion);
-    Transform::Vector4 rotated_points = MultiplyQuaternions(quaternion, position_quaternized, false);
+    Vector4 conjugate = GetQuaternionConjugate(quaternion);
+    Vector4 rotated_points = MultiplyQuaternions(quaternion, position_quaternized, false);
     rotated_points = MultiplyQuaternions(rotated_points, conjugate, false);
 
-    Transform::Vector3 result{};
+    Vector3 result{};
     result.x = rotated_points.x;
     result.y = rotated_points.y;
     result.z = rotated_points.z;
@@ -92,13 +92,13 @@ __device__ Transform::Vector3 RotatePoint(Transform::Vector3 position, Transform
     return result;
 }
 
-__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Transform::Vector3 ray_direction, Transform::Vector2 pixel_position) {
+__device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Vector3 ray_direction, Vector2 pixel_position) {
     
     RaycastHitData hit_data{};
     VoxelData voxel_data{};
-    Transform::Vector3 hit_position{};
+    Vector3 hit_position{};
 
-    Transform::Vector3 query_point{};
+    Vector3 query_point{};
     query_point.x = camera_data.transform.position.x;
     query_point.y = camera_data.transform.position.y;
     query_point.z = camera_data.transform.position.z;
@@ -146,7 +146,7 @@ __device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max)
     return index;
 }
 
-__device__ void WriteRGBA(byte* image, CameraData camera_data, Transform::Vector2 pixel_position, Transform::Vector4 rgba) {
+__device__ void WriteRGBA(byte* image, CameraData camera_data, Vector2 pixel_position, Vector4 rgba) {
     int gpu_index_r = GetIndexCWH(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
     int gpu_index_g = GetIndexCWH(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
     int gpu_index_b = GetIndexCWH(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
@@ -161,7 +161,7 @@ __device__ void WriteRGBA(byte* image, CameraData camera_data, Transform::Vector
 
 __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data)
 {
-    Transform::Vector2 pixel_position{};
+    Vector2 pixel_position{};
     pixel_position.x = blockDim.x * blockIdx.x + threadIdx.x;
     pixel_position.y = blockDim.y * blockIdx.y + threadIdx.y;
 
@@ -170,10 +170,10 @@ __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data
     }
 
     byte* image_data = camera_data.gpu_texture;
-    Transform::Vector4 red_color{ 255, 0, 0, 255 };
-    Transform::Vector4 blue_color{ 0, 0, 255, 255 };
+    Vector4 red_color{ 255, 0, 0, 255 };
+    Vector4 blue_color{ 0, 0, 255, 255 };
 
-    Transform::Vector3 ray_direction = GetCameraRayDirection(camera_data, pixel_position);
+    Vector3 ray_direction = GetCameraRayDirection(camera_data, pixel_position);
     
     RaycastHitData hit_data = Raycast(space_data, camera_data, ray_direction, pixel_position);
     float depth = 0;
@@ -187,14 +187,14 @@ __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data
         }
     }
 
-    Transform::Vector4 depth_color{ depth, depth, depth, 255 };
+    Vector4 depth_color{ depth, depth, depth, 255 };
 
     WriteRGBA(image_data, camera_data, pixel_position, depth_color);
 }
 
 void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     
-    Transform::Vector2 resolution = camera_data.resolution;
+    Vector2 resolution = camera_data.resolution;
     
     dim3 threads_per_block(16, 16, 1);
 

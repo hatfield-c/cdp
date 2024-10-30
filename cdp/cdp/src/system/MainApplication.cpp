@@ -9,9 +9,24 @@ MainApplication::MainApplication() {
 }
 
 void MainApplication::Run() {
+    bool is_simulating = false;
+
     while (!this->main_gui->IsWindowClosed()) {
         this->main_gui->Update();
-        this->engine->Update();
+
+        bool delta = (is_simulating != this->main_gui->is_simulating);
+
+        if (delta && !is_simulating) {
+            this->engine->Initialize();
+        }
+        else if (!delta && is_simulating) {
+            this->engine->Update();
+        }
+        else if(delta && is_simulating) {
+            this->engine->Reset();
+        }
+        
+        is_simulating = this->main_gui->is_simulating;
     }
 
     this->main_gui->Cleanup();

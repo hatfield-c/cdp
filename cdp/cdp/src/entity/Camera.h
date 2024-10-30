@@ -15,5 +15,4 @@ class Camera {
 
 		Camera(std::string name, CUdeviceptr gpu_texture);
 		void Render(WorldSpace* world_space);
-		Transform::Vector4 QuaternionFromEulerAngles(Transform::Vector3 angles);
 };

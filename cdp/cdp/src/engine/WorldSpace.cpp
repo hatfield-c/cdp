@@ -21,27 +21,27 @@ WorldSpace::WorldSpace() {
 }
 
 void WorldSpace::LoadWorldVoxels() {
-	Transform::Vector3 lower{ 0, 0, 0 };
-	Transform::Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
+	Vector3 lower{ 0, 0, 0 };
+	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
 
-	VoxelData init_data{ 0, Transform::Vector4{ 0, 0, 0, 0 } };
+	VoxelData init_data{ 0, Vector4{ 0, 0, 0, 0 } };
 
 	this->SetWorldRegion(lower, upper, init_data);
 
-	lower = Transform::Vector3{ 480, 480, 60 };
-	upper = Transform::Vector3{ 520, 520, 110 };
+	lower = Vector3{ 480, 480, 60 };
+	upper = Vector3{ 520, 520, 110 };
 
-	VoxelData ground_data{ 1, Transform::Vector4{ 255, 255, 255, 255 } };
+	VoxelData ground_data{ 1, Vector4{ 255, 255, 255, 255 } };
 
 	this->SetWorldRegion(lower, upper, ground_data);
 }
 
-void WorldSpace::SetWorldRegion(Transform::Vector3 lower, Transform::Vector3 upper, VoxelData voxel_data) {
+void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data) {
 
 	for (int i = lower.x; i < upper.x; i++) {
 		for (int j = lower.y; j < upper.y; j++) {
 			for (int k = lower.z; k < upper.z; k++) {
-				int index = this->GetIndexCWH(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
+				int index = FlatIndex3(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
 
 				this->space_data.space[index].entity_id = voxel_data.entity_id;
 				this->space_data.space[index].color.x = voxel_data.color.x;
@@ -51,12 +51,6 @@ void WorldSpace::SetWorldRegion(Transform::Vector3 lower, Transform::Vector3 upp
 			}
 		}
 	}
-}
-
-int WorldSpace::GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max) {
-	int index = c + (w * c_max) + (h * c_max * w_max);
-
-	return index;
 }
 
 void WorldSpace::Cleanup() {

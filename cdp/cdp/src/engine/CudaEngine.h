@@ -13,7 +13,9 @@ class CudaEngine {
 		void* drone;
 
 		CudaEngine(std::vector<CUdeviceptr> camera_textures);
+		void Initialize();
 		void Update();
+		void Reset();
 		void ScenarioUpdate();
 		void PhysicsUpdate();
 		void RenderUpdate();

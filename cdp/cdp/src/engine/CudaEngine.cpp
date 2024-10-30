@@ -12,14 +12,23 @@ CudaEngine::CudaEngine(std::vector<CUdeviceptr> camera_textures) {
 	this->world_space = new WorldSpace();
 }
 
+void CudaEngine::Initialize() {
+	this->camera_list[0]->camera_data.transform.position = Vector3{ 50, 500, 80 };
+	this->camera_list[0]->camera_data.transform.rotation = QuaternionFromEulerAngles(Vector3{ 0, 0, 0 });
+}
+
 void CudaEngine::Update() {
 	this->ScenarioUpdate();
 	this->PhysicsUpdate();
 	this->RenderUpdate();
 }
 
-void CudaEngine::ScenarioUpdate() {
+void CudaEngine::Reset() {
 
+}
+
+void CudaEngine::ScenarioUpdate() {
+	this->camera_list[0]->camera_data.transform.position.x += 1;
 }
 
 void CudaEngine::PhysicsUpdate() {
