@@ -14,15 +14,15 @@ void MainApplication::Run() {
     while (!this->main_gui->IsWindowClosed()) {
         this->main_gui->Update();
 
-        bool delta = (is_simulating != this->main_gui->is_simulating);
+        bool is_state_changed = (is_simulating != this->main_gui->is_simulating);
 
-        if (delta && !is_simulating) {
+        if (is_state_changed && !is_simulating) {
             this->engine->Initialize();
         }
-        else if (!delta && is_simulating) {
+        else if (!is_state_changed && is_simulating) {
             this->engine->Update();
         }
-        else if(delta && is_simulating) {
+        else if(is_state_changed && is_simulating) {
             this->engine->Reset();
         }
         

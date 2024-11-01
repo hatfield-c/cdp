@@ -43,11 +43,7 @@ void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_da
 			for (int k = lower.z; k < upper.z; k++) {
 				int index = FlatIndex3(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
 
-				this->space_data.space[index].entity_id = voxel_data.entity_id;
-				this->space_data.space[index].color.x = voxel_data.color.x;
-				this->space_data.space[index].color.y = voxel_data.color.y;
-				this->space_data.space[index].color.z = voxel_data.color.z;
-				this->space_data.space[index].color.w = voxel_data.color.w;
+				this->space_data.space[index] = voxel_data;
 			}
 		}
 	}
