@@ -10,11 +10,11 @@ typedef unsigned char byte;
 struct CameraData {
 	Transform transform{};
 	Vector2 resolution{ 640, 480 };
-	Vector2 fov{ 1.4, 1.4 };
-	Vector3 target_offset{ 0, -15, 7 };
+	Vector2 fov{ 1.57, 1.29 };
+	Vector3 target_offset{ -1, 1, 0 };
 
 	float min_render_distance = 0.05f;
-	float max_render_distance = 350.0f;
+	float max_render_distance = 350.0f / 2;
 
 	byte* gpu_texture;
 };

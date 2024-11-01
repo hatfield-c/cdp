@@ -43,9 +43,9 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
         int y_index = (int)query_point.y;
         int z_index = (int)query_point.z;
 
-        if (x_index < 0 || y_index < 0 || z_index < 0 || x_index >= space_data.world_size.x || y_index >= space_data.world_size.y || z_index >= space_data.world_size.z) {
-            break;
-        }
+        x_index = Transform::Clip(x_index, 0, (int)space_data.world_size.x - 1);
+        y_index = Transform::Clip(y_index, 0, (int)space_data.world_size.y - 1);
+        z_index = Transform::Clip(z_index, 0, (int)space_data.world_size.z - 1);
 
         int world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
 
@@ -71,6 +71,8 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
 }
 
 __device__ void WriteRGBA(byte* image, CameraData camera_data, Vector2 pixel_position, Vector4 rgba) {
+    pixel_position.y = camera_data.resolution.y - pixel_position.y - 1;
+
     int gpu_index_r = Indexer::FlatIndex3(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
     int gpu_index_g = Indexer::FlatIndex3(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
     int gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);

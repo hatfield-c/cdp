@@ -167,6 +167,18 @@ struct Transform {
 	Vector3 position{ 0, 0, 0 };
 	Vector4 rotation{ 0, 0, 0, 1 };
 
+	static __device__ int Clip(int value, int lower, int upper) {
+		if (value < lower) {
+			value = lower;
+		}
+
+		if (value > upper) {
+			value = upper;
+		}
+
+		return value;
+	}
+
 	static __device__ float Norm3(Vector3 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z);
 		norm_val = sqrt(norm_val);

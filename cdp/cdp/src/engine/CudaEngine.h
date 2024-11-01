@@ -4,7 +4,7 @@
 #include "cuda.h"
 
 #include "Transform.h"
-//#include "Quaternion.h"
+#include "Quaternion.h"
 #include "../entity/Camera.h"
 #include "WorldSpace.h"
 

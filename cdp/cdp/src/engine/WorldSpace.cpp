@@ -28,8 +28,8 @@ void WorldSpace::LoadWorldVoxels() {
 
 	this->SetWorldRegion(lower, upper, init_data);
 
-	lower = Vector3{ 480, 480, 60 };
-	upper = Vector3{ 520, 520, 110 };
+	lower = Vector3{ 480, 60, 480 };
+	upper = Vector3{ 520, 110, 520 };
 
 	VoxelData ground_data{ 1, Vector4{ 255, 255, 255, 255 } };
 

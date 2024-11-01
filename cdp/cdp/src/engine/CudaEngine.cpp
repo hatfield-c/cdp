@@ -15,8 +15,8 @@ CudaEngine::CudaEngine(std::vector<CUdeviceptr> camera_textures) {
 void CudaEngine::Initialize() {
 	//printf("(%.2f, %.2f, %.2f)\n", this->camera_list[0]->camera_data.transform.position.x, this->camera_list[0]->camera_data.transform.position.y, this->camera_list[0]->camera_data.transform.position.z);
 
-	this->camera_list[0]->camera_data.transform.position = Vector3{ 250, 500, 80 };
-	//this->camera_list[0]->camera_data.transform.rotation = QuaternionFromEulerAngles(Vector3{ 0, 0, 0 });
+	this->camera_list[0]->camera_data.transform.position = Vector3{ 400, 140, 500};
+	this->camera_list[0]->camera_data.transform.rotation = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 0, -0.5 });
 }
 
 void CudaEngine::Update() {
@@ -32,11 +32,15 @@ void CudaEngine::Reset() {
 }
 
 void CudaEngine::ScenarioUpdate() {
-	//this->camera_list[0]->camera_data.transform.position.x += 1;
+	Vector3 offset = this->camera_list[0]->camera_data.transform.position - Vector3{ 500, 80, 500 };
+	Vector4 rotation_amount = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 0.01, 0 });
+	Vector3 new_position = Quaternion::RotatePoint(offset, rotation_amount) + Vector3{ 500, 80, 500 };
 
-	Vector3 offset = this->camera_list[0]->camera_data.transform.position - Vector3{ 500, 500, 80 };
-	//Vector4 rotation_amount = QuaternionFromEulerAngles(Vector3{ 0, 0, 0.1 });
-	//Vector3 new_offset = RotatePoint(offset, rotation_amount);
+	this->camera_list[0]->camera_data.transform.position = new_position;
+
+	Vector4 camera_rotation = Quaternion::MultiplyQuaternions(rotation_amount, this->camera_list[0]->camera_data.transform.rotation, false);
+
+	this->camera_list[0]->camera_data.transform.rotation = camera_rotation;
 }
 
 void CudaEngine::PhysicsUpdate() {

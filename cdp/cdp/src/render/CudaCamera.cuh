@@ -4,6 +4,8 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+#include <algorithm>
+
 #include "../engine/Transform.h"
 #include "../engine/Quaternion.h"
 #include "../engine/Indexer.h"
