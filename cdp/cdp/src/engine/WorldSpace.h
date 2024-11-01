@@ -3,7 +3,7 @@
 #include"cuda.h"
 #include "cuda_runtime.h"
 
-#include "Indexing.h"
+#include "Indexer.h"
 #include "SpaceData.h"
 #include "VoxelData.h"
 

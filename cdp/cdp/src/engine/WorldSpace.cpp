@@ -41,7 +41,7 @@ void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_da
 	for (int i = lower.x; i < upper.x; i++) {
 		for (int j = lower.y; j < upper.y; j++) {
 			for (int k = lower.z; k < upper.z; k++) {
-				int index = FlatIndex3(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
+				int index = Indexer::FlatIndex3(i, j, k, (int)this->space_data.world_size.x, (int)this->space_data.world_size.y, (int)this->space_data.world_size.z);
 
 				this->space_data.space[index] = voxel_data;
 			}

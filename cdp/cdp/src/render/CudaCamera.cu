@@ -47,7 +47,7 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
             break;
         }
 
-        int world_index = GetIndexCWH(x_index, y_index, z_index, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
+        int world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
 
         voxel_data = space_data.space_cuda[world_index];
         
@@ -70,23 +70,16 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
     return hit_data;
 }
 
-__device__ int GetIndexCWH(int c, int w, int h, int c_max, int w_max, int h_max) {
-    int index = c + (w * c_max) + (h * c_max * w_max);
-
-    return index;
-}
-
 __device__ void WriteRGBA(byte* image, CameraData camera_data, Vector2 pixel_position, Vector4 rgba) {
-    int gpu_index_r = GetIndexCWH(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    int gpu_index_g = GetIndexCWH(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    int gpu_index_b = GetIndexCWH(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
-    int gpu_index_a = GetIndexCWH(3, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_r = Indexer::FlatIndex3(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_g = Indexer::FlatIndex3(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
+    int gpu_index_a = Indexer::FlatIndex3(3, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
 
     image[gpu_index_r] = rgba.x;
     image[gpu_index_g] = rgba.y;
     image[gpu_index_b] = rgba.z;
     image[gpu_index_a] = rgba.w;
-
 }
 
 __global__ void RenderCamera_Kernel(CameraData camera_data, SpaceData space_data)

@@ -81,9 +81,6 @@
     <ClCompile Include="src\entity\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\engine\Indexing.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\imgui\imconfig.h">
@@ -174,7 +171,7 @@
     <ClInclude Include="src\engine\RaycastHitData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\Indexing.h">
+    <ClInclude Include="src\engine\Indexer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\engine\Quaternion.h">
