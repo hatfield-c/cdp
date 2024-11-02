@@ -5,8 +5,12 @@
 *.cubin
 *.fatbin
 
-# [CDP] CudaPilot
+# Visual Studio
 
 cdp/.vs
 cdp/x64
 cdp/cdp/x64
+
+# [CDP] CudaPilot
+
+cdp/cdp/data/heightmaps/*
