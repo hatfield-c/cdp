@@ -119,7 +119,7 @@ void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     
     Vector2 resolution = camera_data.resolution;
     
-    dim3 threads_per_block(16, 16, 1);
+    dim3 threads_per_block(4, 4, 1);
 
     int x_blocks = ceil(resolution.x / (float)threads_per_block.x);
     int y_blocks = ceil(resolution.y / (float)threads_per_block.y);
