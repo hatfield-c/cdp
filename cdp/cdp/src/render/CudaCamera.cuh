@@ -4,8 +4,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include <algorithm>
-
 #include "../engine/Transform.h"
 #include "../engine/Quaternion.h"
 #include "../engine/Indexer.h"
@@ -14,6 +12,7 @@
 #include "../engine/SpaceData.h"
 #include "../engine/WorldSpace.h"
 #include "../entity/CameraData.h"
+#include "../system/CudaError.h"
 
 __device__ Vector3 GetCameraRayDirection(CameraData camera_data, Vector2 pixel_position);
 __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, Vector3 ray_direction, Vector2 pixel_position);

@@ -1,7 +1,5 @@
 #include "WorldSpace.h"
 
-#include <iostream>
-
 WorldSpace::WorldSpace() {
 	this->space_data.voxel_count = (unsigned long long)(this->space_data.world_size.x * this->space_data.world_size.y * this->space_data.world_size.z);
 	this->space_data.memory_size = this->space_data.voxel_count * sizeof(VoxelData);
@@ -12,28 +10,31 @@ WorldSpace::WorldSpace() {
 	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
 	printf("    Total Memory: %.2f MB\n\n", this->space_data.memory_size / 1000000.0f);
 
-	printf("Loading Voxel World...\n");
-	this->LoadWorldVoxels();
-	printf("    Done!\n");
+	printf("Initializing Voxel World...\n");
 
-	this->CheckCudaError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
-	this->CheckCudaError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+
+	this->InitWorldVoxels(true);
+
+	printf("    Done!\n");
 }
 
-void WorldSpace::LoadWorldVoxels() {
+void WorldSpace::InitWorldVoxels(bool is_debug_cube) {
 	Vector3 lower{ 0, 0, 0 };
 	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
-
 	VoxelData init_data{ 0, Vector4{ 0, 0, 0, 0 } };
 
-	this->SetWorldRegion(lower, upper, init_data);
+	AssignChunk(this->space_data, init_data, lower, upper);
 
-	lower = Vector3{ 480, 60, 480 };
-	upper = Vector3{ 520, 110, 520 };
+	if (is_debug_cube) {
+		lower = Vector3{ 480, 60, 480 };
+		upper = Vector3{ 520, 110, 520 };
+		VoxelData ground_data{ 1, Vector4{ 255, 255, 255, 255 } };
 
-	VoxelData ground_data{ 1, Vector4{ 255, 255, 255, 255 } };
-
-	this->SetWorldRegion(lower, upper, ground_data);
+		AssignChunk(this->space_data, ground_data, lower, upper);
+	}
+	
 }
 
 void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data) {
@@ -54,19 +55,4 @@ void WorldSpace::Cleanup() {
 	cudaFree(this->space_data.space_cuda);
 	printf("    Freeing cpu memory...\n");
 	free(this->space_data.space);
-}
-
-void WorldSpace::CheckCudaError(cudaError_enum result, const char* file, int line) {
-	if (result) {
-		fprintf(
-			stderr,
-			"CUDA error in %s at line %d.\n    [Error:%d %s] %s\n",
-			file,
-			line,
-			static_cast<unsigned int>(result),
-			(const char*)cudaGetErrorName((cudaError_t)result),
-			cudaGetErrorString((cudaError_t)result)
-		);
-		exit(EXIT_FAILURE);
-	}
 }

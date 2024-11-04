@@ -1,0 +1,49 @@
+#include "CudaWorld.cuh"
+
+__global__ void AssignChunk_Kernel(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
+    Vector3 local_offset{
+        blockDim.x * blockIdx.x + threadIdx.x,
+        blockDim.y * blockIdx.y + threadIdx.y,
+        blockDim.z * blockIdx.z + threadIdx.z
+    };
+
+    if (local_offset.x >= upper.x || local_offset.y >= upper.y || local_offset.z >= upper.z) {
+        return;
+    }
+
+    Vector3 voxel_indices = local_offset + lower;
+
+    if (voxel_indices.x >= space_data.world_size.x || voxel_indices.y >= space_data.world_size.y || voxel_indices.z >= space_data.world_size.z) {
+        return;
+    }
+
+    int space_index = Indexer::FlatIndex3(voxel_indices.x, voxel_indices.y, voxel_indices.z, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
+
+    space_data.space_cuda[space_index] = voxel_data;
+}
+
+void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
+    float x_size = upper.x - lower.x;
+    float y_size = upper.y - lower.y;
+    float z_size = upper.z - lower.z;
+
+    dim3 threads_per_block(4, 4, 4);
+
+    int x_blocks = ceil(x_size / (float)threads_per_block.x);
+    int y_blocks = ceil(y_size / (float)threads_per_block.y);
+    int z_blocks = ceil(z_size / (float)threads_per_block.z);
+
+    dim3 blocks_per_grid(x_blocks, y_blocks, z_blocks);
+
+	AssignChunk_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, voxel_data, lower, upper);
+}
+
+void AssignAll(SpaceData space_data, VoxelData voxel_data) {
+	Vector3 lower{ 0, 0, 0 };
+	Vector3 upper{ space_data.world_size.x, space_data.world_size.y, space_data.world_size.z };
+
+	AssignChunk(space_data, voxel_data, lower, upper);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+}

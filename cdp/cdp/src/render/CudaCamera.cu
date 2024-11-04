@@ -119,15 +119,15 @@ void RenderCamera(CameraData camera_data, WorldSpace* world_space) {
     
     Vector2 resolution = camera_data.resolution;
     
-    dim3 threads_per_block(4, 4, 1);
+    dim3 threads_per_block(8, 4, 1);
 
     int x_blocks = ceil(resolution.x / (float)threads_per_block.x);
     int y_blocks = ceil(resolution.y / (float)threads_per_block.y);
 
     dim3 blocks_per_grid(x_blocks, y_blocks, 1);
     
-    RenderCamera_Kernel<<<blocks_per_grid, threads_per_block >>>(camera_data, world_space->space_data);
+    RenderCamera_Kernel<<<blocks_per_grid, threads_per_block>>>(camera_data, world_space->space_data);
 
-    world_space->CheckCudaError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
-    world_space->CheckCudaError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 }

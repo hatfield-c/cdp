@@ -183,8 +183,13 @@
     <ClInclude Include="src\ui\GuiData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\CudaWorld.cuh" />
+    <ClInclude Include="src\system\CudaError.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\render\CudaCamera.cu" />
+    <CudaCompile Include="src\engine\CudaWorld.cu" />
   </ItemGroup>
 </Project>

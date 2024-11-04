@@ -112,7 +112,7 @@ CUdeviceptr VulkanTexture::ExportAsCuda() {
     cudaExtMemHandleDesc.handle.win32.handle = handle;
     cudaExtMemHandleDesc.size = this->memory_size;
 
-    this->CheckCudaError((cudaError_enum)cudaImportExternalMemory(&cudaExtMemImageBuffer, &cudaExtMemHandleDesc), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaImportExternalMemory(&cudaExtMemImageBuffer, &cudaExtMemHandleDesc), __FILE__, __LINE__);
 
     void* cuda_memory_pointer = NULL;
     
@@ -121,7 +121,7 @@ CUdeviceptr VulkanTexture::ExportAsCuda() {
     buffer_description.offset = 0;
     buffer_description.size = this->memory_size;
 
-    this->CheckCudaError((cudaError_enum)cudaExternalMemoryGetMappedBuffer(&cuda_memory_pointer, cudaExtMemImageBuffer, &buffer_description), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaExternalMemoryGetMappedBuffer(&cuda_memory_pointer, cudaExtMemImageBuffer, &buffer_description), __FILE__, __LINE__);
 
     CloseHandle(handle);
 
@@ -287,19 +287,4 @@ uint32_t VulkanTexture::FindMemoryType(uint32_t type_filter, VkMemoryPropertyFla
             return i;
 
     return 0xFFFFFFFF; // Unable to find memoryType
-}
-
-void VulkanTexture::CheckCudaError(cudaError_enum result, const char* file, int line) {
-    if (result) {
-        fprintf(
-            stderr, 
-            "CUDA error in %s at line %d.\n    [Error:%d %s] %s\n", 
-            file, 
-            line, 
-            static_cast<unsigned int>(result), 
-            (const char*)cudaGetErrorName((cudaError_t)result), 
-            cudaGetErrorString((cudaError_t)result)
-        );
-        exit(EXIT_FAILURE);
-    }
 }

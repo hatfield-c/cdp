@@ -16,6 +16,7 @@
 #include "stb_image.h"
 
 #include "VulkanCore.h"
+#include "../../system/CudaError.h"
 
 class VulkanTexture {
 	public:
@@ -51,5 +52,4 @@ class VulkanTexture {
 		uint32_t FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties);
 		void RemoveTexture();
 		CUdeviceptr ExportAsCuda();
-		void CheckCudaError(cudaError_enum result, const char* file, int line);
 };
