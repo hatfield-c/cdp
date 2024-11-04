@@ -9,6 +9,7 @@ CudaEngine::CudaEngine(std::vector<CUdeviceptr> camera_textures) {
 		this->camera_list.push_back(camera);
 	}
 
+	// todo: Parallelize world init
 	this->world_space = new WorldSpace();
 }
 
@@ -25,7 +26,7 @@ void CudaEngine::Update() {
 	this->RenderUpdate();
 }
 
-void CudaEngine::Reset() {
+void CudaEngine::End() {
 	this->Initialize();
 
 	this->cycle_count = 0;

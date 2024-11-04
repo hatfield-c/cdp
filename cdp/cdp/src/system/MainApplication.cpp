@@ -9,26 +9,29 @@ MainApplication::MainApplication() {
 }
 
 void MainApplication::Run() {
-    bool is_simulating = false;
 
     while (!this->main_gui->IsWindowClosed()) {
         this->main_gui->Update();
 
-        bool is_state_changed = (is_simulating != this->main_gui->is_simulating);
-
-        if (is_state_changed && !is_simulating) {
-            this->engine->Initialize();
-        }
-        else if (!is_state_changed && is_simulating) {
-            this->engine->Update();
-        }
-        else if(is_state_changed && is_simulating) {
-            this->engine->Reset();
-        }
-        
-        is_simulating = this->main_gui->is_simulating;
+        this->GuiAction(this->main_gui->gui_data);
     }
 
     this->main_gui->Cleanup();
     this->engine->Cleanup();
+}
+
+void MainApplication::GuiAction(GuiData gui_data) {
+    bool is_state_changed = (this->engine->is_simulating != this->main_gui->gui_data.is_simulating);
+
+    if (is_state_changed && !this->engine->is_simulating) {
+        this->engine->Initialize();
+    }
+    else if (!is_state_changed && this->engine->is_simulating) {
+        this->engine->Update();
+    }
+    else if (is_state_changed && this->engine->is_simulating) {
+        this->engine->End();
+    }
+
+    this->engine->is_simulating = this->main_gui->gui_data.is_simulating;
 }

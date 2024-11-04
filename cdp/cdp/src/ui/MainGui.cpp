@@ -2,6 +2,11 @@
 #include "MainGui.h"
 
 MainGui::MainGui(int camera_count) {
+    this->load_env_dialog.SetTitle("Load Environment");
+    this->save_env_dialog.SetTitle("Save Environment");
+    this->load_env_dialog.SetTypeFilters({ ".ply" });
+    this->save_env_dialog.SetTypeFilters({ ".ply" });
+
     this->camera_count = camera_count;
 
     for (int i = 0; i < this->camera_count; i++) {
@@ -13,9 +18,6 @@ MainGui::MainGui(int camera_count) {
 }
 
 void MainGui::Update() {
-    
-    bool show_demo_window = true;
-    
     bool is_renderable = this->vulkan_pipeline->Update();
 
     if (!is_renderable) {
@@ -25,9 +27,33 @@ void MainGui::Update() {
     this->DrawBackground();
     this->DrawViewport();
     this->DrawInspector();
+    //bool show_demo_window = true;
     //ImGui::ShowDemoWindow(&show_demo_window);
     
+    this->load_env_dialog.Display();
+    this->save_env_dialog.Display();
+
+    this->RefreshGuiData();
+
     this->vulkan_pipeline->Render();
+}
+
+void MainGui::RefreshGuiData() {
+    this->gui_data.is_window_open = !this->IsWindowClosed();
+
+    if (this->load_env_dialog.HasSelected()) {
+        this->gui_data.load_path = this->load_env_dialog.GetSelected().string();
+        this->load_env_dialog.ClearSelected();
+    } else {
+        this->gui_data.load_path = "";
+    }
+
+    if (this->save_env_dialog.HasSelected()) {
+        this->gui_data.save_path = this->save_env_dialog.GetSelected().string();
+        this->save_env_dialog.ClearSelected();
+    } else {
+        this->gui_data.save_path = "";
+    }
 }
 
 void MainGui::DrawBackground() {
@@ -70,7 +96,7 @@ void MainGui::DrawViewport() {
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
     
-    if(this->is_simulating and this->camera_count > 0) {
+    if(this->gui_data.is_simulating and this->camera_count > 0) {
         ImGui::Image((ImTextureID)this->vulkan_pipeline->camera_textures[this->camera_index]->instance_descriptor, img_size);
     }
     else {
@@ -87,13 +113,25 @@ void MainGui::DrawInspector() {
 
     ImGui::Begin("Inspector");
 
-    this->ToggleButton("is_simulating", "Run Simulation", &this->is_simulating);
-    this->DrawCameraSelector();
-
-    if (ImGui::CollapsingHeader("Metadata")) {
+    if (!ImGui::CollapsingHeader("Metadata")) {
         ImGui::Text("[ms/F]: %.2f", 1000.0f / this->vulkan_pipeline->vulkan_core->io->Framerate);
         ImGui::Text("[FP/s]: %.1f", this->vulkan_pipeline->vulkan_core->io->Framerate);
         ImGui::Text("[X, Y]: %.1f %.1f", this->vulkan_pipeline->vulkan_core->io->MousePos[0], this->vulkan_pipeline->vulkan_core->io->MousePos[1]);
+    }
+
+    if (!ImGui::CollapsingHeader("Simulation")) {
+        this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data.is_simulating);
+        this->DrawCameraSelector();
+    }
+
+    if (!ImGui::CollapsingHeader("Scenario")) {
+        if (ImGui::Button("Load Environment")) {
+            this->load_env_dialog.Open();
+        }
+
+        if (ImGui::Button("Save Environment")) {
+            this->save_env_dialog.Open();
+        }
     }
 
     if (ImGui::CollapsingHeader("Text")) {

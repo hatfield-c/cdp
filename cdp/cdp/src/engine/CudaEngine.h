@@ -11,6 +11,7 @@
 class CudaEngine {
 	public:
 		int cycle_count = 0;
+		bool is_simulating = false;
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		void* drone;
@@ -18,7 +19,7 @@ class CudaEngine {
 		CudaEngine(std::vector<CUdeviceptr> camera_textures);
 		void Initialize();
 		void Update();
-		void Reset();
+		void End();
 		void ScenarioUpdate();
 		void PhysicsUpdate();
 		void RenderUpdate();

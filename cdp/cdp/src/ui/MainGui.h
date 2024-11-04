@@ -6,19 +6,25 @@
 #include <vector>
 
 #include "imgui_internal.h"
+#include "imfilebrowser.h"
 
 #include "vulkan/VulkanPipeline.h"
 #include "vulkan/VulkanTexture.h"
 
+#include "GuiData.h"
 #include "../render/ViewportRenderer.h"
 
 class MainGui {
 	public:
-		bool is_simulating = false;
 		int camera_index = 0;
 		int camera_count = 0;
 
 		std::vector<std::string> camera_labels{};
+
+		GuiData gui_data{};
+
+		ImGui::FileBrowser load_env_dialog;
+		ImGui::FileBrowser save_env_dialog;
 
 		bool is_checked0 = false;
 		bool is_checked1 = false;
@@ -39,11 +45,12 @@ class MainGui {
 
 		MainGui(int camera_count);
 		void Update();
+		void RefreshGuiData();
 		void Cleanup();
-		bool IsWindowClosed();
 		void DrawBackground();
 		void DrawViewport();
 		void DrawInspector();
 		void ToggleButton(const char* str_id, const char* label, bool* value);
 		void DrawCameraSelector();
+		bool IsWindowClosed();
 };
