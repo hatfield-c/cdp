@@ -23,8 +23,12 @@ void MainApplication::Run() {
 void MainApplication::GuiAction(GuiData gui_data) {
     bool is_state_changed = (this->engine->is_simulating != this->main_gui->gui_data.is_simulating);
 
+    if (!gui_data.load_path.empty()) {
+        this->engine->world_space->LoadWorld(gui_data.load_path);
+    }
+
     if (is_state_changed && !this->engine->is_simulating) {
-        this->engine->Initialize();
+        this->engine->Start();
     }
     else if (!is_state_changed && this->engine->is_simulating) {
         this->engine->Update();

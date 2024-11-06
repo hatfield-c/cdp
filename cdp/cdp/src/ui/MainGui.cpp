@@ -128,7 +128,7 @@ void MainGui::DrawInspector() {
         if (ImGui::Button("Load Environment")) {
             this->load_env_dialog.Open();
         }
-
+        
         if (ImGui::Button("Save Environment")) {
             this->save_env_dialog.Open();
         }
@@ -235,7 +235,7 @@ void MainGui::DrawCameraSelector() {
 void MainGui::Cleanup() {
     printf("Cleaning Vulkan...\n");
     this->vulkan_pipeline->Cleanup();
-    printf("    Done!\n");
+    printf("    Done!\n\n");
 }
 
 bool MainGui::IsWindowClosed() {

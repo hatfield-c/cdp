@@ -15,12 +15,12 @@ WorldSpace::WorldSpace() {
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	this->InitWorldVoxels(true);
+	this->InitWorldMemory(false);
 
-	printf("    Done!\n");
+	printf("    Done!\n\n");
 }
 
-void WorldSpace::InitWorldVoxels(bool is_debug_cube) {
+void WorldSpace::InitWorldMemory(bool is_debug_cube) {
 	Vector3 lower{ 0, 0, 0 };
 	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
 	VoxelData init_data{ 0, Vector4{ 0, 0, 0, 0 } };
@@ -34,7 +34,44 @@ void WorldSpace::InitWorldVoxels(bool is_debug_cube) {
 
 		AssignChunk(this->space_data, ground_data, lower, upper);
 	}
+}
+
+void WorldSpace::LoadWorld(std::string load_path) {
+	printf("Loading world data...\n");
+	printf("    path: %s\n", load_path.c_str());
+	happly::PLYData plyIn(load_path);
 	
+	printf("    Extracting point cloud...\n");
+	std::vector<std::array<double, 3>> vertices = plyIn.getVertexPositions();
+	printf("        Total Points: %d\n", (int)vertices.size());
+
+	printf("    Writing points to GPU world space...\n");
+	this->WritePointsToCuda(vertices);
+
+	printf("    Done!\n\n");
+}
+
+void WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_list) {
+	int memory_size = point_list.size() * sizeof(Vector3);
+
+	VoxelData voxel_data{ 1, Vector4{ 255, 255, 255, 255 } };
+	Vector3* points = (Vector3*)malloc(memory_size);
+	Vector3* points_cuda = nullptr;
+
+	for (int i = 0; i < point_list.size(); i++) {
+		std::array<double, 3> point = point_list[i];
+
+		points[i] = Vector3{ 
+			(float)point[0] * this->space_data.indices_per_meter,
+			(float)point[2] * this->space_data.indices_per_meter,
+			(float)point[1] * this->space_data.indices_per_meter
+		};
+	}
+
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&points_cuda, memory_size), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(points_cuda, points, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+
+	AssignPoints(this->space_data, points_cuda, (int)point_list.size(), voxel_data);
 }
 
 void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data) {

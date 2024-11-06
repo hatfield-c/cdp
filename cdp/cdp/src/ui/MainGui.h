@@ -18,6 +18,7 @@ class MainGui {
 	public:
 		int camera_index = 0;
 		int camera_count = 0;
+		bool is_alert = false;
 
 		std::vector<std::string> camera_labels{};
 
@@ -52,5 +53,6 @@ class MainGui {
 		void DrawInspector();
 		void ToggleButton(const char* str_id, const char* label, bool* value);
 		void DrawCameraSelector();
+		void DrawAlert(std::string message);
 		bool IsWindowClosed();
 };
