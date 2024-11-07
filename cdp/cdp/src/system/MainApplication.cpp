@@ -5,7 +5,7 @@ MainApplication::MainApplication() {
 
     std::vector<CUdeviceptr> camera_textures = this->main_gui->vulkan_pipeline->GetCameraTextures();
 
-    this->engine = new CudaEngine(camera_textures);
+    this->engine = new CpuEngine(camera_textures);
 }
 
 void MainApplication::Run() {

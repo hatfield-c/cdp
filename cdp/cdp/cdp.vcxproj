@@ -155,7 +155,7 @@
     <ClCompile Include="include\imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\engine\CudaEngine.cpp" />
+    <ClCompile Include="src\engine\CpuEngine.cpp" />
     <ClCompile Include="src\engine\RigidBody.cpp" />
     <ClCompile Include="src\engine\WorldSpace.cpp" />
     <ClCompile Include="src\entity\Camera.cpp" />
@@ -184,7 +184,7 @@
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\stb\stb_image.h" />
-    <ClInclude Include="src\engine\CudaEngine.h" />
+    <ClInclude Include="src\engine\CpuEngine.h" />
     <ClInclude Include="src\engine\CudaWorld.cuh" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Quaternion.h" />

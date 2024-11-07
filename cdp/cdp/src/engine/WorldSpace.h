@@ -20,7 +20,7 @@ class WorldSpace {
 		SpaceData space_data;
 		
 		WorldSpace();
-		void InitWorldMemory(bool is_debug_cube);
+		void InitWorldMemory(bool is_debug_cube, bool is_floor);
 		void LoadWorld(std::string load_path);
 		void WritePointsToCuda(std::vector<std::array<double, 3>> point_list);
 		void SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data);

@@ -15,12 +15,12 @@ WorldSpace::WorldSpace() {
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	this->InitWorldMemory(false);
+	this->InitWorldMemory(false, true);
 
 	printf("    Done!\n\n");
 }
 
-void WorldSpace::InitWorldMemory(bool is_debug_cube) {
+void WorldSpace::InitWorldMemory(bool is_debug_cube, bool is_floor) {
 	Vector3 lower{ 0, 0, 0 };
 	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
 	VoxelData init_data{ 0, Vector4{ 0, 0, 0, 0 } };
@@ -30,9 +30,17 @@ void WorldSpace::InitWorldMemory(bool is_debug_cube) {
 	if (is_debug_cube) {
 		lower = Vector3{ 480, 60, 480 };
 		upper = Vector3{ 520, 110, 520 };
-		VoxelData ground_data{ 1, Vector4{ 255, 255, 255, 255 } };
+		VoxelData cube_data{ 1, Vector4{ 255, 255, 255, 255 } };
 
-		AssignChunk(this->space_data, ground_data, lower, upper);
+		AssignChunk(this->space_data, cube_data, lower, upper);
+	}
+
+	if (is_floor) {
+		lower = Vector3{ 0, 0, 0};
+		upper = Vector3{ this->space_data.world_size.x, 3, this->space_data.world_size.z };
+		VoxelData floor_data{ 1, Vector4{ 255, 255, 255, 255 } };
+
+		AssignChunk(this->space_data, floor_data, lower, upper);
 	}
 }
 

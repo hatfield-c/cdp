@@ -2,22 +2,31 @@
 
 __device__ Vector3 GetCameraRayDirection(CameraData camera_data, Vector2 pixel_position) {
     Vector2 fov_offset{
-        fov_offset.x = sinf(camera_data.fov.x / 2),
-        fov_offset.y = sinf(camera_data.fov.y / 2)
+        fov_offset.x = -sinf(camera_data.fov.x / 2),
+        fov_offset.y = -sinf(camera_data.fov.y / 2)
     };
 
     Vector2 screen_interpolation{
-        screen_interpolation.x = ((2 * pixel_position.x) / camera_data.resolution.x) - 1,
-        screen_interpolation.y = ((2 * pixel_position.y) / camera_data.resolution.y) - 1
+        ((2 * pixel_position.x) / camera_data.resolution.x) - 1,
+        ((2 * pixel_position.y) / camera_data.resolution.y) - 1
     };
 
     Vector3 ray_anchor{
-        ray_anchor.x = 1,
-        ray_anchor.y = fov_offset.y * screen_interpolation.y,
-        ray_anchor.z = fov_offset.x * screen_interpolation.x
+        1,
+        fov_offset.y * screen_interpolation.y,
+        fov_offset.x * screen_interpolation.x
     };
 
+    if (pixel_position.x == 320 && pixel_position.y == 240) {
+        //printf("(%.2f, %.2f, %.2f)\n", ray_anchor.x, ray_anchor.y, ray_anchor.z);
+    }
+
     ray_anchor = Quaternion::RotatePoint(ray_anchor, camera_data.transform.rotation);
+
+    if (pixel_position.x == 320 && pixel_position.y == 240) {
+        //printf("    (%.2f, %.2f, %.2f)\n", ray_anchor.x, ray_anchor.y, ray_anchor.z);
+    }
+
     Vector3 ray_direction = Transform::Unit3(ray_anchor);
 
     return ray_direction;
@@ -71,7 +80,8 @@ __device__ RaycastHitData Raycast(SpaceData space_data, CameraData camera_data, 
 }
 
 __device__ void WriteRGBA(byte* image, CameraData camera_data, Vector2 pixel_position, Vector4 rgba) {
-    pixel_position.y = camera_data.resolution.y - pixel_position.y - 1;
+    //pixel_position.x = camera_data.resolution.x - pixel_position.x - 1;
+    //pixel_position.y = camera_data.resolution.y - pixel_position.y - 1;
 
     int gpu_index_r = Indexer::FlatIndex3(0, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);
     int gpu_index_g = Indexer::FlatIndex3(1, pixel_position.x, pixel_position.y, 4, camera_data.resolution.x, camera_data.resolution.y);

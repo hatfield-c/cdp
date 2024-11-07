@@ -6,12 +6,12 @@
 
 #include "../ui/MainGui.h"
 #include "../ui/GuiData.h"
-#include "../engine/CudaEngine.h"
+#include "../engine/CpuEngine.h"
 
 class MainApplication {
 public:
 	MainGui* main_gui;
-	CudaEngine* engine;
+	CpuEngine* engine;
 
 	MainApplication();
 	void Run();

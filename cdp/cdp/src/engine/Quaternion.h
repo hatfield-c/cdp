@@ -4,11 +4,12 @@
 
 struct Quaternion {
     static __device__ Vector4 GetQuaternionConjugate(Vector4 original) {
-        Vector4 conjugate{};
-        conjugate.x = -original.x;
-        conjugate.y = -original.y;
-        conjugate.z = -original.z;
-        conjugate.w = original.w;
+        Vector4 conjugate{
+            -original.x,
+            -original.y,
+            -original.z,
+            original.w
+        };
 
         return conjugate;
     }
@@ -22,12 +23,7 @@ struct Quaternion {
         };
 
         if (is_normalized) {
-            float magnitude = Transform::Norm4(result);
-
-            result.w = result.w / magnitude;
-            result.x = result.x / magnitude;
-            result.y = result.y / magnitude;
-            result.z = result.z / magnitude;
+            result = Transform::Unit4(result);
         }
 
         return result;
@@ -55,15 +51,15 @@ struct Quaternion {
     }
 
     static __device__ Vector4 QuaternionFromEulerAngles(Vector3 angles) {
-        float alpha = angles.x / 2;
-        float beta = angles.y / 2;
-        float gamma = angles.z / 2;
+        float x = angles.x / 2;
+        float y = angles.y / 2;
+        float z = angles.z / 2;
 
         Vector4 quaternion{
-            (sin(alpha) * cos(beta) * cos(gamma)) - (cos(alpha) * sin(beta) * sin(gamma)),
-            (cos(alpha) * sin(beta) * cos(gamma)) + (sin(alpha) * cos(beta) * sin(gamma)),
-            (cos(alpha) * cos(beta) * sin(gamma)) - (sin(alpha) * sin(beta) * cos(gamma)),
-            (cos(alpha) * cos(beta) * cos(gamma)) + (sin(alpha) * sin(beta) * sin(gamma))
+            (sin(x) * cos(y) * cos(z)) - (cos(x) * sin(y) * sin(z)),
+            -(cos(x) * sin(y) * cos(z)) + (sin(x) * cos(y) * sin(z)),
+            (cos(x) * cos(y) * sin(z)) - (sin(x) * sin(y) * cos(z)),
+            (cos(x) * cos(y) * cos(z)) + (sin(x) * sin(y) * sin(z))
         };
 
         return quaternion;
@@ -74,7 +70,7 @@ struct Quaternion {
 
         Vector4 quaternion{
             sin_val * axis.x,
-            sin_val * axis.y,
+            -sin_val * axis.y,
             sin_val * axis.z,
             cos(angle / 2),
         };

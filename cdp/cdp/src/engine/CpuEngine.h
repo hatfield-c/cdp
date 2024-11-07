@@ -8,7 +8,7 @@
 #include "../entity/Camera.h"
 #include "WorldSpace.h"
 
-class CudaEngine {
+class CpuEngine {
 	public:
 		int cycle_count = 0;
 		bool is_simulating = false;
@@ -16,7 +16,7 @@ class CudaEngine {
 		WorldSpace* world_space;
 		void* drone;
 
-		CudaEngine(std::vector<CUdeviceptr> camera_textures);
+		CpuEngine(std::vector<CUdeviceptr> camera_textures);
 		void Start();
 		void Update();
 		void End();

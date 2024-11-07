@@ -14,7 +14,7 @@ struct CameraData {
 	Vector3 target_offset{ -1, 1, 0 };
 
 	float min_render_distance = 0.05f;
-	float max_render_distance = 350.0f / 2;
+	float max_render_distance = 350.0f;
 
 	byte* gpu_texture;
 };
