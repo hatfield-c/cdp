@@ -87,12 +87,31 @@ void MainGui::DrawBackground() {
 }
 
 void MainGui::DrawViewport() {
+    ImGuiWindowFlags window_settings = ImGuiWindowFlags_MenuBar;
+    bool is_open;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
     ImGui::SetNextWindowPos(ImVec2(30, 30), ImGuiCond_Once);
 
-    ImGui::Begin("Render Viewport");
+    ImGui::Begin("Render Viewport", &is_open, ImGuiWindowFlags_MenuBar);
+
+    if (ImGui::BeginMenuBar()){
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Load Environment")) {
+                this->load_env_dialog.Open();
+            }
+
+            if (ImGui::MenuItem("Save Environment")) {
+                this->save_env_dialog.Open();
+            }
+
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+    
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
     
@@ -124,54 +143,9 @@ void MainGui::DrawInspector() {
         this->DrawCameraSelector();
     }
 
-    if (!ImGui::CollapsingHeader("Scenario")) {
-        if (ImGui::Button("Load Environment")) {
-            this->load_env_dialog.Open();
-        }
-        
-        if (ImGui::Button("Save Environment")) {
-            this->save_env_dialog.Open();
-        }
-    }
-
-    if (ImGui::CollapsingHeader("Text")) {
-        ImGui::Text("This is some useful text.");
-        ImGui::Text("This is some useful text.");
-        ImGui::Text("This is some useful text.");
-    }
-
-    if (ImGui::CollapsingHeader("Checkbox")) {
-        ImGui::Checkbox("Checkbox0", &this->is_checked0);
-        ImGui::Checkbox("Checkbox1", &this->is_checked1);
-        ImGui::Checkbox("Checkbox2", &this->is_checked2);
-    }
-
-    if (ImGui::CollapsingHeader("Slider")) {
-        ImGui::SliderFloat("Slider0", &this->slider0, 0.0f, 1.0f);
-        ImGui::SliderFloat("Slider1", &this->slider1, 0.0f, 1.0f);
-        ImGui::SliderFloat("Slider2", &this->slider2, 0.0f, 1.0f);
-    }
-
-    if (ImGui::CollapsingHeader("Colors")) {
-        ImGui::ColorEdit3("desktop", (float*)&this->desktop_color);
-        ImGui::ColorEdit4("Color0", (float*)&this->color0);
-        ImGui::ColorEdit4("Color1", (float*)&this->color1);
-        ImGui::ColorEdit4("Color2", (float*)&this->color2);
-    }
-
-    if (ImGui::CollapsingHeader("Buttons")) {
-        int empty = 0;
-        if (ImGui::Button("Button0")) {
-            empty = 1;
-        }
-
-        if (ImGui::Button("Button1")) {
-            empty = 2;
-        }
-
-        if (ImGui::Button("Button2")) {
-            empty = 3;
-        }
+    if (!ImGui::CollapsingHeader("Render")) {
+        ImGui::Text("Position");
+        ImGui::Text("Orientation");
     }
 
     ImGui::End();
