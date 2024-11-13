@@ -12,10 +12,13 @@
 #include "vulkan/VulkanTexture.h"
 
 #include "GuiData.h"
-#include "../render/ViewportRenderer.h"
 
 class MainGui {
 	public:
+		int render_position[3] = { 0, 0, 0 };
+		float render_rotation[3] = { 0, 0, 0 };
+		int render_index = 0;
+
 		int camera_index = 0;
 		int camera_count = 0;
 		bool is_alert = false;

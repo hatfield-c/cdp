@@ -57,9 +57,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\render\ViewportRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\system\WindowsSecurityAttributes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -76,9 +73,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\system\MainApplication.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\entity\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -128,10 +122,7 @@
     <ClInclude Include="src\ui\vulkan\VulkanCleaner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\render\CudaCamera.cuh" />
-    <ClInclude Include="src\render\ViewportRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClInclude Include="src\engine\cuda\CudaCamera.cuh" />
     <ClInclude Include="src\system\WindowsSecurityAttributes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -187,9 +178,12 @@
     <ClInclude Include="src\system\CudaError.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\Physics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\render\CudaCamera.cu" />
+    <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\CudaWorld.cu" />
   </ItemGroup>
 </Project>

@@ -41,6 +41,34 @@ void MainGui::Update() {
 void MainGui::RefreshGuiData() {
     this->gui_data.is_window_open = !this->IsWindowClosed();
 
+    Vector3 gui_position_data{
+        this->render_position[0],
+        this->render_position[1],
+        this->render_position[2]
+    };
+    Vector3 gui_rotation_data{
+        this->render_rotation[0],
+        this->render_rotation[1],
+        this->render_rotation[2]
+    };
+    int gui_index_data = this->render_index;
+
+    bool is_position_changed = gui_position_data != this->gui_data.render_position;
+    bool is_rotation_changed = gui_rotation_data != this->gui_data.render_rotation;
+    bool is_index_changed = gui_index_data != this->gui_data.render_index;
+
+    if (is_position_changed || is_rotation_changed) {
+
+    }
+
+    if (is_index_changed) {
+
+    }
+
+    this->gui_data.render_position = gui_position_data;
+    this->gui_data.render_rotation = gui_rotation_data;
+    this->gui_data.render_index = gui_index_data;
+
     if (this->load_env_dialog.HasSelected()) {
         this->gui_data.load_path = this->load_env_dialog.GetSelected().string();
         this->load_env_dialog.ClearSelected();
@@ -144,8 +172,22 @@ void MainGui::DrawInspector() {
     }
 
     if (!ImGui::CollapsingHeader("Render")) {
+        ImGui::AlignTextToFramePadding();
         ImGui::Text("Position");
-        ImGui::Text("Orientation");
+        ImGui::SameLine();
+        ImGui::InputInt3("", this->render_position);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Rotation");
+        ImGui::SameLine();
+        ImGui::InputFloat3("", this->render_rotation);
+
+        ImGui::Separator();
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("IHM Index");
+        ImGui::SameLine();
+        ImGui::InputFloat3("", this->render_rotation);
     }
 
     ImGui::End();

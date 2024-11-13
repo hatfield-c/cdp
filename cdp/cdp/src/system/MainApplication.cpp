@@ -28,13 +28,13 @@ void MainApplication::GuiAction(GuiData gui_data) {
     }
 
     if (is_state_changed && !this->engine->is_simulating) {
-        this->engine->Start();
+        this->engine->Start(gui_data);
     }
     else if (!is_state_changed && this->engine->is_simulating) {
-        this->engine->Update();
+        this->engine->Update(gui_data);
     }
     else if (is_state_changed && this->engine->is_simulating) {
-        this->engine->End();
+        this->engine->End(gui_data);
     }
 
     this->engine->is_simulating = this->main_gui->gui_data.is_simulating;

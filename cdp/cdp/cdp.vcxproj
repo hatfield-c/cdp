@@ -158,12 +158,10 @@
     <ClCompile Include="src\engine\CpuEngine.cpp" />
     <ClCompile Include="src\engine\RigidBody.cpp" />
     <ClCompile Include="src\engine\WorldSpace.cpp" />
-    <ClCompile Include="src\entity\Camera.cpp" />
     <ClCompile Include="src\entity\DroneAlpha.cpp" />
     <ClCompile Include="src\main.cpp">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="src\render\ViewportRenderer.cpp" />
     <ClCompile Include="src\system\MainApplication.cpp" />
     <ClCompile Include="src\ui\MainGui.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp" />
@@ -187,6 +185,7 @@
     <ClInclude Include="src\engine\CpuEngine.h" />
     <ClInclude Include="src\engine\CudaWorld.cuh" />
     <ClInclude Include="src\engine\Indexer.h" />
+    <ClInclude Include="src\engine\Physics.h" />
     <ClInclude Include="src\engine\Quaternion.h" />
     <ClInclude Include="src\engine\RaycastHitData.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
@@ -198,8 +197,7 @@
     <ClInclude Include="src\entity\DroneAlpha.h" />
     <ClInclude Include="src\engine\Transform.h" />
     <ClInclude Include="src\entity\EntityInterface.h" />
-    <ClInclude Include="src\render\CudaCamera.cuh" />
-    <ClInclude Include="src\render\ViewportRenderer.h" />
+    <ClInclude Include="src\engine\cuda\CudaCamera.cuh" />
     <ClInclude Include="src\system\CudaError.h" />
     <ClInclude Include="src\system\MainApplication.h" />
     <ClInclude Include="src\ui\GuiData.h" />
@@ -213,7 +211,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\CudaWorld.cu" />
-    <CudaCompile Include="src\render\CudaCamera.cu" />
+    <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -81,6 +81,23 @@ struct Vector3 {
 
 		return result;
 	}
+
+	__device__ bool& operator==(Vector3 operand) {
+		bool result = this->x == operand.x;
+		result &= this->y == operand.y;
+		result &= this->z == operand.z;
+
+		return result;
+	}
+
+	__device__ bool& operator!=(Vector3 operand) {
+		bool result = this->x == operand.x;
+		result &= this->y == operand.y;
+		result &= this->z == operand.z;
+		result = !result;
+
+		return result;
+	}
 };
 
 struct Vector4 {

@@ -7,6 +7,9 @@
 #include "Quaternion.h"
 #include "../entity/Camera.h"
 #include "WorldSpace.h"
+#include "../ui/GuiData.h"
+
+#include "cuda/CudaCamera.cuh"
 
 class CpuEngine {
 	public:
@@ -17,11 +20,11 @@ class CpuEngine {
 		void* drone;
 
 		CpuEngine(std::vector<CUdeviceptr> camera_textures);
-		void Start();
-		void Update();
-		void End();
-		void ScenarioUpdate();
-		void PhysicsUpdate();
-		void RenderUpdate();
+		void Start(GuiData gui_data);
+		void Update(GuiData gui_data);
+		void End(GuiData gui_data);
+		void ScenarioUpdate(GuiData gui_data);
+		void PhysicsUpdate(GuiData gui_data);
+		void RenderUpdate(GuiData gui_data);
 		void Cleanup();
 };

@@ -17,7 +17,7 @@ __global__ void AssignChunk_Kernel(SpaceData space_data, VoxelData voxel_data, V
         return;
     }
 
-    int space_index = Indexer::FlatIndex3(voxel_indices.x, voxel_indices.y, voxel_indices.z, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
+    int space_index = Indexer::FlatIndex3(voxel_indices.x, voxel_indices.y, voxel_indices.z, space_data.world_size.x, space_data.world_size.y);
 
     space_data.space_cuda[space_index] = voxel_data;
 }
@@ -35,7 +35,7 @@ __global__ void AssignPoints_Kernel(SpaceData space_data, Vector3* points, int p
         return;
     }
 
-    int space_index = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size.x, space_data.world_size.y, space_data.world_size.z);
+    int space_index = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size.x, space_data.world_size.y);
 
     space_data.space_cuda[space_index] = voxel_data;
 }
