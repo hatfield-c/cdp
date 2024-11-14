@@ -175,19 +175,19 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Position");
         ImGui::SameLine();
-        ImGui::InputInt3("", this->render_position);
+        ImGui::InputInt3("##ihm_position", this->render_position);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Rotation");
         ImGui::SameLine();
-        ImGui::InputFloat3("", this->render_rotation);
+        ImGui::InputFloat3("##ihm_rotation", this->render_rotation);
 
         ImGui::Separator();
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("IHM Index");
         ImGui::SameLine();
-        ImGui::InputFloat3("", this->render_rotation);
+        ImGui::InputFloat3("##ihm_index", this->render_rotation);
     }
 
     ImGui::End();

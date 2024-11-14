@@ -1,0 +1,8 @@
+#pragma once
+
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
+//__global__ void GenerateIhm_Kernel(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper);
+//void GenerateIhm(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper);

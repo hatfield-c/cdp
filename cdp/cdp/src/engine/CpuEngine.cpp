@@ -1,6 +1,7 @@
 #include "CpuEngine.h"
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> camera_textures) {
+	this->ihm_generator.Init(1);
 
 	for (int i = 0; i < camera_textures.size(); i++) {
 		CUdeviceptr gpu_texture = camera_textures[i];

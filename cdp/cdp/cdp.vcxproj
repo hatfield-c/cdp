@@ -184,6 +184,8 @@
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\engine\CpuEngine.h" />
     <ClInclude Include="src\engine\CudaWorld.cuh" />
+    <ClInclude Include="src\engine\ihm\CudaIhm.cuh" />
+    <ClInclude Include="src\engine\ihm\IhmGenerator.h" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Physics.h" />
     <ClInclude Include="src\engine\Quaternion.h" />
@@ -193,7 +195,6 @@
     <ClInclude Include="src\engine\VoxelData.h" />
     <ClInclude Include="src\engine\WorldSpace.h" />
     <ClInclude Include="src\entity\Camera.h" />
-    <ClInclude Include="src\entity\CameraData.h" />
     <ClInclude Include="src\entity\DroneAlpha.h" />
     <ClInclude Include="src\engine\Transform.h" />
     <ClInclude Include="src\entity\EntityInterface.h" />
@@ -212,6 +213,7 @@
   <ItemGroup>
     <CudaCompile Include="src\engine\CudaWorld.cu" />
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
+    <CudaCompile Include="src\engine\ihm\CudaIhm.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

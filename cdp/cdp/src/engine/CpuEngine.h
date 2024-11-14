@@ -5,8 +5,9 @@
 
 #include "Transform.h"
 #include "Quaternion.h"
-#include "../entity/Camera.h"
 #include "WorldSpace.h"
+#include "../entity/Camera.h"
+#include "ihm/IhmGenerator.h"
 #include "../ui/GuiData.h"
 
 #include "cuda/CudaCamera.cuh"
@@ -17,7 +18,7 @@ class CpuEngine {
 		bool is_simulating = false;
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
-		void* drone;
+		IhmGenerator ihm_generator{};
 
 		CpuEngine(std::vector<CUdeviceptr> camera_textures);
 		void Start(GuiData gui_data);
