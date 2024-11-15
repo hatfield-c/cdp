@@ -3,7 +3,7 @@
 
 VulkanPipeline::VulkanPipeline(int camera_count) {
     int ui_texture_count = 3;
-    int descriptor_count = camera_count + ui_texture_count;
+    int descriptor_count = (3 * camera_count) + ui_texture_count;
 
     this->vulkan_core = new VulkanCore(descriptor_count);
     this->vulkan_renderer = new VulkanRenderer(this->vulkan_core);
@@ -20,11 +20,21 @@ VulkanPipeline::VulkanPipeline(int camera_count) {
     this->texture_list.push_back(viewport_texture);
 
     for (int i = 0; i < camera_count; i++) {
-        VulkanTexture* texture = new VulkanTexture(this->vulkan_core);
-        result = texture->LoadImage("data/media/viewport_default.jpg");
+        VulkanTexture* depth_texture = new VulkanTexture(this->vulkan_core);
+        VulkanTexture* phash_texture = new VulkanTexture(this->vulkan_core);
+        VulkanTexture* shaded_texture = new VulkanTexture(this->vulkan_core);
 
-        this->camera_textures.push_back(texture);
-        this->texture_list.push_back(texture);
+        result = depth_texture->LoadImage("data/media/viewport_default.jpg");
+        result = phash_texture->LoadImage("data/media/phash_default.jpg");
+        result = shaded_texture->LoadImage("data/media/viewport_default.jpg");
+
+        this->depth_textures.push_back(depth_texture);
+        this->phash_textures.push_back(phash_texture);
+        this->shaded_textures.push_back(shaded_texture);
+
+        this->texture_list.push_back(depth_texture);
+        this->texture_list.push_back(phash_texture);
+        this->texture_list.push_back(shaded_texture);
     }
 }
 
@@ -40,14 +50,38 @@ void VulkanPipeline::Cleanup() {
     this->vulkan_cleaner->Cleanup(this->texture_list);
 }
 
-std::vector<CUdeviceptr> VulkanPipeline::GetCameraTextures() {
-    std::vector<CUdeviceptr> camera_textures{};
+std::vector<CUdeviceptr> VulkanPipeline::GetDepthTextures() {
+    std::vector<CUdeviceptr> textures{};
 
-    for (int i = 0; i < this->camera_textures.size(); i++) {
-        CUdeviceptr gpu_texture = this->camera_textures[i]->ExportAsCuda();
+    for (int i = 0; i < this->shaded_textures.size(); i++) {
+        CUdeviceptr gpu_texture = this->depth_textures[i]->ExportAsCuda();
 
-        camera_textures.push_back(gpu_texture);
+        textures.push_back(gpu_texture);
     }
 
-    return camera_textures;
+    return textures;
+}
+
+std::vector<CUdeviceptr> VulkanPipeline::GetPhashTextures() {
+    std::vector<CUdeviceptr> textures{};
+
+    for (int i = 0; i < this->shaded_textures.size(); i++) {
+        CUdeviceptr gpu_texture = this->phash_textures[i]->ExportAsCuda();
+
+        textures.push_back(gpu_texture);
+    }
+
+    return textures;
+}
+
+std::vector<CUdeviceptr> VulkanPipeline::GetShadedTextures() {
+    std::vector<CUdeviceptr> textures{};
+
+    for (int i = 0; i < this->shaded_textures.size(); i++) {
+        CUdeviceptr gpu_texture = this->shaded_textures[i]->ExportAsCuda();
+
+        textures.push_back(gpu_texture);
+    }
+
+    return textures;
 }

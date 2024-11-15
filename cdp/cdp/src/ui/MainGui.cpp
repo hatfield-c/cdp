@@ -142,14 +142,22 @@ void MainGui::DrawViewport() {
     
 
     ImVec2 img_size = ImGui::GetContentRegionAvail();
-    
+    ImTextureID image_texture = (ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor;
+
     if(this->gui_data.is_simulating and this->camera_count > 0) {
-        ImGui::Image((ImTextureID)this->vulkan_pipeline->camera_textures[this->camera_index]->instance_descriptor, img_size);
-    }
-    else {
-        ImGui::Image((ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor, img_size);
+        if (this->render_texture == 0) {
+            image_texture = (ImTextureID)this->vulkan_pipeline->depth_textures[this->camera_index]->instance_descriptor;
+        }
+        else if (this->render_texture == 1) {
+            image_texture = (ImTextureID)this->vulkan_pipeline->phash_textures[this->camera_index]->instance_descriptor;
+        }
+        else if (this->render_texture == 2) {
+            image_texture = (ImTextureID)this->vulkan_pipeline->shaded_textures[this->camera_index]->instance_descriptor;
+        }
     }
     
+    ImGui::Image(image_texture, img_size);
+
     ImGui::End();
     ImGui::PopStyleVar(1);
 }
@@ -172,6 +180,11 @@ void MainGui::DrawInspector() {
     }
 
     if (!ImGui::CollapsingHeader("Render")) {
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Render Texture");
+        ImGui::SameLine();
+        ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Shaded\0\0");
+
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Position");
         ImGui::SameLine();

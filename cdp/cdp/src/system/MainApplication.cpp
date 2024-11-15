@@ -3,9 +3,11 @@
 MainApplication::MainApplication() {
     this->main_gui = new MainGui(1);
 
-    std::vector<CUdeviceptr> camera_textures = this->main_gui->vulkan_pipeline->GetCameraTextures();
+    std::vector<CUdeviceptr> depth_textures = this->main_gui->vulkan_pipeline->GetDepthTextures();
+    std::vector<CUdeviceptr> phash_textures = this->main_gui->vulkan_pipeline->GetPhashTextures();
+    std::vector<CUdeviceptr> shaded_textures = this->main_gui->vulkan_pipeline->GetShadedTextures();
 
-    this->engine = new CpuEngine(camera_textures);
+    this->engine = new CpuEngine(depth_textures, phash_textures, shaded_textures);
 }
 
 void MainApplication::Run() {

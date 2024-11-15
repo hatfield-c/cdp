@@ -4,5 +4,8 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+#include "../../SpaceData.h"
+#include "../../../entity/Camera.h"
+
 //__global__ void GenerateIhm_Kernel(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper);
-//void GenerateIhm(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper);
+//void GenerateIhm(SpaceData space_data, Camera camera, Vector3 lower, Vector3 upper);

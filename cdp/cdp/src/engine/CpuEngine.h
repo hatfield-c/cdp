@@ -20,7 +20,7 @@ class CpuEngine {
 		WorldSpace* world_space;
 		IhmGenerator ihm_generator{};
 
-		CpuEngine(std::vector<CUdeviceptr> camera_textures);
+		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData gui_data);
 		void Update(GuiData gui_data);
 		void End(GuiData gui_data);

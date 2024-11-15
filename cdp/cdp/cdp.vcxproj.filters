@@ -178,7 +178,7 @@
     <ClInclude Include="src\engine\Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\ihm\CudaIhm.cuh" />
+    <ClInclude Include="src\engine\ihm\cuda\CudaIhm.cuh" />
     <ClInclude Include="src\engine\ihm\IhmGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -186,6 +186,6 @@
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\CudaWorld.cu" />
-    <CudaCompile Include="src\engine\ihm\CudaIhm.cu" />
+    <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
   </ItemGroup>
 </Project>

@@ -22,15 +22,19 @@ struct Camera {
     float min_render_distance = 0.05f;
     float max_render_distance = 350.0f;
 
-    byte* gpu_texture;
+    byte* depth_texture;
+    byte* phash_texture;
+    byte* shaded_texture;
 	
-	void Init(std::string name, CUdeviceptr gpu_texture) {
+	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr shaded_texture) {
         float pi = 3.141592654f;
 
 		this->name = name;
 		this->fov.x = pi / 2;
 		this->fov.y = pi / 2;
-		this->gpu_texture = (byte*)gpu_texture;
+		this->depth_texture = (byte*)depth_texture;
+        this->phash_texture = (byte*)phash_texture;
+        this->shaded_texture = (byte*)shaded_texture;
 	}
 
     __device__ void Render(SpaceData space_data) {
@@ -91,9 +95,9 @@ struct Camera {
         int gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, this->resolution.x);
         int gpu_index_a = Indexer::FlatIndex3(3, pixel_position.x, pixel_position.y, 4, this->resolution.x);
 
-        this->gpu_texture[gpu_index_r] = rgba.x;
-        this->gpu_texture[gpu_index_g] = rgba.y;
-        this->gpu_texture[gpu_index_b] = rgba.z;
-        this->gpu_texture[gpu_index_a] = rgba.w;
+        this->depth_texture[gpu_index_r] = rgba.x;
+        this->depth_texture[gpu_index_g] = rgba.y;
+        this->depth_texture[gpu_index_b] = rgba.z;
+        this->depth_texture[gpu_index_a] = rgba.w;
     }
 };

@@ -15,6 +15,7 @@
 
 class MainGui {
 	public:
+		int render_texture = 0;
 		int render_position[3] = { 0, 0, 0 };
 		float render_rotation[3] = { 0, 0, 0 };
 		int render_index = 0;

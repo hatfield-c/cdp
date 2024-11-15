@@ -31,12 +31,16 @@ class VulkanPipeline {
 		VulkanRenderer* vulkan_renderer;
 		VulkanCleaner* vulkan_cleaner;
 
-		std::vector<VulkanTexture*> camera_textures;
+		std::vector<VulkanTexture*> depth_textures;
+		std::vector<VulkanTexture*> phash_textures;
+		std::vector<VulkanTexture*> shaded_textures;
 		std::vector<VulkanTexture*> texture_list;
 
 		VulkanPipeline(int camera_count);
 		bool Update();
 		void Render();
 		void Cleanup();
-		std::vector<CUdeviceptr> GetCameraTextures();
+		std::vector<CUdeviceptr> GetDepthTextures();
+		std::vector<CUdeviceptr> GetPhashTextures();
+		std::vector<CUdeviceptr> GetShadedTextures();
 };

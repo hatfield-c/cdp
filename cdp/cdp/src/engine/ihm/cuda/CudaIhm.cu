@@ -31,7 +31,7 @@ __global__ void GenerateIhm_Kernel(SpaceData space_data, CameraData camera_data,
     //WriteRGBA(image_data, camera_data, pixel_position, depth_color);
 }
 
-void GenerateIhm(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper) {
+void GenerateIhm(SpaceData space_data, Camera camera, Vector3 lower, Vector3 upper) {
 	unsigned long long image_count = space_data.voxel_count * camera_data.ihm_directions.direction_count;
 
     Vector2 resolution = camera_data.resolution;

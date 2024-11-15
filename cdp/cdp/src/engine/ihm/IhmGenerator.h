@@ -9,8 +9,8 @@ struct IhmGenerator {
 	Vector3* directions_cpu;
 	Vector3* directions;
 	
-	void Init(int iteration_steps) {
-		this->GenerateDirections(iteration_steps);
+	void Init(int segment_count) {
+		this->GenerateDirections(segment_count);
 
 		unsigned long long memory_size = this->direction_count * sizeof(Vector3);
 

@@ -1,12 +1,15 @@
 #include "CpuEngine.h"
 
-CpuEngine::CpuEngine(std::vector<CUdeviceptr> camera_textures) {
-	this->ihm_generator.Init(1);
+CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
+	this->ihm_generator.Init(3);
 
-	for (int i = 0; i < camera_textures.size(); i++) {
-		CUdeviceptr gpu_texture = camera_textures[i];
+	for (int i = 0; i < depth_textures.size(); i++) {
+		CUdeviceptr depth_texture = depth_textures[i];
+		CUdeviceptr phash_texture = phash_textures[i];
+		CUdeviceptr shaded_texture = shaded_textures[i];
+
 		Camera* camera = new Camera{};// new Camera("camera " + i, gpu_texture);
-		camera->Init("camera " + i, gpu_texture);
+		camera->Init("camera " + i, depth_texture, phash_texture, shaded_texture);
 		
 		this->camera_list.push_back(camera);
 	}
