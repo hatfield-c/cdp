@@ -7,7 +7,7 @@ __global__ void CudaCamera::RenderCamera_Kernel(Camera camera, SpaceData space_d
 
 void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
     
-    Vector2 resolution = camera.resolution;
+    Vector2 resolution = camera.camera_size;
     
     dim3 threads_per_block(8, 4, 1);
 

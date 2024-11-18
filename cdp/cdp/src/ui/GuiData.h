@@ -11,4 +11,5 @@ struct GuiData {
 	Vector3 render_position{};
 	Vector3 render_rotation{};
 	int render_index = 0;
+	int camera_index = 0;
 };

@@ -68,6 +68,7 @@ void MainGui::RefreshGuiData() {
     this->gui_data.render_position = gui_position_data;
     this->gui_data.render_rotation = gui_rotation_data;
     this->gui_data.render_index = gui_index_data;
+    this->gui_data.camera_index = this->camera_index;
 
     if (this->load_env_dialog.HasSelected()) {
         this->gui_data.load_path = this->load_env_dialog.GetSelected().string();

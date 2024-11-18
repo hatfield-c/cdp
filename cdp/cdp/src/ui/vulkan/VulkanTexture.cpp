@@ -6,7 +6,7 @@ VulkanTexture::VulkanTexture(VulkanCore* vulkan_core) {
 
 bool VulkanTexture::LoadImage(const char* filename) {
     unsigned char* image_data = stbi_load(filename, &this->width, &this->height, 0, this->channels);
-
+    
     if (image_data == NULL)
         return false;
 
@@ -144,15 +144,15 @@ void VulkanTexture::CreateImageView() {
 void VulkanTexture::CreateSampler() {
     VkSamplerCreateInfo sampler_info{};
     sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler_info.magFilter = VK_FILTER_LINEAR;
-    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.magFilter = VK_FILTER_NEAREST;
+    sampler_info.minFilter = VK_FILTER_NEAREST;
     sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler_info.minLod = -1000;
-    sampler_info.maxLod = 1000;
-    sampler_info.maxAnisotropy = 1.0f;
+    sampler_info.minLod = 0.0f;
+    sampler_info.maxLod = 0.0f;
+    sampler_info.maxAnisotropy = 0.0f;
     this->error = vkCreateSampler(this->vulkan_core->g_Device, &sampler_info, this->vulkan_core->g_Allocator, &this->sampler);
     this->vulkan_core->check_vk_result(this->error);
 }

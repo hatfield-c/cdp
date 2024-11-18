@@ -54,9 +54,9 @@ void CpuEngine::PhysicsUpdate(GuiData gui_data) {
 }
 
 void CpuEngine::RenderUpdate(GuiData gui_data) {
-	for (int i = 0; i < this->camera_list.size(); i++) {
-		CudaCamera::RenderCamera(*this->camera_list[i], this->world_space->space_data);
-	}
+	int camera_index = gui_data.camera_index;
+
+	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 }
 
 void CpuEngine::Cleanup() {

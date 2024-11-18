@@ -3,6 +3,12 @@
 #include "Transform.h"
 
 struct Indexer {
+	static __device__ int FlatIndex2(int x, int y, int x_max) {
+		int index = x + (y * x_max);
+
+		return index;
+	}
+
 	static __device__ int FlatIndex3(int x, int y, int z, int x_max, int y_max) {
 		int index = x + (y * x_max) + (z * x_max * y_max);
 

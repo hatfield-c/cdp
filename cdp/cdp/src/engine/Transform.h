@@ -8,6 +8,107 @@
 struct Vector2 {
 	float x = 0;
 	float y = 0;
+
+	__device__ Vector2& operator+(Vector2 operand) {
+		Vector2 result{
+			this->x + operand.x,
+			this->y + operand.y
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator-(Vector2 operand) {
+		Vector2 result{
+			this->x - operand.x,
+			this->y - operand.y
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator-(float operand) {
+		Vector2 result{
+			this->x - operand,
+			this->y - operand
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator*(float operand) {
+		Vector2 result{
+			this->x * operand,
+			this->y * operand
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator*(Vector2 operand) {
+		Vector2 result{
+			this->x * operand.x,
+			this->y * operand.y
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator/(float operand) {
+		Vector2 result{
+			this->x / operand,
+			this->y / operand
+		};
+
+		return result;
+	}
+
+	__device__ Vector2 operator/(Vector2 operand) {
+		Vector2 result{
+			this->x / operand.x,
+			this->y / operand.y
+		};
+
+		return result;
+	}
+
+	__device__ Vector2& operator+=(Vector2 operand) {
+		this->x += operand.x;
+		this->y += operand.y;
+
+		return *this;
+	}
+
+	__device__ Vector2& operator-=(Vector2 operand) {
+		this->x -= operand.x;
+		this->y -= operand.y;
+
+		return *this;
+	}
+
+	__device__ Vector2& operator-() {
+		Vector2 result{
+			-this->x,
+			-this->y
+		};
+
+		return result;
+	}
+
+	__device__ bool& operator==(Vector2 operand) {
+		bool result = this->x == operand.x;
+		result &= this->y == operand.y;
+
+		return result;
+	}
+
+	__device__ bool& operator!=(Vector2 operand) {
+		bool result = this->x == operand.x;
+		result &= this->y == operand.y;
+		result = !result;
+
+		return result;
+	}
 };
 
 
@@ -36,6 +137,16 @@ struct Vector3 {
 		return result;
 	}
 
+	__device__ Vector3 operator-(float operand) {
+		Vector3 result{
+			this->x - operand,
+			this->y - operand,
+			this->z - operand,
+		};
+
+		return result;
+	}
+
 	__device__ Vector3 operator*(float operand) {
 		Vector3 result{
 			this->x * operand,
@@ -46,11 +157,31 @@ struct Vector3 {
 		return result;
 	}
 
+	__device__ Vector3 operator*(Vector3 operand) {
+		Vector3 result{
+			this->x * operand.x,
+			this->y * operand.y,
+			this->z * operand.z
+		};
+
+		return result;
+	}
+
 	__device__ Vector3 operator/(float operand) {
 		Vector3 result{
 			this->x / operand,
 			this->y / operand,
 			this->z / operand
+		};
+
+		return result;
+	}
+
+	__device__ Vector3 operator/(Vector3 operand) {
+		Vector3 result{
+			this->x / operand.x,
+			this->y / operand.y,
+			this->z / operand.z
 		};
 
 		return result;
