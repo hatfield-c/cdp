@@ -23,7 +23,7 @@ struct Camera {
 
     float min_render_distance = 0.05f;
     float max_render_distance = 350.0f;
-    float phash_distance = 100.0f;
+    int vote_threshold = 3;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
@@ -31,6 +31,7 @@ struct Camera {
     byte* depth_texture;
     byte* phash_texture;
     byte* shaded_texture;
+    RaycastHitData* depth_data;
     float* phash_data;
 	
 	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr shaded_texture) {
@@ -46,19 +47,25 @@ struct Camera {
         this->phash_pixel_count = this->phash_texture_size.x * this->phash_texture_size.y;
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
 
+        RaycastHitData* depth_data = new RaycastHitData[this->camera_pixel_count];
         float* phash_data = new float[this->phash_data_count];
         for (int i = 0; i < this->phash_data_count; i++) {
             phash_data[i] = -1;
         }
-        int memory_size = this->phash_data_count * sizeof(float);
 
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->phash_data, phash_data, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+        int depth_memory_size = this->camera_pixel_count * sizeof(RaycastHitData);
+        int phash_memory_size = this->phash_data_count * sizeof(float);
+
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_data, depth_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->depth_data, depth_data, depth_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->phash_data, phash_data, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
         delete[] phash_data;
 	}
 
-    __device__ void Render(SpaceData space_data) {
+    __device__ void DepthUpdate(SpaceData space_data) {
         Vector2 pixel_position{
             Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
             Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
@@ -70,10 +77,21 @@ struct Camera {
 
         Vector3 ray_direction = this->GetCameraRayDirection(pixel_position);
         RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, pixel_position, this->max_render_distance);
-        float depth = hit_data.distance;
+        
+        this->WriteDepth(this->depth_data, pixel_position, this->camera_size, hit_data);
+    }
+
+    __device__ void Render(SpaceData space_data) {
+        Vector2 pixel_position{
+            Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
+            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+        };
+
+        RaycastHitData depth_data = this->ReadDepth(this->depth_data, pixel_position, this->camera_size);
+        float depth = depth_data.distance;
 
         float depth_pixel_val = 0;
-        if (hit_data.voxel_data.entity_id == 1) {
+        if (depth_data.voxel_data.entity_id == 1) {
             depth_pixel_val = depth / this->max_render_distance;
             depth_pixel_val = 255 * (1 - depth_pixel_val);
 
@@ -81,12 +99,12 @@ struct Camera {
                 depth_pixel_val = 0;
             }
         }
-
-        Vector4 depth_color{ depth_pixel_val, depth_pixel_val, depth_pixel_val, 255 };
+        
+        Vector4 depth_color{depth_pixel_val, depth_pixel_val, depth_pixel_val, 255};
 
         this->WriteRGBA(this->depth_texture, pixel_position, this->camera_size, depth_color);
         this->WriteRGBA(this->shaded_texture, pixel_position, this->camera_size, depth_color);
-        
+
         Vector2 spatial_offset = (this->camera_size - 1) / (this->phash_data_size - 1);
         spatial_offset.x = (int)spatial_offset.x;
         spatial_offset.y = (int)spatial_offset.y;
@@ -98,9 +116,41 @@ struct Camera {
             Vector2 phash_position = pixel_position / spatial_offset;
             this->WriteFloat(this->phash_data, phash_position, this->phash_data_size, depth);
 
-            Vector4 phash_color{ 255, 255, 255, 255 };
-            if (depth > phash_distance) {
-                phash_color = Vector4{ 0, 0, 0, 255 };
+            int width = 1;
+            Vector4 color_white{ 255, 255, 255, 255 };
+            Vector4 color_black = Vector4{ 0, 0, 0, 255 };
+            Vector4 phash_color = color_black;
+            int lower_votes = 0;
+
+            //if (depth > this->phash_distance) {
+                //phash_color = color_black;
+            //}
+
+            RaycastHitData depth_data_buffer;
+            int depth_votes = 0;
+            for (int i = -width; i < (width + 1); i++) {
+                for (int j = -width; j < (width + 1); j++) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+
+                    Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
+
+                    if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= this->camera_size.x || camera_query_position.y >= this->camera_size.y) {
+                        continue;
+                    }
+
+                    depth_data_buffer = this->ReadDepth(this->depth_data, camera_query_position, this->camera_size);
+
+                    float depth_delta = depth_data.distance - depth_data_buffer.distance;
+                    if (depth_delta > 0) {
+                        depth_votes++;
+                    }
+                }
+            }
+
+            if (depth_votes >= this->vote_threshold) {
+                phash_color = color_white;
             }
 
             Vector2 texture_position{};
@@ -113,7 +163,7 @@ struct Camera {
                 }
             }
 
-        }
+        } 
     }
 
     __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position) {
@@ -154,6 +204,18 @@ struct Camera {
         texture[gpu_index_g] = rgba.y;
         texture[gpu_index_b] = rgba.z;
         texture[gpu_index_a] = rgba.w;
+    }
+
+    __device__ RaycastHitData ReadDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size) {
+        int gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+
+        return data_array[gpu_index];
+    }
+
+    __device__ void WriteDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size, RaycastHitData depth_data) {
+        int gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+
+        data_array[gpu_index] = depth_data;
     }
 
     __device__ void WriteFloat(float* data_array, Vector2 pixel_position, Vector2 texture_size, float value) {

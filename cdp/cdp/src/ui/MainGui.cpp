@@ -84,7 +84,7 @@ void MainGui::RefreshGuiData() {
         this->gui_data.save_path = "";
     }
 
-    this->gui_data.phash_distance = this->phash_distance;
+    this->gui_data.vote_threshold = this->vote_threshold;
 }
 
 void MainGui::DrawBackground() {
@@ -188,12 +188,12 @@ void MainGui::DrawInspector() {
     }
 
     if (!ImGui::CollapsingHeader("p-Hash")) {
-        float min_val = 0;
-        float max_val = 500;
+        int min_val = 0;
+        int max_val = 8;
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Distance Threshold");
+        ImGui::Text("Vote Threshold");
         ImGui::SameLine();
-        ImGui::SliderScalar("##phash_distance", ImGuiDataType_Float, &this->phash_distance, &min_val, &max_val);
+        ImGui::SliderScalar("##phash_votes", ImGuiDataType_U8, &this->vote_threshold, &min_val, &max_val);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Position");

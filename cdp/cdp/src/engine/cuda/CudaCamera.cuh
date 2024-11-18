@@ -9,5 +9,7 @@
 
 namespace CudaCamera {
 	__global__ void RenderCamera_Kernel(Camera camera, SpaceData space_data);
+	__global__ void DepthUpdate_Kernel(Camera camera, SpaceData space_data);
+	void DepthUpdate(Camera camera, SpaceData space_data);
 	void RenderCamera(Camera camera, SpaceData space_data);
 };

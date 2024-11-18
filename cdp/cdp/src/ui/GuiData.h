@@ -12,5 +12,5 @@ struct GuiData {
 	Vector3 render_rotation{};
 	int render_index = 0;
 	int camera_index = 0;
-	float phash_distance = 0;
+	int vote_threshold = 0;
 };
