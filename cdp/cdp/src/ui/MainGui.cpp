@@ -83,6 +83,8 @@ void MainGui::RefreshGuiData() {
     } else {
         this->gui_data.save_path = "";
     }
+
+    this->gui_data.phash_distance = this->phash_distance;
 }
 
 void MainGui::DrawBackground() {
@@ -178,13 +180,20 @@ void MainGui::DrawInspector() {
     if (!ImGui::CollapsingHeader("Simulation")) {
         this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data.is_simulating);
         this->DrawCameraSelector();
-    }
 
-    if (!ImGui::CollapsingHeader("Render")) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Render Texture");
         ImGui::SameLine();
         ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Shaded\0\0");
+    }
+
+    if (!ImGui::CollapsingHeader("p-Hash")) {
+        float min_val = 0;
+        float max_val = 500;
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Distance Threshold");
+        ImGui::SameLine();
+        ImGui::SliderScalar("##phash_distance", ImGuiDataType_Float, &this->phash_distance, &min_val, &max_val);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Position");

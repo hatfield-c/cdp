@@ -23,6 +23,7 @@ struct Camera {
 
     float min_render_distance = 0.05f;
     float max_render_distance = 350.0f;
+    float phash_distance = 100.0f;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
@@ -69,10 +70,11 @@ struct Camera {
 
         Vector3 ray_direction = this->GetCameraRayDirection(pixel_position);
         RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, pixel_position, this->max_render_distance);
+        float depth = hit_data.distance;
 
         float depth_pixel_val = 0;
         if (hit_data.voxel_data.entity_id == 1) {
-            depth_pixel_val = hit_data.distance / this->max_render_distance;
+            depth_pixel_val = depth / this->max_render_distance;
             depth_pixel_val = 255 * (1 - depth_pixel_val);
 
             if (depth_pixel_val < 0) {
@@ -94,7 +96,12 @@ struct Camera {
 
         if (is_phash_pixel) {
             Vector2 phash_position = pixel_position / spatial_offset;
-            this->WriteFloat(this->phash_data, phash_position, this->phash_data_size, hit_data.distance);
+            this->WriteFloat(this->phash_data, phash_position, this->phash_data_size, depth);
+
+            Vector4 phash_color{ 255, 255, 255, 255 };
+            if (depth > phash_distance) {
+                phash_color = Vector4{ 0, 0, 0, 255 };
+            }
 
             Vector2 texture_position{};
             for (int i = 0; i < 2; i++) {
@@ -102,11 +109,10 @@ struct Camera {
                     texture_position.x = (2 * phash_position.x) + i;
                     texture_position.y = (2 * phash_position.y) + j;
 
-                    this->WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, depth_color);
+                    this->WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
                 }
             }
 
-            //printf("%.2f %.2f\n", phash_position.x, phash_position.y);
         }
     }
 

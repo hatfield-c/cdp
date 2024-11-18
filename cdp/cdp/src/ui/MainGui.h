@@ -16,6 +16,7 @@
 class MainGui {
 	public:
 		int render_texture = 0;
+		float phash_distance = 100.0f;
 		int render_position[3] = { 0, 0, 0 };
 		float render_rotation[3] = { 0, 0, 0 };
 		int render_index = 0;

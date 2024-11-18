@@ -47,6 +47,7 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	Vector4 camera_rotation = Quaternion::MultiplyQuaternions(rotation_amount, this->camera_list[0]->transform.rotation, false);
 
 	this->camera_list[0]->transform.rotation = camera_rotation;
+	this->camera_list[0]->phash_distance = gui_data.phash_distance;
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {
