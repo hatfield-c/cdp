@@ -51,11 +51,11 @@ void MainGui::RefreshGuiData() {
         this->render_rotation[1],
         this->render_rotation[2]
     };
-    int gui_index_data = this->render_index;
+    unsigned long long gui_index_data = this->ihm_position_index;
 
     bool is_position_changed = gui_position_data != this->gui_data.render_position;
     bool is_rotation_changed = gui_rotation_data != this->gui_data.render_rotation;
-    bool is_index_changed = gui_index_data != this->gui_data.render_index;
+    bool is_index_changed = gui_index_data != this->gui_data.ihm_position_index;
 
     if (is_position_changed || is_rotation_changed) {
 
@@ -67,7 +67,7 @@ void MainGui::RefreshGuiData() {
 
     this->gui_data.render_position = gui_position_data;
     this->gui_data.render_rotation = gui_rotation_data;
-    this->gui_data.render_index = gui_index_data;
+    this->gui_data.ihm_position_index = gui_index_data;
     this->gui_data.camera_index = this->camera_index;
 
     if (this->load_env_dialog.HasSelected()) {
@@ -210,7 +210,9 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("IHM Index");
         ImGui::SameLine();
-        ImGui::InputFloat3("##ihm_index", this->render_rotation);
+        //ImGui::InputFloat3("##ihm_index", this->ihm_position_index);
+        unsigned long long one_val = 1;
+        ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &this->ihm_position_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
     }
 
     ImGui::End();

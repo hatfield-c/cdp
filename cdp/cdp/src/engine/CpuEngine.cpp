@@ -1,7 +1,8 @@
 #include "CpuEngine.h"
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
-	this->ihm_generator.Init(3);
+	this->world_space = new WorldSpace();
+	this->ihm_generator.Init(3, this->world_space->space_data.voxel_count, this->world_space->space_data.world_size);
 
 	for (int i = 0; i < depth_textures.size(); i++) {
 		CUdeviceptr depth_texture = depth_textures[i];
@@ -13,9 +14,6 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 		
 		this->camera_list.push_back(camera);
 	}
-
-	this->world_space = new WorldSpace();
-	
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -36,7 +34,7 @@ void CpuEngine::End(GuiData gui_data) {
 }
 
 void CpuEngine::ScenarioUpdate(GuiData gui_data) {
-	Vector3 target_location{ 480, 40, 420 };
+	/*Vector3 target_location{480, 40, 420};
 
 	Vector3 offset = this->camera_list[0]->transform.position - target_location;
 	Vector4 rotation_amount = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 0.003, 0 });
@@ -48,6 +46,18 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 
 	this->camera_list[0]->transform.rotation = camera_rotation;
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
+	*/
+
+	this->ihm_generator.SetIhmIndex(gui_data.ihm_position_index, false);
+
+	this->camera_list[0]->transform.position = this->ihm_generator.position_buffer;
+	this->camera_list[0]->transform.rotation = this->ihm_generator.rotation_buffer;
+	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
+
+	printf("(%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n", 
+		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
+		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
+	);
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {

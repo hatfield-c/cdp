@@ -311,6 +311,66 @@ struct Vector4 {
 	}
 };
 
+struct Vector {
+
+	static __device__ Vector2 ZERO2() {
+		return Vector2{ 0, 0 };
+	}
+	static __device__ Vector3 ZERO3() {
+		return Vector3{ 0, 0, 0 };
+	}
+
+	static __device__ Vector2 ONE2() {
+		return Vector2{ 1, 1 };
+	}
+
+	static __device__ Vector3 ONE3() {
+		return Vector3{ 1, 1, 1 };
+	}
+
+	static __device__ Vector2 RIGHT2() {
+		return Vector2{ 1, 0 };
+	}
+
+	static __device__ Vector2 UP2(){ 
+		return Vector2{ 0, 1 };
+	}
+
+	static __device__ Vector2 LEFT2(){ 
+		return Vector2{ -1, 0 };
+	}
+
+	static __device__ Vector2 DOWN2() {
+		return Vector2{ 0, -1 };
+	}
+
+	static __device__ Vector3 FORWARD() {
+		return Vector3{ 0, 0, 1 };
+	}
+
+	static __device__ Vector3 RIGHT() {
+		return Vector3{ 1, 0, 0 };
+	}
+
+	static __device__ Vector3 UP() {
+		return Vector3{ 0, 1, 0 };
+	}
+
+	static __device__ Vector3 BACKWARD() {
+		return Vector3{ 0, 0, -1 };
+	}
+
+	static __device__ Vector3 LEFT() {
+		return Vector3{ -1, 0, 0 };
+	}
+
+	static __device__ Vector3 DOWN() {
+		return Vector3{ 0, -1, 0 };
+	}
+
+	
+};
+
 struct Transform {
 	Vector3 position{ 0, 0, 0 };
 	Vector4 rotation{ 0, 0, 0, 1 };
@@ -327,6 +387,13 @@ struct Transform {
 		return value;
 	}
 
+	static __device__ float Norm2(Vector2 vector) {
+		float norm_val = (vector.x * vector.x) + (vector.y * vector.y);
+		norm_val = sqrt(norm_val);
+
+		return norm_val;
+	}
+
 	static __device__ float Norm3(Vector3 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z);
 		norm_val = sqrt(norm_val);
@@ -339,6 +406,17 @@ struct Transform {
 		norm_val = sqrt(norm_val);
 
 		return norm_val;
+	}
+
+	static __device__ Vector2 Unit2(Vector2 vector) {
+		Vector2 unit_vector{};
+		float norm_val = Transform::Norm2(vector);
+
+		if (norm_val != 0) {
+			unit_vector = vector / norm_val;
+		}
+
+		return unit_vector;
 	}
 
 	static __device__ Vector3 Unit3(Vector3 vector) {

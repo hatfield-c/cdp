@@ -77,4 +77,50 @@ struct Quaternion {
 
         return quaternion;
     }
+
+    static __device__ Vector4 QuaternionFromDirection(Vector3 unit_vector) {
+        Vector3 angles = Quaternion::EulerAnglesFromDirection(unit_vector);
+        Vector4 quaternion = Quaternion::QuaternionFromEulerAngles(angles);
+
+        return quaternion;
+    }
+
+    static __device__ Vector3 EulerAnglesFromDirection(Vector3 vector) {
+        Vector2 xz{ vector.x, vector.z };
+        float xz_norm = Transform::Norm2(xz);
+
+        float y_theta = Quaternion::Atan2(vector.x, vector.z);
+        float z_theta = Quaternion::Atan2(xz_norm, vector.y);
+
+        Vector3 angles{
+            0,
+            y_theta,
+            z_theta
+        };
+
+        return angles;
+    }
+
+    static __device__ float Atan2(float x, float y) {
+        float a = 0;
+        float pi = 3.141592654f;
+
+        if (x > 0) {
+            a = atan(y / x);
+        }
+        else if (x < 0 && y >= 0) {
+            a = atan(y / x) + pi;
+        }
+        else if (x < 0 && y < 0) {
+            a = atan(y / x) - pi;
+        }
+        else if (x == 0 && y > 0) {
+            a = pi / 2;
+        }
+        else if (x == 0 && y < 0) {
+            a = -pi / 2;
+        }
+
+        return a;
+    }
 };

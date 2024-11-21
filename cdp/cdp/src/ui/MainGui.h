@@ -11,15 +11,16 @@
 #include "vulkan/VulkanPipeline.h"
 #include "vulkan/VulkanTexture.h"
 
+#include "../engine/Indexer.h"
 #include "GuiData.h"
 
 class MainGui {
 	public:
 		int render_texture = 0;
-		int vote_threshold = 3;
+		int vote_threshold = 4;
 		int render_position[3] = { 0, 0, 0 };
 		float render_rotation[3] = { 0, 0, 0 };
-		int render_index = 0;
+		unsigned long long ihm_position_index = Indexer::FlatIndex4(0, 480, 40, 420, 24, 1000, 300);
 
 		int camera_index = 0;
 		int camera_count = 0;
@@ -46,6 +47,5 @@ class MainGui {
 		void DrawInspector();
 		void ToggleButton(const char* str_id, const char* label, bool* value);
 		void DrawCameraSelector();
-		void DrawAlert(std::string message);
 		bool IsWindowClosed();
 };

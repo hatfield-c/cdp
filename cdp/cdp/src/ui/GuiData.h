@@ -10,7 +10,7 @@ struct GuiData {
 	std::string save_path = "";
 	Vector3 render_position{};
 	Vector3 render_rotation{};
-	int render_index = 0;
+	unsigned long long ihm_position_index = 0;
 	int camera_index = 0;
 	int vote_threshold = 0;
 };

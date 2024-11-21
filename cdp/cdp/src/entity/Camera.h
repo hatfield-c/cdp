@@ -23,7 +23,7 @@ struct Camera {
 
     float min_render_distance = 0.05f;
     float max_render_distance = 350.0f;
-    int vote_threshold = 3;
+    int vote_threshold = 4;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
