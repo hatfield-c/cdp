@@ -27,5 +27,6 @@ class CpuEngine {
 		void ScenarioUpdate(GuiData gui_data);
 		void PhysicsUpdate(GuiData gui_data);
 		void RenderUpdate(GuiData gui_data);
+		void GenerateIhm(GuiData gui_data);
 		void Cleanup();
 };

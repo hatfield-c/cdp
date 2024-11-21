@@ -54,10 +54,10 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	this->camera_list[0]->transform.rotation = this->ihm_generator.rotation_buffer;
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 
-	printf("(%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n", 
-		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
-		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
-	);
+	//printf("(%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n", 
+		//this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
+		//this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
+	//);
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {
@@ -71,6 +71,10 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 	cudaDeviceSynchronize();
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 	cudaDeviceSynchronize();
+}
+
+void CpuEngine::GenerateIhm(GuiData gui_data) {
+	printf("%s\n", gui_data.save_ihm_path);
 }
 
 void CpuEngine::Cleanup() {

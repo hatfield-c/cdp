@@ -4,8 +4,10 @@
 MainGui::MainGui(int camera_count) {
     this->load_env_dialog.SetTitle("Load Environment");
     this->save_env_dialog.SetTitle("Save Environment");
+    this->save_ihm_dialog.SetTitle("IHM Save Location");
     this->load_env_dialog.SetTypeFilters({ ".ply" });
     this->save_env_dialog.SetTypeFilters({ ".ply" });
+    this->save_ihm_dialog.SetTypeFilters({ ".ihm" });
 
     this->camera_count = camera_count;
 
@@ -32,6 +34,7 @@ void MainGui::Update() {
     
     this->load_env_dialog.Display();
     this->save_env_dialog.Display();
+    this->save_ihm_dialog.Display();
 
     this->RefreshGuiData();
 
@@ -41,47 +44,31 @@ void MainGui::Update() {
 void MainGui::RefreshGuiData() {
     this->gui_data.is_window_open = !this->IsWindowClosed();
 
-    Vector3 gui_position_data{
-        this->render_position[0],
-        this->render_position[1],
-        this->render_position[2]
-    };
-    Vector3 gui_rotation_data{
-        this->render_rotation[0],
-        this->render_rotation[1],
-        this->render_rotation[2]
-    };
     unsigned long long gui_index_data = this->ihm_position_index;
-
-    bool is_position_changed = gui_position_data != this->gui_data.render_position;
-    bool is_rotation_changed = gui_rotation_data != this->gui_data.render_rotation;
     bool is_index_changed = gui_index_data != this->gui_data.ihm_position_index;
-
-    if (is_position_changed || is_rotation_changed) {
-
-    }
-
-    if (is_index_changed) {
-
-    }
-
-    this->gui_data.render_position = gui_position_data;
-    this->gui_data.render_rotation = gui_rotation_data;
     this->gui_data.ihm_position_index = gui_index_data;
     this->gui_data.camera_index = this->camera_index;
 
     if (this->load_env_dialog.HasSelected()) {
-        this->gui_data.load_path = this->load_env_dialog.GetSelected().string();
+        this->gui_data.load_env_path = this->load_env_dialog.GetSelected().string();
         this->load_env_dialog.ClearSelected();
     } else {
-        this->gui_data.load_path = "";
+        this->gui_data.load_env_path = "";
     }
 
     if (this->save_env_dialog.HasSelected()) {
-        this->gui_data.save_path = this->save_env_dialog.GetSelected().string();
+        this->gui_data.save_env_path = this->save_env_dialog.GetSelected().string();
         this->save_env_dialog.ClearSelected();
     } else {
-        this->gui_data.save_path = "";
+        this->gui_data.save_env_path = "";
+    }
+
+    if (this->save_ihm_dialog.HasSelected()) {
+        this->gui_data.save_ihm_path = this->save_ihm_dialog.GetSelected().string();
+        this->save_ihm_dialog.ClearSelected();
+    }
+    else {
+        this->gui_data.save_ihm_path = "";
     }
 
     this->gui_data.vote_threshold = this->vote_threshold;
@@ -136,6 +123,12 @@ void MainGui::DrawViewport() {
 
             if (ImGui::MenuItem("Save Environment")) {
                 this->save_env_dialog.Open();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Generate IHM")) {
+                this->save_ihm_dialog.Open();
             }
 
             ImGui::EndMenu();
@@ -195,22 +188,11 @@ void MainGui::DrawInspector() {
         ImGui::SameLine();
         ImGui::SliderScalar("##phash_votes", ImGuiDataType_U8, &this->vote_threshold, &min_val, &max_val);
 
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Position");
-        ImGui::SameLine();
-        ImGui::InputInt3("##ihm_position", this->render_position);
-
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Rotation");
-        ImGui::SameLine();
-        ImGui::InputFloat3("##ihm_rotation", this->render_rotation);
-
         ImGui::Separator();
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("IHM Index");
         ImGui::SameLine();
-        //ImGui::InputFloat3("##ihm_index", this->ihm_position_index);
         unsigned long long one_val = 1;
         ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &this->ihm_position_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
     }

@@ -18,8 +18,6 @@ class MainGui {
 	public:
 		int render_texture = 0;
 		int vote_threshold = 4;
-		int render_position[3] = { 0, 0, 0 };
-		float render_rotation[3] = { 0, 0, 0 };
 		unsigned long long ihm_position_index = Indexer::FlatIndex4(0, 480, 40, 420, 24, 1000, 300);
 
 		int camera_index = 0;
@@ -32,6 +30,7 @@ class MainGui {
 
 		ImGui::FileBrowser load_env_dialog;
 		ImGui::FileBrowser save_env_dialog;
+		ImGui::FileBrowser save_ihm_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);;
 
 		float uv_offset = 0.0f;
 		float uv_delta = 0.00005f;
