@@ -32,7 +32,6 @@ struct Camera {
     byte* phash_texture;
     byte* shaded_texture;
     RaycastHitData* depth_data;
-    float* phash_data;
 	
 	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr shaded_texture) {
         float pi = 3.141592654f;
@@ -48,21 +47,11 @@ struct Camera {
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
 
         RaycastHitData* depth_data = new RaycastHitData[this->camera_pixel_count];
-        float* phash_data = new float[this->phash_data_count];
-        for (int i = 0; i < this->phash_data_count; i++) {
-            phash_data[i] = -1;
-        }
 
         int depth_memory_size = this->camera_pixel_count * sizeof(RaycastHitData);
-        int phash_memory_size = this->phash_data_count * sizeof(float);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_data, depth_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMemcpy(this->depth_data, depth_data, depth_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
-
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->phash_data, phash_data, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
-
-        delete[] phash_data;
 	}
 
     __device__ void DepthUpdate(SpaceData space_data) {
@@ -75,7 +64,7 @@ struct Camera {
             return;
         }
 
-        Vector3 ray_direction = this->GetCameraRayDirection(pixel_position);
+        Vector3 ray_direction = this->GetCameraRayDirection(pixel_position, this->camera_size, this->fov, this->transform.rotation);
         RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, pixel_position, this->max_render_distance);
         
         this->WriteDepth(this->depth_data, pixel_position, this->camera_size, hit_data);
@@ -87,11 +76,11 @@ struct Camera {
             Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
         };
 
-        RaycastHitData depth_data = this->ReadDepth(this->depth_data, pixel_position, this->camera_size);
-        float depth = depth_data.distance;
+        RaycastHitData raycast_data = this->ReadDepth(this->depth_data, pixel_position, this->camera_size);
+        float depth = raycast_data.distance;
 
         float depth_pixel_val = 0;
-        if (depth_data.voxel_data.entity_id == 1) {
+        if (raycast_data.voxel_data.entity_id == 1) {
             depth_pixel_val = depth / this->max_render_distance;
             depth_pixel_val = 255 * (1 - depth_pixel_val);
 
@@ -113,68 +102,19 @@ struct Camera {
         is_phash_pixel = is_phash_pixel && ((int)pixel_position.y % (int)spatial_offset.y == 0);
 
         if (is_phash_pixel) {
-            Vector2 phash_position = pixel_position / spatial_offset;
-            this->WriteFloat(this->phash_data, phash_position, this->phash_data_size, depth);
-
-            int width = 1;
-            Vector4 color_white{ 255, 255, 255, 255 };
-            Vector4 color_black = Vector4{ 0, 0, 0, 255 };
-            Vector4 phash_color = color_black;
-            int lower_votes = 0;
-
-            //if (depth > this->phash_distance) {
-                //phash_color = color_black;
-            //}
-
-            RaycastHitData depth_data_buffer;
-            int depth_votes = 0;
-            for (int i = -width; i < (width + 1); i++) {
-                for (int j = -width; j < (width + 1); j++) {
-                    if (i == 0 && j == 0) {
-                        continue;
-                    }
-
-                    Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
-
-                    if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= this->camera_size.x || camera_query_position.y >= this->camera_size.y) {
-                        continue;
-                    }
-
-                    depth_data_buffer = this->ReadDepth(this->depth_data, camera_query_position, this->camera_size);
-
-                    float depth_delta = depth_data.distance - depth_data_buffer.distance;
-                    if (depth_delta > 0) {
-                        depth_votes++;
-                    }
-                }
-            }
-
-            if (depth_votes >= this->vote_threshold) {
-                phash_color = color_white;
-            }
-
-            Vector2 texture_position{};
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 2; j++) {
-                    texture_position.x = (2 * phash_position.x) + i;
-                    texture_position.y = (2 * phash_position.y) + j;
-
-                    this->WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
-                }
-            }
-
+            this->Phash(raycast_data, pixel_position, spatial_offset);
         } 
     }
 
-    __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position) {
+    static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
         Vector2 fov_offset{
-            fov_offset.x = -sinf(this->fov.x / 2),
-            fov_offset.y = -sinf(this->fov.y / 2)
+            fov_offset.x = -sinf(fov.x / 2),
+            fov_offset.y = -sinf(fov.y / 2)
         };
 
         Vector2 screen_interpolation{
-            ((2 * pixel_position.x) / this->camera_size.x) - 1,
-            ((2 * pixel_position.y) / this->camera_size.y) - 1
+            ((2 * pixel_position.x) / canvas_size.x) - 1,
+            ((2 * pixel_position.y) / canvas_size.y) - 1
         };
 
         Vector3 ray_anchor{
@@ -183,22 +123,65 @@ struct Camera {
             fov_offset.x * screen_interpolation.x
         };
 
-        ray_anchor = Quaternion::RotatePoint(ray_anchor, this->transform.rotation);
+        ray_anchor = Quaternion::RotatePoint(ray_anchor, camera_rotation);
 
         Vector3 ray_direction = Transform::Unit3(ray_anchor);
 
         return ray_direction;
     }
 
-    __device__ void WriteRGBA(byte* texture, Vector2 pixel_position, Vector2 texture_size, Vector4 rgba) {
-        int gpu_index_r = Indexer::FlatIndex3(0, pixel_position.x, pixel_position.y, 4, texture_size.x);
-        int gpu_index_g = Indexer::FlatIndex3(1, pixel_position.x, pixel_position.y, 4, texture_size.x);
-        int gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, texture_size.x);
-        int gpu_index_a = Indexer::FlatIndex3(3, pixel_position.x, pixel_position.y, 4, texture_size.x);
+    __device__ void Phash(RaycastHitData raycast_data, Vector2 pixel_position, Vector2 spatial_offset) {
+        Vector2 phash_position = pixel_position / spatial_offset;
 
-        if (pixel_position.x == 15 && pixel_position.y == 15) {
-            //printf("%d\n", gpu_index_r);
+        int width = 1;
+        Vector4 color_white{ 255, 255, 255, 255 };
+        Vector4 color_black = Vector4{ 0, 0, 0, 255 };
+        Vector4 phash_color = color_black;
+        int lower_votes = 0;
+
+        RaycastHitData depth_data_buffer;
+        int depth_votes = 0;
+        for (int i = -width; i < (width + 1); i++) {
+            for (int j = -width; j < (width + 1); j++) {
+                if (i == 0 && j == 0) {
+                    continue;
+                }
+
+                Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
+
+                if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= this->camera_size.x || camera_query_position.y >= this->camera_size.y) {
+                    continue;
+                }
+
+                depth_data_buffer = Camera::ReadDepth(this->depth_data, camera_query_position, this->camera_size);
+
+                float depth_delta = raycast_data.distance - depth_data_buffer.distance;
+                if (depth_delta > 0) {
+                    depth_votes++;
+                }
+            }
         }
+
+        if (depth_votes >= this->vote_threshold) {
+            phash_color = color_white;
+        }
+
+        Vector2 texture_position{};
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                texture_position.x = (2 * phash_position.x) + i;
+                texture_position.y = (2 * phash_position.y) + j;
+
+                Camera::WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
+            }
+        }
+    }
+
+    static __device__ void WriteRGBA(byte* texture, Vector2 pixel_position, Vector2 texture_size, Vector4 rgba) {
+        unsigned long long gpu_index_r = Indexer::FlatIndex3(0, pixel_position.x, pixel_position.y, 4, texture_size.x);
+        unsigned long long gpu_index_g = Indexer::FlatIndex3(1, pixel_position.x, pixel_position.y, 4, texture_size.x);
+        unsigned long long gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, texture_size.x);
+        unsigned long long gpu_index_a = Indexer::FlatIndex3(3, pixel_position.x, pixel_position.y, 4, texture_size.x);
 
         texture[gpu_index_r] = rgba.x;
         texture[gpu_index_g] = rgba.y;
@@ -206,20 +189,26 @@ struct Camera {
         texture[gpu_index_a] = rgba.w;
     }
 
-    __device__ RaycastHitData ReadDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size) {
-        int gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+    static __device__ RaycastHitData ReadDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size) {
+        unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
         return data_array[gpu_index];
     }
 
-    __device__ void WriteDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size, RaycastHitData depth_data) {
-        int gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+    static __device__ void WriteDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size, RaycastHitData depth_data) {
+        unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
         data_array[gpu_index] = depth_data;
     }
 
-    __device__ void WriteFloat(float* data_array, Vector2 pixel_position, Vector2 texture_size, float value) {
-        int gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+    static __device__ void WriteFloat(float* data_array, Vector2 pixel_position, Vector2 texture_size, float value) {
+        unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
+
+        data_array[gpu_index] = value;
+    }
+
+    static __device__ void WriteByte(byte* data_array, Vector2 pixel_position, Vector2 texture_size, byte value) {
+        unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
         data_array[gpu_index] = value;
     }

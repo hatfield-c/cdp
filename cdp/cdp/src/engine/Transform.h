@@ -9,7 +9,7 @@ struct Vector2 {
 	float x = 0;
 	float y = 0;
 
-	__device__ Vector2& operator+(Vector2 operand) {
+	__host__ __device__ Vector2& operator+(Vector2 operand) {
 		Vector2 result{
 			this->x + operand.x,
 			this->y + operand.y
@@ -18,7 +18,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator-(Vector2 operand) {
+	__host__ __device__ Vector2 operator-(Vector2 operand) {
 		Vector2 result{
 			this->x - operand.x,
 			this->y - operand.y
@@ -27,7 +27,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator-(float operand) {
+	__host__ __device__ Vector2 operator-(float operand) {
 		Vector2 result{
 			this->x - operand,
 			this->y - operand
@@ -36,7 +36,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator*(float operand) {
+	__host__ __device__ Vector2 operator*(float operand) {
 		Vector2 result{
 			this->x * operand,
 			this->y * operand
@@ -45,7 +45,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator*(Vector2 operand) {
+	__host__ __device__ Vector2 operator*(Vector2 operand) {
 		Vector2 result{
 			this->x * operand.x,
 			this->y * operand.y
@@ -54,7 +54,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator/(float operand) {
+	__host__ __device__ Vector2 operator/(float operand) {
 		Vector2 result{
 			this->x / operand,
 			this->y / operand
@@ -63,7 +63,7 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2 operator/(Vector2 operand) {
+	__host__ __device__ Vector2 operator/(Vector2 operand) {
 		Vector2 result{
 			this->x / operand.x,
 			this->y / operand.y
@@ -72,21 +72,21 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ Vector2& operator+=(Vector2 operand) {
+	__host__ __device__ Vector2& operator+=(Vector2 operand) {
 		this->x += operand.x;
 		this->y += operand.y;
 
 		return *this;
 	}
 
-	__device__ Vector2& operator-=(Vector2 operand) {
+	__host__ __device__ Vector2& operator-=(Vector2 operand) {
 		this->x -= operand.x;
 		this->y -= operand.y;
 
 		return *this;
 	}
 
-	__device__ Vector2& operator-() {
+	__host__ __device__ Vector2& operator-() {
 		Vector2 result{
 			-this->x,
 			-this->y
@@ -95,14 +95,14 @@ struct Vector2 {
 		return result;
 	}
 
-	__device__ bool& operator==(Vector2 operand) {
+	__host__ __device__ bool& operator==(Vector2 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 
 		return result;
 	}
 
-	__device__ bool& operator!=(Vector2 operand) {
+	__host__ __device__ bool& operator!=(Vector2 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result = !result;
@@ -117,7 +117,7 @@ struct Vector3 {
 	float y = 0;
 	float z = 0;
 
-	__device__ Vector3& operator+(Vector3 operand) {
+	__host__ __device__ Vector3& operator+(Vector3 operand) {
 		Vector3 result{
 			this->x + operand.x,
 			this->y + operand.y,
@@ -127,7 +127,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator-(Vector3 operand) {
+	__host__ __device__ Vector3 operator-(Vector3 operand) {
 		Vector3 result{
 			this->x - operand.x,
 			this->y - operand.y,
@@ -137,7 +137,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator-(float operand) {
+	__host__ __device__ Vector3 operator-(float operand) {
 		Vector3 result{
 			this->x - operand,
 			this->y - operand,
@@ -147,7 +147,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator*(float operand) {
+	__host__ __device__ Vector3 operator*(float operand) {
 		Vector3 result{
 			this->x * operand,
 			this->y * operand,
@@ -157,7 +157,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator*(Vector3 operand) {
+	__host__ __device__ Vector3 operator*(Vector3 operand) {
 		Vector3 result{
 			this->x * operand.x,
 			this->y * operand.y,
@@ -167,7 +167,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator/(float operand) {
+	__host__ __device__ Vector3 operator/(float operand) {
 		Vector3 result{
 			this->x / operand,
 			this->y / operand,
@@ -177,7 +177,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3 operator/(Vector3 operand) {
+	__host__ __device__ Vector3 operator/(Vector3 operand) {
 		Vector3 result{
 			this->x / operand.x,
 			this->y / operand.y,
@@ -187,7 +187,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ Vector3& operator+=(Vector3 operand) {
+	__host__ __device__ Vector3& operator+=(Vector3 operand) {
 		this->x += operand.x;
 		this->y += operand.y;
 		this->z += operand.z;
@@ -195,7 +195,7 @@ struct Vector3 {
 		return *this;
 	}
 
-	__device__ Vector3& operator-=(Vector3 operand) {
+	__host__ __device__ Vector3& operator-=(Vector3 operand) {
 		this->x -= operand.x;
 		this->y -= operand.y;
 		this->z -= operand.z;
@@ -203,7 +203,7 @@ struct Vector3 {
 		return *this;
 	}
 
-	__device__ Vector3& operator-() {
+	__host__ __device__ Vector3& operator-() {
 		Vector3 result{
 			-this->x,
 			-this->y,
@@ -213,7 +213,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ bool& operator==(Vector3 operand) {
+	__host__ __device__ bool& operator==(Vector3 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result &= this->z == operand.z;
@@ -221,7 +221,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__device__ bool& operator!=(Vector3 operand) {
+	__host__ __device__ bool& operator!=(Vector3 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result &= this->z == operand.z;
@@ -237,7 +237,7 @@ struct Vector4 {
 	float z = 0;
 	float w = 0;
 
-	__device__ Vector4& operator+(Vector4 operand) {
+	__host__ __device__ Vector4& operator+(Vector4 operand) {
 		Vector4 result{
 			result.x = this->x + operand.x,
 			result.y = this->y + operand.y,
@@ -248,7 +248,7 @@ struct Vector4 {
 		return result;
 	}
 
-	__device__ Vector4 operator-(Vector4 operand) {
+	__host__ __device__ Vector4 operator-(Vector4 operand) {
 		Vector4 result{
 			this->x - operand.x,
 			this->y - operand.y,
@@ -259,7 +259,7 @@ struct Vector4 {
 		return result;
 	}
 
-	__device__ Vector4 operator*(float operand) {
+	__host__ __device__ Vector4 operator*(float operand) {
 		Vector4 result{
 			this->x * operand,
 			this->y * operand,
@@ -270,7 +270,7 @@ struct Vector4 {
 		return result;
 	}
 
-	__device__ Vector4 operator/(float operand) {
+	__host__ __device__ Vector4 operator/(float operand) {
 		Vector4 result{
 			result.x = this->x / operand,
 			result.y = this->y / operand,
@@ -281,7 +281,7 @@ struct Vector4 {
 		return result;
 	}
 
-	__device__ Vector4& operator+=(Vector4 operand) {
+	__host__ __device__ Vector4& operator+=(Vector4 operand) {
 		this->x += operand.x;
 		this->y += operand.y;
 		this->z += operand.z;
@@ -290,7 +290,7 @@ struct Vector4 {
 		return *this;
 	}
 
-	__device__ Vector4& operator-=(Vector4 operand) {
+	__host__ __device__ Vector4& operator-=(Vector4 operand) {
 		this->x -= operand.x;
 		this->y -= operand.y;
 		this->z -= operand.z;
@@ -299,7 +299,7 @@ struct Vector4 {
 		return *this;
 	}
 
-	__device__ Vector4& operator-() {
+	__host__ __device__ Vector4& operator-() {
 		Vector4 result{
 			-this->x,
 			-this->y,
@@ -313,58 +313,58 @@ struct Vector4 {
 
 struct Vector {
 
-	static __device__ Vector2 ZERO2() {
+	static __host__ __device__ Vector2 ZERO2() {
 		return Vector2{ 0, 0 };
 	}
-	static __device__ Vector3 ZERO3() {
+	static __host__ __device__ Vector3 ZERO3() {
 		return Vector3{ 0, 0, 0 };
 	}
 
-	static __device__ Vector2 ONE2() {
+	static __host__ __device__ Vector2 ONE2() {
 		return Vector2{ 1, 1 };
 	}
 
-	static __device__ Vector3 ONE3() {
+	static __host__ __device__ Vector3 ONE3() {
 		return Vector3{ 1, 1, 1 };
 	}
 
-	static __device__ Vector2 RIGHT2() {
+	static __host__ __device__ Vector2 RIGHT2() {
 		return Vector2{ 1, 0 };
 	}
 
-	static __device__ Vector2 UP2(){ 
+	static __host__ __device__ Vector2 UP2(){ 
 		return Vector2{ 0, 1 };
 	}
 
-	static __device__ Vector2 LEFT2(){ 
+	static __host__ __device__ Vector2 LEFT2(){ 
 		return Vector2{ -1, 0 };
 	}
 
-	static __device__ Vector2 DOWN2() {
+	static __host__ __device__ Vector2 DOWN2() {
 		return Vector2{ 0, -1 };
 	}
 
-	static __device__ Vector3 FORWARD() {
+	static __host__ __device__ Vector3 FORWARD() {
 		return Vector3{ 0, 0, 1 };
 	}
 
-	static __device__ Vector3 RIGHT() {
+	static __host__ __device__ Vector3 RIGHT() {
 		return Vector3{ 1, 0, 0 };
 	}
 
-	static __device__ Vector3 UP() {
+	static __host__ __device__ Vector3 UP() {
 		return Vector3{ 0, 1, 0 };
 	}
 
-	static __device__ Vector3 BACKWARD() {
+	static __host__ __device__ Vector3 BACKWARD() {
 		return Vector3{ 0, 0, -1 };
 	}
 
-	static __device__ Vector3 LEFT() {
+	static __host__ __device__ Vector3 LEFT() {
 		return Vector3{ -1, 0, 0 };
 	}
 
-	static __device__ Vector3 DOWN() {
+	static __host__ __device__ Vector3 DOWN() {
 		return Vector3{ 0, -1, 0 };
 	}
 
@@ -375,7 +375,7 @@ struct Transform {
 	Vector3 position{ 0, 0, 0 };
 	Vector4 rotation{ 0, 0, 0, 1 };
 
-	static __device__ int Clip(int value, int lower, int upper) {
+	static __host__ __device__ int Clip(int value, int lower, int upper) {
 		if (value < lower) {
 			value = lower;
 		}
@@ -387,28 +387,28 @@ struct Transform {
 		return value;
 	}
 
-	static __device__ float Norm2(Vector2 vector) {
+	static __host__ __device__ float Norm2(Vector2 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y);
 		norm_val = sqrt(norm_val);
 
 		return norm_val;
 	}
 
-	static __device__ float Norm3(Vector3 vector) {
+	static __host__ __device__ float Norm3(Vector3 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z);
 		norm_val = sqrt(norm_val);
 
 		return norm_val;
 	}
 
-	static __device__ float Norm4(Vector4 vector) {
+	static __host__ __device__ float Norm4(Vector4 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z) + (vector.w * vector.w);
 		norm_val = sqrt(norm_val);
 
 		return norm_val;
 	}
 
-	static __device__ Vector2 Unit2(Vector2 vector) {
+	static __host__ __device__ Vector2 Unit2(Vector2 vector) {
 		Vector2 unit_vector{};
 		float norm_val = Transform::Norm2(vector);
 
@@ -419,7 +419,7 @@ struct Transform {
 		return unit_vector;
 	}
 
-	static __device__ Vector3 Unit3(Vector3 vector) {
+	static __host__ __device__ Vector3 Unit3(Vector3 vector) {
 		Vector3 unit_vector{};
 		float norm_val = Transform::Norm3(vector);
 		
@@ -430,7 +430,7 @@ struct Transform {
 		return unit_vector;
 	}
 
-	static __device__ Vector4 Unit4(Vector4 vector) {
+	static __host__ __device__ Vector4 Unit4(Vector4 vector) {
 		Vector4 unit_vector{};
 		float norm_val = Transform::Norm4(vector);
 

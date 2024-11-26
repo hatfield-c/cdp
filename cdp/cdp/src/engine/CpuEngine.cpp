@@ -2,7 +2,7 @@
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
 	this->world_space = new WorldSpace();
-	this->ihm_generator.Init(3, this->world_space->space_data.voxel_count, this->world_space->space_data.world_size);
+	this->ihm_generator.Init();
 
 	for (int i = 0; i < depth_textures.size(); i++) {
 		CUdeviceptr depth_texture = depth_textures[i];
@@ -48,10 +48,10 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 	*/
 
-	this->ihm_generator.SetIhmIndex(gui_data.ihm_position_index, false);
+	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_position_index, false);
 
-	this->camera_list[0]->transform.position = this->ihm_generator.position_buffer;
-	this->camera_list[0]->transform.rotation = this->ihm_generator.rotation_buffer;
+	this->camera_list[0]->transform.position = ihm_state.position;
+	this->camera_list[0]->transform.rotation = ihm_state.rotation;
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 
 	//printf("(%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n", 
@@ -74,7 +74,36 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 }
 
 void CpuEngine::GenerateIhm(GuiData gui_data) {
-	printf("%s\n", gui_data.save_ihm_path);
+	printf("Saving IHM at path: %s\n", gui_data.save_ihm_path.c_str());
+
+	Camera camera = *this->camera_list[0];
+	unsigned long long memory_size = this->ihm_generator.ihm_count * sizeof(byte);
+	printf("    Allocating IHM CPU memory...\n");
+	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
+	byte* ihm_cpu = new byte[memory_size];
+
+	printf("    Allocating IHM GPU memory...\n");
+	byte* ihm;
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
+
+	printf("    Generating IHM...\n");
+	CudaIhm::GenerateIhm(this->world_space->space_data, camera, this->ihm_generator, ihm);
+
+	printf("    Copying IHM to CPU...\n");
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	printf("    Saving IHM to disk...\n");
+	printf("    Done!\n\n");
+
+	int state_index = 2508;
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 16; j++) {
+			unsigned long long ihm_index = Indexer::FlatIndex3(j, i, state_index, 16, 16);
+			byte val = ihm_cpu[ihm_index];
+			printf("(%d)", val);
+		}
+		printf("\n");
+	}
 }
 
 void CpuEngine::Cleanup() {

@@ -7,10 +7,12 @@
 #include "Quaternion.h"
 #include "WorldSpace.h"
 #include "../entity/Camera.h"
+#include "ihm/IhmState.h"
 #include "ihm/IhmGenerator.h"
 #include "../ui/GuiData.h"
 
 #include "cuda/CudaCamera.cuh"
+#include "ihm/cuda/CudaIhm.cuh"
 
 class CpuEngine {
 	public:

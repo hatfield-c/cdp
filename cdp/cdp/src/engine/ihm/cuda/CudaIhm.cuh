@@ -6,6 +6,9 @@
 
 #include "../../SpaceData.h"
 #include "../../../entity/Camera.h"
+#include "../IhmGenerator.h"
 
-//__global__ void GenerateIhm_Kernel(SpaceData space_data, CameraData camera_data, Vector3 lower, Vector3 upper);
-//void GenerateIhm(SpaceData space_data, Camera camera, Vector3 lower, Vector3 upper);
+namespace CudaIhm {
+	__global__ void GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm);
+	void GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm);
+}

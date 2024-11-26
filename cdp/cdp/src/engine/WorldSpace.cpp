@@ -23,14 +23,14 @@ WorldSpace::WorldSpace() {
 void WorldSpace::InitWorldMemory(bool is_debug_cube, bool is_floor) {
 	Vector3 lower{ 0, 0, 0 };
 	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
-	VoxelData init_data{ 0, Vector4{ 0, 0, 0, 0 } };
+	VoxelData init_data{ 0, 0 };
 
 	AssignChunk(this->space_data, init_data, lower, upper);
 
 	if (is_debug_cube) {
 		lower = Vector3{ 480, 60, 480 };
 		upper = Vector3{ 520, 110, 520 };
-		VoxelData cube_data{ 1, Vector4{ 255, 255, 255, 255 } };
+		VoxelData cube_data{ 1, 1 };
 
 		AssignChunk(this->space_data, cube_data, lower, upper);
 	}
@@ -38,7 +38,7 @@ void WorldSpace::InitWorldMemory(bool is_debug_cube, bool is_floor) {
 	if (is_floor) {
 		lower = Vector3{ 0, 0, 0};
 		upper = Vector3{ this->space_data.world_size.x, 3, this->space_data.world_size.z };
-		VoxelData floor_data{ 1, Vector4{ 255, 255, 255, 255 } };
+		VoxelData floor_data{ 1, 1 };
 
 		AssignChunk(this->space_data, floor_data, lower, upper);
 	}
@@ -62,7 +62,7 @@ void WorldSpace::LoadWorld(std::string load_path) {
 void WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_list) {
 	int memory_size = point_list.size() * sizeof(Vector3);
 
-	VoxelData voxel_data{ 1, Vector4{ 255, 255, 255, 255 } };
+	VoxelData voxel_data{ 1, 1 };
 	Vector3* points = (Vector3*)malloc(memory_size);
 	Vector3* points_cuda = nullptr;
 

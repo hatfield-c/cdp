@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -183,9 +183,10 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\engine\CpuEngine.h" />
-    <ClInclude Include="src\engine\CudaWorld.cuh" />
+    <ClInclude Include="src\engine\cuda\CudaWorld.cuh" />
     <ClInclude Include="src\engine\ihm\cuda\CudaIhm.cuh" />
     <ClInclude Include="src\engine\ihm\IhmGenerator.h" />
+    <ClInclude Include="src\engine\ihm\IhmState.h" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Physics.h" />
     <ClInclude Include="src\engine\Quaternion.h" />
@@ -211,7 +212,7 @@
     <ClInclude Include="src\system\WindowsSecurityAttributes.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\engine\CudaWorld.cu" />
+    <CudaCompile Include="src\engine\cuda\CudaWorld.cu" />
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
   </ItemGroup>

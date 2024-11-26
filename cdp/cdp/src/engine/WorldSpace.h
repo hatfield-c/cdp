@@ -13,7 +13,7 @@
 #include "VoxelData.h"
 #include "../system/CudaError.h"
 
-#include "CudaWorld.cuh"
+#include "cuda/CudaWorld.cuh"
 
 class WorldSpace {
 	public:

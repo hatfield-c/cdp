@@ -2,6 +2,7 @@
 
 #include "../../system/CudaError.h"
 
+#include "IhmState.h"
 #include "../WorldSpace.h"
 #include "../Transform.h"
 #include "../Quaternion.h"
@@ -10,19 +11,24 @@
 struct IhmGenerator {
 	int direction_count;
 	unsigned long long voxel_count;
-	unsigned long long index_count;
-	Vector3 world_size{};
-	Vector3 position_buffer{};
-	Vector4 rotation_buffer{};
+	unsigned long long state_count;
+	unsigned long long phash_count;
+	unsigned long long ihm_count;
+
+	Vector2 phash_size{ 16, 16 };
+	Vector3 world_size{ 1000, 300, 1000 };
+	Vector3 world_size_strided{ 100, 30, 100 };
+	Vector3 world_stride{ 10, 10, 10 };
+
 	Vector3* directions_cpu;
 	Vector3* directions;
 
-	void Init(int segment_count, unsigned long long voxel_count, Vector3 world_size) {
-		this->GenerateDirections(segment_count);
-		this->voxel_count = voxel_count;
-		this->world_size = world_size;
-		this->index_count = this->voxel_count * ((unsigned long long)this->direction_count);
-		printf("[Direction Count]: %d\n", this->direction_count);
+	void Init() {
+		this->PreBuildDirections(3);
+		this->phash_count = this->phash_size.x * this->phash_size.y;
+		this->voxel_count = this->world_size_strided.x * this->world_size_strided.y * this->world_size_strided.z;
+		this->state_count = this->voxel_count * ((unsigned long long)this->direction_count);
+		this->ihm_count = this->state_count * this->phash_count;
 
 		int memory_size = this->direction_count * sizeof(Vector3);
 
@@ -30,14 +36,93 @@ struct IhmGenerator {
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->directions, this->directions_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}
 
-	void SetIhmIndex(unsigned long long position_index, bool is_gpu) {
-		Vector4 ihm_state = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_size.x, this->world_size.y);
+	__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
+		Vector2 pixel_position{
+			Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y),
+			Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
+		};
 
-		this->position_buffer.x = ihm_state.y;
-		this->position_buffer.y = ihm_state.z;
-		this->position_buffer.z = ihm_state.w;
+		if (blockIdx.z % 10 == 0 && threadIdx.y == 0 && threadIdx.z == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+			printf("*");
+		}
 
-		int direction_index = ihm_state.x;
+		if (pixel_position.x >= camera->camera_size.x || pixel_position.y >= camera->camera_size.y) {
+			return;
+		}
+		
+		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
+		
+		Vector2 spatial_offset = (camera->camera_size - 1) / (this->phash_size - 1);
+		spatial_offset.x = (int)spatial_offset.x;
+		spatial_offset.y = (int)spatial_offset.y;
+
+		bool is_phash_pixel = (int)pixel_position.x % (int)spatial_offset.x == 0;
+		is_phash_pixel = is_phash_pixel && ((int)pixel_position.y % (int)spatial_offset.y == 0);
+
+		if (!is_phash_pixel) {
+			return;
+		}
+
+		Vector2 phash_position = pixel_position / spatial_offset;
+		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, 16, 16);
+
+		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
+		RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
+		Vector3 direction_buffer;
+		RaycastHitData depth_data_buffer;
+
+		int width = 1;
+		int vote_threshold = 4;
+		int depth_votes = 0;
+		for (int i = -width; i < (width + 1); i++) {
+			for (int j = -width; j < (width + 1); j++) {
+
+				if (i == 0 && j == 0) {
+					continue;
+				}
+
+				Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
+
+				if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= camera->camera_size.x || camera_query_position.y >= camera->camera_size.y) {
+					continue;
+				}
+
+				direction_buffer = Camera::GetCameraRayDirection(camera_query_position, camera->camera_size, camera->fov, ihm_state.rotation);
+				depth_data_buffer = Physics::Raycast(space_data, ihm_state.position, direction_buffer, camera_query_position, camera->max_render_distance);
+
+				float depth_delta = hit_data.distance - depth_data_buffer.distance;
+				if (depth_delta > 0) {
+					depth_votes++;
+				}
+
+				if (blockIdx.x == 2508 && phash_position.x == 15 && phash_position.y == 13) {
+					printf("phash:(%.2f, %.2f) (%.2f, %.2f, %.2f) %.2f\n", phash_position.x, phash_position.y, ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, depth_delta);
+				}
+			}
+		}
+
+		if (depth_votes >= vote_threshold) {			
+			ihm[data_index] = 1;
+		}
+
+		if (blockIdx.x == 2508) {
+			//printf("phash:(%.2f, %.2f) pixel:(%.2f, %.2f) tID:(%lld, %lld, %lld) bID:(%lld, %lld, %lld) bDim:(%lld, %lld, %lld) gDim:(%lld, %lld, %lld)\n", phash_position.x, phash_position.y, pixel_position.x, pixel_position.y, (unsigned long long)threadIdx.x, (unsigned long long)threadIdx.y, (unsigned long long)threadIdx.z, (unsigned long long)blockIdx.x, (unsigned long long)blockIdx.y, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.x, (unsigned long long)blockDim.y, (unsigned long long)blockDim.z, (unsigned long long)gridDim.x, (unsigned long long)gridDim.y, (unsigned long long)gridDim.z);
+			
+			if (phash_position.x == 15 && phash_position.y == 13) {
+				//printf("phash:(%.2f, %.2f) (%.2f, %.2f, %.2f) %d\n", phash_position.x, phash_position.y, ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, ihm_state.direction_index);
+			}
+		}
+	}
+
+	__device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
+		IhmState ihm_state;
+		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_size_strided.x, this->world_size_strided.y);
+		
+		ihm_state.position.x = state_data.y * this->world_stride.x;
+		ihm_state.position.y = state_data.z * this->world_stride.y;
+		ihm_state.position.z = state_data.w * this->world_stride.z;
+
+		int direction_index = state_data.x;
 		Vector3 direction{};
 
 		if (is_gpu) {
@@ -47,10 +132,13 @@ struct IhmGenerator {
 			direction = this->directions_cpu[direction_index];
 		}
 
-		this->rotation_buffer = Quaternion::QuaternionFromDirection(direction);
+		ihm_state.direction_index = direction_index;
+		ihm_state.rotation = Quaternion::QuaternionFromDirection(direction);
+
+		return ihm_state;
 	}
 
-	void GenerateDirections(int segment_count) {
+	void PreBuildDirections(int segment_count) {
 		
 		if (segment_count < 3) {
 			segment_count = 3;

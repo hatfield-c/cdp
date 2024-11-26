@@ -2,7 +2,9 @@
 
 #include "Transform.h"
 
+typedef unsigned char byte;
+
 struct VoxelData {
-	int entity_id = 0;
-	Vector4 color{ 0, 0, 0, 0 };
+	byte entity_id = 0;
+	byte voxel_id = 0;
 };
