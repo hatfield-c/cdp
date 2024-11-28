@@ -74,6 +74,8 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 }
 
 void CpuEngine::GenerateIhm(GuiData gui_data) {
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	
 	printf("Saving IHM at path: %s\n", gui_data.save_ihm_path.c_str());
 
 	Camera camera = *this->camera_list[0];
@@ -93,17 +95,32 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM to disk...\n");
+	printf("        Progress (Max 20 *): ");
+	simple::file_ostream<std::true_type> out(gui_data.save_ihm_path.c_str());
+	for (unsigned long long i = 0; i < memory_size; i++) {
+		out << ihm_cpu[i];
+
+		if (i % (int)(memory_size / 20) == 0) {
+			printf("*");
+		}
+	}
+	printf("\n");
+
+	out.flush();
+	out.close();
+
+	//simple::file_istream<std::true_type> in(gui_data.save_ihm_path.c_str());
+	//byte buffer;
+	//for (int i = 0; i < 10; i++) {
+		//in >> buffer;
+		//printf("%d\n", buffer);
+	//}
+
 	printf("    Done!\n\n");
 
-	int state_index = 2508;
-	for (int i = 0; i < 16; i++) {
-		for (int j = 0; j < 16; j++) {
-			unsigned long long ihm_index = Indexer::FlatIndex3(j, i, state_index, 16, 16);
-			byte val = ihm_cpu[ihm_index];
-			printf("(%d)", val);
-		}
-		printf("\n");
-	}
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+	printf("        Time Elapsed: %d s\n", time_lapsed);
 }
 
 void CpuEngine::Cleanup() {

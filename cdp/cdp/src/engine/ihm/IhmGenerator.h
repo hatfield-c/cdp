@@ -42,7 +42,7 @@ struct IhmGenerator {
 			Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
 		};
 
-		if (blockIdx.z % 10 == 0 && threadIdx.y == 0 && threadIdx.z == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+		if (blockIdx.z % 6 == 0 && threadIdx.y == 0 && threadIdx.z == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
 			printf("*");
 		}
 
@@ -94,23 +94,11 @@ struct IhmGenerator {
 				if (depth_delta > 0) {
 					depth_votes++;
 				}
-
-				if (blockIdx.x == 2508 && phash_position.x == 15 && phash_position.y == 13) {
-					printf("phash:(%.2f, %.2f) (%.2f, %.2f, %.2f) %.2f\n", phash_position.x, phash_position.y, ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, depth_delta);
-				}
 			}
 		}
 
 		if (depth_votes >= vote_threshold) {			
 			ihm[data_index] = 1;
-		}
-
-		if (blockIdx.x == 2508) {
-			//printf("phash:(%.2f, %.2f) pixel:(%.2f, %.2f) tID:(%lld, %lld, %lld) bID:(%lld, %lld, %lld) bDim:(%lld, %lld, %lld) gDim:(%lld, %lld, %lld)\n", phash_position.x, phash_position.y, pixel_position.x, pixel_position.y, (unsigned long long)threadIdx.x, (unsigned long long)threadIdx.y, (unsigned long long)threadIdx.z, (unsigned long long)blockIdx.x, (unsigned long long)blockIdx.y, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.x, (unsigned long long)blockDim.y, (unsigned long long)blockDim.z, (unsigned long long)gridDim.x, (unsigned long long)gridDim.y, (unsigned long long)gridDim.z);
-			
-			if (phash_position.x == 15 && phash_position.y == 13) {
-				//printf("phash:(%.2f, %.2f) (%.2f, %.2f, %.2f) %d\n", phash_position.x, phash_position.y, ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, ihm_state.direction_index);
-			}
 		}
 	}
 

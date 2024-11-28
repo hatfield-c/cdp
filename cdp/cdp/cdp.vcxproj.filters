@@ -185,6 +185,12 @@
     <ClInclude Include="src\engine\ihm\IhmState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\simplebinstream\SimpleBinStream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\imgui_filebrowser\imfilebrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
