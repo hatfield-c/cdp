@@ -30,7 +30,8 @@ class MainGui {
 
 		ImGui::FileBrowser load_env_dialog;
 		ImGui::FileBrowser save_env_dialog;
-		ImGui::FileBrowser save_ihm_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);;
+		ImGui::FileBrowser load_ihm_dialog;
+		ImGui::FileBrowser save_ihm_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);
 
 		float uv_offset = 0.0f;
 		float uv_delta = 0.00005f;

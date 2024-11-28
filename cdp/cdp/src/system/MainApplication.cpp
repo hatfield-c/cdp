@@ -29,8 +29,16 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->world_space->LoadWorld(gui_data.load_env_path);
     }
 
+    if (!gui_data.load_ihm_path.empty()) {
+        this->engine->LoadIhm(gui_data);
+    }
+
     if (!gui_data.save_ihm_path.empty()) {
         this->engine->GenerateIhm(gui_data);
+    }
+
+    if (gui_data.is_verify_ihm) {
+        this->engine->VerifyIhm(gui_data);
     }
 
     if (is_state_changed && !this->engine->is_simulating) {

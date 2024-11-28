@@ -4,9 +4,11 @@
 MainGui::MainGui(int camera_count) {
     this->load_env_dialog.SetTitle("Load Environment");
     this->save_env_dialog.SetTitle("Save Environment");
+    this->load_ihm_dialog.SetTitle("Load IHM File");
     this->save_ihm_dialog.SetTitle("IHM Save Location");
     this->load_env_dialog.SetTypeFilters({ ".ply" });
     this->save_env_dialog.SetTypeFilters({ ".ply" });
+    this->load_ihm_dialog.SetTypeFilters({ ".ihm" });
     this->save_ihm_dialog.SetTypeFilters({ ".ihm" });
 
     this->camera_count = camera_count;
@@ -34,6 +36,7 @@ void MainGui::Update() {
     
     this->load_env_dialog.Display();
     this->save_env_dialog.Display();
+    this->load_ihm_dialog.Display();
     this->save_ihm_dialog.Display();
 
     this->RefreshGuiData();
@@ -61,6 +64,14 @@ void MainGui::RefreshGuiData() {
         this->save_env_dialog.ClearSelected();
     } else {
         this->gui_data.save_env_path = "";
+    }
+
+    if (this->load_ihm_dialog.HasSelected()) {
+        this->gui_data.load_ihm_path = this->load_ihm_dialog.GetSelected().string();
+        this->load_ihm_dialog.ClearSelected();
+    }
+    else {
+        this->gui_data.load_ihm_path = "";
     }
 
     if (this->save_ihm_dialog.HasSelected()) {
@@ -131,6 +142,12 @@ void MainGui::DrawViewport() {
                 this->save_ihm_dialog.Open();
             }
 
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Load IHM")) {
+                this->load_ihm_dialog.Open();
+            }
+
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -195,6 +212,8 @@ void MainGui::DrawInspector() {
         ImGui::SameLine();
         unsigned long long one_val = 1;
         ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &this->ihm_position_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
+
+        this->gui_data.is_verify_ihm = ImGui::Button("Verify");
     }
 
     ImGui::End();

@@ -123,8 +123,59 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	printf("        Time Elapsed: %d s\n", time_lapsed);
 }
 
+void CpuEngine::LoadIhm(GuiData gui_data) {
+	printf("Loading IHM at path: %s\n", gui_data.load_ihm_path.c_str());
+
+	unsigned long long memory_size = this->ihm_generator.ihm_count * sizeof(byte);
+	printf("    Allocating IHM CPU memory...\n");
+	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
+	byte* ihm_cpu = new byte[memory_size];
+
+	printf("    Allocating IHM GPU memory...\n");
+	byte* ihm;
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
+
+	printf("    Loading IHM from disk...\n");
+	printf("        Progress (Max 20 *): ");
+	simple::file_istream<std::true_type> in(gui_data.load_ihm_path.c_str());
+	for (unsigned long long i = 0; i < memory_size; i++) {
+		in >> ihm_cpu[i];
+
+		if (i % (int)(memory_size / 20) == 0) {
+			printf("*");
+		}
+	}
+	printf("\n");
+
+	printf("    Copying IHM to GPU...\n");
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+
+	delete[] this->ihm_cpu;
+	delete[] this->ihm;
+
+	this->ihm_cpu = ihm_cpu;
+	this->ihm = ihm;
+
+	printf("    Done!\n\n");
+}
+
+void CpuEngine::VerifyIhm(GuiData gui_data) {
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 16; j++) {
+			unsigned long long index = Indexer::FlatIndex3(j, i, 2034770, 16, 16);
+			printf("(%d)", this->ihm_cpu[index]);
+		}
+		printf("\n");
+	}
+}
+
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
+	printf("    Freeing GPU IHM...\n");
+	cudaFree(this->ihm);
+	printf("    Freeing CPU IHM...\n");
+	free(this->ihm_cpu);
+
 	this->world_space->Cleanup();
 	printf("    Done!\n");
 }

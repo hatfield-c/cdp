@@ -96,8 +96,8 @@ void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_da
 }
 
 void WorldSpace::Cleanup() {
-	printf("    Freeing cuda memory...\n");
+	printf("    Freeing world space GPU...\n");
 	cudaFree(this->space_data.space_cuda);
-	printf("    Freeing cpu memory...\n");
+	printf("    Freeing world space CPU...\n");
 	free(this->space_data.space);
 }

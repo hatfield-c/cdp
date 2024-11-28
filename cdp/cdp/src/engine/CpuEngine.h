@@ -24,6 +24,8 @@ class CpuEngine {
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		IhmGenerator ihm_generator{};
+		byte* ihm_cpu = new byte[1];
+		byte* ihm = new byte[1];
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData gui_data);
@@ -33,5 +35,7 @@ class CpuEngine {
 		void PhysicsUpdate(GuiData gui_data);
 		void RenderUpdate(GuiData gui_data);
 		void GenerateIhm(GuiData gui_data);
+		void LoadIhm(GuiData gui_data);
+		void VerifyIhm(GuiData gui_data);
 		void Cleanup();
 };
