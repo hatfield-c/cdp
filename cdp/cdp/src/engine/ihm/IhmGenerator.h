@@ -13,7 +13,7 @@ struct IhmGenerator {
 	unsigned long long voxel_count;
 	unsigned long long state_count;
 	unsigned long long phash_count;
-	unsigned long long ihm_count;
+	unsigned long long bit_count;
 
 	Vector2 phash_size{ 16, 16 };
 	Vector3 world_size{ 1000, 300, 1000 };
@@ -28,7 +28,7 @@ struct IhmGenerator {
 		this->phash_count = this->phash_size.x * this->phash_size.y;
 		this->voxel_count = this->world_size_strided.x * this->world_size_strided.y * this->world_size_strided.z;
 		this->state_count = this->voxel_count * ((unsigned long long)this->direction_count);
-		this->ihm_count = this->state_count * this->phash_count;
+		this->bit_count = this->state_count * this->phash_count;
 
 		int memory_size = this->direction_count * sizeof(Vector3);
 

@@ -12,6 +12,7 @@
 #include "../entity/Camera.h"
 #include "ihm/IhmState.h"
 #include "ihm/IhmGenerator.h"
+#include "ihm/IhmCortex.h"
 #include "../ui/GuiData.h"
 
 #include "cuda/CudaCamera.cuh"
@@ -24,8 +25,7 @@ class CpuEngine {
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		IhmGenerator ihm_generator{};
-		byte* ihm_cpu = new byte[1];
-		byte* ihm = new byte[1];
+		IhmCortex ihm_cortex{};
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData gui_data);

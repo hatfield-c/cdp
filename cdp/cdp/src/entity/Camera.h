@@ -32,6 +32,7 @@ struct Camera {
     byte* phash_texture;
     byte* shaded_texture;
     RaycastHitData* depth_data;
+    byte* phash_data;
 	
 	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr shaded_texture) {
         float pi = 3.141592654f;
@@ -47,12 +48,27 @@ struct Camera {
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
 
         RaycastHitData* depth_data = new RaycastHitData[this->camera_pixel_count];
+        byte* phash_data = new byte[this->camera_pixel_count];
 
         int depth_memory_size = this->camera_pixel_count * sizeof(RaycastHitData);
+        int phash_memory_size = this->phash_data_count * sizeof(byte);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_data, depth_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, depth_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMemcpy(this->depth_data, depth_data, depth_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->phash_data, phash_data, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}
+
+    byte* GetPhash() {
+        byte* phash_cpu = new byte[this->phash_data_count];
+        int phash_memory_size = this->phash_data_count * sizeof(byte);
+
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(phash_cpu, this->phash_data, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+        return phash_cpu;
+    }
 
     __device__ void DepthUpdate(SpaceData space_data) {
         Vector2 pixel_position{
@@ -164,6 +180,10 @@ struct Camera {
 
         if (depth_votes >= this->vote_threshold) {
             phash_color = color_white;
+            Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, 1);
+        }
+        else {
+            Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, 0);
         }
 
         Vector2 texture_position{};

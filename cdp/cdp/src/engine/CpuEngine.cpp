@@ -79,7 +79,7 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	printf("Saving IHM at path: %s\n", gui_data.save_ihm_path.c_str());
 
 	Camera camera = *this->camera_list[0];
-	unsigned long long memory_size = this->ihm_generator.ihm_count * sizeof(byte);
+	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
 	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
 	byte* ihm_cpu = new byte[memory_size];
@@ -126,7 +126,7 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("Loading IHM at path: %s\n", gui_data.load_ihm_path.c_str());
 
-	unsigned long long memory_size = this->ihm_generator.ihm_count * sizeof(byte);
+	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
 	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
 	byte* ihm_cpu = new byte[memory_size];
@@ -150,31 +150,34 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Copying IHM to GPU...\n");
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	delete[] this->ihm_cpu;
-	delete[] this->ihm;
-
-	this->ihm_cpu = ihm_cpu;
-	this->ihm = ihm;
+	this->ihm_cortex.Init(ihm, ihm_cpu, this->ihm_generator.state_count);
 
 	printf("    Done!\n\n");
 }
 
 void CpuEngine::VerifyIhm(GuiData gui_data) {
+	byte* camera_phash = this->camera_list[0]->GetPhash();
+
 	for (int i = 0; i < 16; i++) {
 		for (int j = 0; j < 16; j++) {
-			unsigned long long index = Indexer::FlatIndex3(j, i, 2034770, 16, 16);
-			printf("(%d)", this->ihm_cpu[index]);
+			//unsigned long long index = Indexer::FlatIndex3(j, i, 2034770, 16, 16);
+			//printf("(%d)", this->ihm_cortex.ihm_cpu[index]);
+			unsigned long long index = Indexer::FlatIndex2(j, i, 16);
+			printf("(%d)", (int)camera_phash[index]);
 		}
 		printf("\n");
 	}
+	printf("\n");
+	byte* difference_vector = CudaIhm::GetDifferenceVector(this->ihm_cortex, this->camera_list[0]->phash_data);
+	printf("\n");
 }
 
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
 	printf("    Freeing GPU IHM...\n");
-	cudaFree(this->ihm);
+	cudaFree(this->ihm_cortex.ihm);
 	printf("    Freeing CPU IHM...\n");
-	free(this->ihm_cpu);
+	free(this->ihm_cortex.ihm_cpu);
 
 	this->world_space->Cleanup();
 	printf("    Done!\n");
