@@ -191,13 +191,15 @@
     <ClInclude Include="include\imgui_filebrowser\imfilebrowser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\ihm\IhmCortex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClInclude Include="src\engine\ihm\IhmCortex.cuh" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
     <CudaCompile Include="src\engine\cuda\CudaWorld.cu" />
+    <CudaCompile Include="src\engine\ihm\IhmCortex.h">
+      <Filter>Header Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\engine\ihm\IhmCortex.cu" />
   </ItemGroup>
 </Project>
