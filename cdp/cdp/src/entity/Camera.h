@@ -178,13 +178,13 @@ struct Camera {
             }
         }
 
+        byte value = 0;
         if (depth_votes >= this->vote_threshold) {
             phash_color = color_white;
-            Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, 1);
+            value = 1;
         }
-        else {
-            Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, 0);
-        }
+
+        Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, value);
 
         Vector2 texture_position{};
         for (int i = 0; i < 2; i++) {

@@ -109,13 +109,6 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	out.flush();
 	out.close();
 
-	//simple::file_istream<std::true_type> in(gui_data.save_ihm_path.c_str());
-	//byte buffer;
-	//for (int i = 0; i < 10; i++) {
-		//in >> buffer;
-		//printf("%d\n", buffer);
-	//}
-
 	printf("    Done!\n\n");
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -168,7 +161,13 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 		printf("\n");
 	}
 	printf("\n");
+	printf("Querying IHM...\n");
+	printf("    Getting difference vector...\n");
 	byte* difference_vector = CudaIhm::GetDifferenceVector(this->ihm_cortex, this->camera_list[0]->phash_data);
+	printf("    Scan-reducing difference vector...\n");
+	unsigned long long smallest_index = CudaIhm::SmallestIndexReduction(this->ihm_cortex, difference_vector);
+	printf("        Smallest Index:, %lld\n", smallest_index);
+	printf("    Done!\n");
 	printf("\n");
 }
 
