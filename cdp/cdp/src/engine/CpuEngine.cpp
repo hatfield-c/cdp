@@ -149,26 +149,10 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 }
 
 void CpuEngine::VerifyIhm(GuiData gui_data) {
-	byte* camera_phash = this->camera_list[0]->GetPhash();
-
-	for (int i = 0; i < 16; i++) {
-		for (int j = 0; j < 16; j++) {
-			//unsigned long long index = Indexer::FlatIndex3(j, i, 2034770, 16, 16);
-			//printf("(%d)", this->ihm_cortex.ihm_cpu[index]);
-			unsigned long long index = Indexer::FlatIndex2(j, i, 16);
-			printf("(%d)", (int)camera_phash[index]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-	printf("Querying IHM...\n");
-	printf("    Getting difference vector...\n");
-	byte* difference_vector = CudaIhm::GetDifferenceVector(this->ihm_cortex, this->camera_list[0]->phash_data);
-	printf("    Scan-reducing difference vector...\n");
-	unsigned long long smallest_index = CudaIhm::SmallestIndexReduction(this->ihm_cortex, difference_vector);
-	printf("        Smallest Index:, %lld\n", smallest_index);
-	printf("    Done!\n");
-	printf("\n");
+	unsigned long long smallest_index = CudaIhm::FindIhmIndex(this->ihm_cortex, this->camera_list[0]->phash_data, true);
+	printf("\nSmallest Index: %lld\n", smallest_index);
+	double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
+	printf("\nSimilarity Score: %f\n", score);
 }
 
 void CpuEngine::Cleanup() {

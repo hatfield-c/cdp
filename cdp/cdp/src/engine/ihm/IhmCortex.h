@@ -58,18 +58,12 @@ struct IhmCortex {
 		unsigned long long value_stride = pow(units_per_block, iteration);
 		
 		unsigned long long base_index = Indexer::FlatIndex3(0, threadIdx.x, blockIdx.x, this->thread_units, blockDim.x);
-		
 		base_index = base_index * value_stride;
 
-		//unsigned long long buffer_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
 		unsigned long long base_index_buffer = floor(((double)base_index) / ((double)this->thread_units));
 
 		if (base_index >= this->state_count) {
 			return;
-		}
-
-		if (base_index == 0) {
-			printf("[it]: %d\n", iteration);
 		}
 
 		byte lowest_value = 255;
@@ -96,32 +90,15 @@ struct IhmCortex {
 					lowest_unit = index_buffer[unit_index_buffer];
 				}
 			}
-
-			if (difference_value == 0) {
-				printf("    [Unit]: %lld %d %lld %lld %lld\n", unit_index, lowest_value, lowest_unit, base_index_buffer, unit_index_buffer);
-			}
 		}
 
 		difference_vector[base_index] = lowest_value;
 		index_buffer[base_index_buffer] = lowest_unit;
 
-		if (base_index == 3034624) {
-			//printf("    [cuda-b]: %d %d %d\n", threadIdx.x, blockIdx.x, blockDim.x);
-		}
-
-		if (lowest_value == 0) {
-			printf("    [base1]: %lld %lld %lld | %d %lld\n", base_index, lowest_unit, base_index_buffer, difference_vector[base_index], index_buffer[base_index_buffer]);
-			printf("    [cuda]: %d %d %d\n", threadIdx.x, blockIdx.x, blockDim.x);
-		}
-
 		SyncThreads();
 
 		if (threadIdx.x > 0) {
 			return;
-		}
-
-		if (base_index == 0) {
-			printf("    [index]: %d %d %d - %lld, %lld, %lld, %lld, %lld\n", difference_vector[3034752], difference_vector[9641], difference_vector[32], index_buffer[11854], index_buffer[11855], index_buffer[32], index_buffer[878], index_buffer[55555]);
 		}
 
 		lowest_value = 255;
@@ -143,17 +120,72 @@ struct IhmCortex {
 				unit_index_buffer = floor(((double)unit_index) / ((double)this->thread_units));
 				lowest_unit = index_buffer[unit_index_buffer];
 			}
-
-			if (difference_value == 0) {
-				printf("    %d %d %lld\n", difference_value, lowest_value, lowest_unit);
-			}
 		}
 
 		difference_vector[base_index] = lowest_value;
 		index_buffer[base_index_buffer] = lowest_unit;
+	}
+	
+	__device__ void GetSimilarityScore(int iteration, byte difference_threshold, byte* difference_vector, double* score_buffer, void(*SyncThreads)()) {
+		unsigned long long thread_0_index = Indexer::FlatIndex3(0, 0, blockIdx.x, this->thread_units, blockDim.x);
 
-		if (lowest_value == 0) {
-			printf("    [base2]: %lld %lld %lld %lld | %d %lld\n", base_index, lowest_unit, base_index_buffer, unit_index_buffer, difference_vector[base_index], index_buffer[base_index_buffer]);
+		int units_per_block = this->thread_units * blockDim.x;
+		unsigned long long value_stride = pow(units_per_block, iteration);
+
+		unsigned long long base_index = Indexer::FlatIndex3(0, threadIdx.x, blockIdx.x, this->thread_units, blockDim.x);
+		base_index = base_index * value_stride;
+
+		unsigned long long base_score_index = floor(((double)base_index) / ((double)this->thread_units));
+
+		if (base_index >= this->state_count) {
+			return;
 		}
+
+		double thread_score = 0;
+		unsigned long long unit_index_buffer;
+		for (int i = 0; i < this->thread_units; i++) {
+			unsigned long long unit_index = Indexer::FlatIndex3(i, threadIdx.x, blockIdx.x, this->thread_units, blockDim.x);
+			unit_index = unit_index * value_stride;
+
+			if (unit_index >= this->state_count) {
+				break;
+			}
+
+			if (iteration == 0) {
+				byte difference_value = difference_vector[unit_index];
+				
+				if (difference_value <= difference_threshold) {
+					thread_score++;
+				}
+			}
+			else {
+				unit_index_buffer = floor(((double)unit_index) / ((double)this->thread_units));
+				thread_score += score_buffer[unit_index_buffer];
+			}
+		}
+
+		score_buffer[base_score_index] = thread_score;
+
+		SyncThreads();
+
+		if (threadIdx.x > 0) {
+			return;
+		}
+		
+		double block_score = 0;
+		for (int i = 0; i < blockDim.x; i++) {
+			unsigned long long unit_index = Indexer::FlatIndex3(0, i, blockIdx.x, this->thread_units, blockDim.x);
+
+			unit_index = unit_index * value_stride;
+
+			if (unit_index >= this->state_count) {
+				break;
+			}
+
+			unit_index_buffer = floor(((double)unit_index) / ((double)this->thread_units));
+			block_score += score_buffer[unit_index_buffer];
+		}
+		
+		score_buffer[base_score_index] = block_score;
 	}
 };

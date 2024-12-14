@@ -5,6 +5,7 @@
 #include <chrono>
 #include "cuda.h"
 #include "SimpleBinStream.h"
+#include "stb_image_write.h"
 
 #include "Transform.h"
 #include "Quaternion.h"
