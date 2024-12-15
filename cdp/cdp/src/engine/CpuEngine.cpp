@@ -95,19 +95,14 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM to disk...\n");
-	printf("        Progress (Max 20 *): ");
-	simple::file_ostream<std::true_type> out(gui_data.save_ihm_path.c_str());
-	for (unsigned long long i = 0; i < memory_size; i++) {
-		out << ihm_cpu[i];
-
-		if (i % (int)(memory_size / 20) == 0) {
-			printf("*");
-		}
+	FILE* out_file;
+	fopen_s(&out_file, gui_data.save_ihm_path.c_str(), "wb");
+	if (out_file == NULL) {
+		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", gui_data.save_ihm_path.c_str());
+		exit(1);
 	}
-	printf("\n");
-
-	out.flush();
-	out.close();
+	int result = fwrite(ihm_cpu, sizeof(byte), memory_size, out_file);
+	fclose(out_file);
 
 	printf("    Done!\n\n");
 
@@ -137,6 +132,7 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 		exit(1);
 	}
 	int result = fread(ihm_cpu, sizeof(byte), memory_size, in_file);
+	fclose(in_file);
 
 	printf("    Copying IHM to GPU...\n");
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
@@ -147,10 +143,16 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 }
 
 void CpuEngine::VerifyIhm(GuiData gui_data) {
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 	unsigned long long smallest_index = CudaIhm::FindIhmIndex(this->ihm_cortex, this->camera_list[0]->phash_data, true);
 	printf("\nSmallest Index: %lld\n", smallest_index);
 	double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
 	printf("\nSimilarity Score: %f\n", score);
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+	printf("        Time Elapsed: %d ms\n", time_lapsed);
 }
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
@@ -163,6 +165,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	std::string base_path = "./data/results/heat_";
 	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
 
+	double average_time = 0;
 	for (int k = 4; k < this->world_space->space_data.world_size.y - 10; k++) {
 		
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
@@ -170,8 +173,10 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 		memset(img, 0, byte_count);
 
 		for (int i = 0; i < img_size.y; i+= 10) {
-			printf("%d\n", i);
+			printf("%d %.1f\n", i, average_time);
 			for (int j = 0; j < img_size.x; j+= 10) {
+				std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 				unsigned long long world_index = Indexer::FlatIndex3(
 					j,
 					k,
@@ -192,9 +197,9 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 					img[b_index] = 255;
 				}
 				else {
-					//this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
-					//this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
-					//this->RenderUpdate(gui_data);
+					this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
+					this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
+					this->RenderUpdate(gui_data);
 
 					double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, false) - 1;
 					score = log(score + 1);
@@ -207,6 +212,10 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, img_size.z, img_size.x);
 					img[r_index] = pixel_val;
 				}
+
+				std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+				int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+				average_time = (average_time + time_lapsed) / 2;
 			}
 		}
 

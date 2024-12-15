@@ -37,40 +37,37 @@ struct IhmGenerator {
 	}
 
 	__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
-		Vector2 pixel_position{
+		Vector2 phash_position{
 			Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y),
 			Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
 		};
 
-		if (blockIdx.z % 6 == 0 && threadIdx.y == 0 && threadIdx.z == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+		if (phash_position.x == phash_position.y && blockIdx.x == 0) {
 			printf("*");
 		}
-
-		if (pixel_position.x >= camera->camera_size.x || pixel_position.y >= camera->camera_size.y) {
+		
+		if (phash_position.x >= camera->phash_data_size.x || phash_position.y >= camera->phash_data_size.y) {
 			return;
 		}
 		
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 		
-		Vector2 spatial_offset = (camera->camera_size - 1) / (this->phash_size - 1);
-		spatial_offset.x = (int)spatial_offset.x;
-		spatial_offset.y = (int)spatial_offset.y;
+		Vector2 stride = (camera->camera_size - 1) / (camera->phash_data_size - 1);
+		stride.x = (int)stride.x;
+		stride.y = (int)stride.y;
 
-		bool is_phash_pixel = (int)pixel_position.x % (int)spatial_offset.x == 0;
-		is_phash_pixel = is_phash_pixel && ((int)pixel_position.y % (int)spatial_offset.y == 0);
-
-		if (!is_phash_pixel) {
-			return;
-		}
-
-		Vector2 phash_position = pixel_position / spatial_offset;
+		Vector2 pixel_position = phash_position * stride;
+		pixel_position.x = (int)pixel_position.x;
+		pixel_position.y = (int)pixel_position.y;
+		
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, 16, 16);
 
 		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
 		RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
+
 		Vector3 direction_buffer;
 		RaycastHitData depth_data_buffer;
-
+		
 		int width = 1;
 		int vote_threshold = 4;
 		int depth_votes = 0;

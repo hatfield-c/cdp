@@ -42,6 +42,7 @@ double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_ve
     CudaError::CheckError((cudaError_enum)cudaMemcpy(&smallest_value, difference_vector, sizeof(byte), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
+    cudaFree(difference_vector);
     difference_vector = CudaIhm::GetDifferenceVector(ihm_cortex, phash, is_verbose);
     dim3 threads_per_block(32, 1, 1);
     unsigned long long units_per_block = threads_per_block.x * ihm_cortex.thread_units;
@@ -79,6 +80,9 @@ double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_ve
     CudaError::CheckError((cudaError_enum)cudaMemcpy(&score, score_buffer, sizeof(unsigned long long), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
+    cudaFree(difference_vector);
+    cudaFree(score_buffer);
+
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
@@ -102,6 +106,8 @@ unsigned long long CudaIhm::FindIhmIndex(IhmCortex ihm_cortex, byte* phash, bool
         printf("    Done!\n");
         printf("\n");
     }
+
+    cudaFree(difference_vector);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
@@ -148,6 +154,8 @@ unsigned long long CudaIhm::SmallestIndexReduction(IhmCortex ihm_cortex, byte* d
     CudaError::CheckError((cudaError_enum)cudaMemcpy(&smallest_index, index_buffer, sizeof(unsigned long long), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
+    cudaFree(index_buffer);
+
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
@@ -180,7 +188,7 @@ byte* CudaIhm::GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_ve
 }
 
 void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
-    Vector2 resolution = camera.camera_size;
+    Vector2 resolution = camera.phash_data_size;
 
     dim3 threads_per_block(1, 8, 4);
 
@@ -191,7 +199,7 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     dim3 blocks_per_grid(image_count, x_blocks, y_blocks);
 
     printf("        Block Count: (%lld, %lld, %lld)\n", image_count, x_blocks, y_blocks);
-    printf("        Progress (Max %d *): ", (int)(y_blocks / 6));
+    printf("        Progress (Max 16 *): ");
     GenerateIhm_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm);
     
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
