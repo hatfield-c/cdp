@@ -129,16 +129,14 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
 
 	printf("    Loading IHM from disk...\n");
-	printf("        Progress (Max 20 *): ");
-	simple::file_istream<std::true_type> in(gui_data.load_ihm_path.c_str());
-	for (unsigned long long i = 0; i < memory_size; i++) {
-		in >> ihm_cpu[i];
 
-		if (i % (int)(memory_size / 20) == 0) {
-			printf("*");
-		}
+	FILE* in_file;
+	fopen_s(&in_file, gui_data.load_ihm_path.c_str(), "rb");
+	if (in_file == NULL) {
+		printf("\n\nWarning: File did not open when loading IHM:\n    %s!\n", gui_data.load_ihm_path.c_str());
+		exit(1);
 	}
-	printf("\n");
+	int result = fread(ihm_cpu, sizeof(byte), memory_size, in_file);
 
 	printf("    Copying IHM to GPU...\n");
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
@@ -194,9 +192,9 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 					img[b_index] = 255;
 				}
 				else {
-					this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
-					this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
-					this->RenderUpdate(gui_data);
+					//this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
+					//this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
+					//this->RenderUpdate(gui_data);
 
 					double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, false) - 1;
 					score = log(score + 1);

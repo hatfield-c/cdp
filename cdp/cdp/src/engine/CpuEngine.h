@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <vector>
 #include <chrono>
 #include "cuda.h"
