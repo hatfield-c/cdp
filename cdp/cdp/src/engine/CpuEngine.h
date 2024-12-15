@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string.h>
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -38,5 +39,6 @@ class CpuEngine {
 		void GenerateIhm(GuiData gui_data);
 		void LoadIhm(GuiData gui_data);
 		void VerifyIhm(GuiData gui_data);
+		void SaveSimilarityHeatMap(GuiData gui_data);
 		void Cleanup();
 };

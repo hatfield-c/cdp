@@ -184,6 +184,7 @@
     <ClInclude Include="include\imgui_filebrowser\imfilebrowser.h" />
     <ClInclude Include="include\simplebinstream\SimpleBinStream.h" />
     <ClInclude Include="include\stb\stb_image.h" />
+    <ClInclude Include="include\stb\stb_image_write.h" />
     <ClInclude Include="src\engine\CpuEngine.h" />
     <ClInclude Include="src\engine\cuda\CudaWorld.cuh" />
     <ClInclude Include="src\engine\ihm\cuda\CudaIhm.cuh" />

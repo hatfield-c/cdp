@@ -155,6 +155,27 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	printf("\nSimilarity Score: %f\n", score);
 }
 
+void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
+	Vector3 img_size{ 16, 16, 3 };
+	unsigned long long byte_count = img_size.x * img_size.y * img_size.z;
+	byte* img = new byte[byte_count];
+	memset(img, 0, byte_count);
+
+	unsigned long long r_index = Indexer::FlatIndex3(0, 7, 7, img_size.z, img_size.x);
+	unsigned long long g_index = Indexer::FlatIndex3(1, 3, 3, img_size.z, img_size.x);
+	unsigned long long b_index = Indexer::FlatIndex3(2, 11, 11, img_size.z, img_size.x);
+
+	img[r_index] = 255;
+	img[g_index] = 255;
+	img[b_index] = 255;
+
+	std::string test = "./data/results/test.jpg";
+	printf("Saving Heatmap at location: %s\n", test.c_str());
+
+	int result = stbi_write_jpg(test.c_str(), img_size.x, img_size.y, img_size.z, img, 100);
+	printf("    Result: %d\n", result);
+}
+
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
 	printf("    Freeing GPU IHM...\n");

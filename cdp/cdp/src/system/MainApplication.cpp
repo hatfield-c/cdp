@@ -41,6 +41,10 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->VerifyIhm(gui_data);
     }
 
+    if (gui_data.is_save_heatmap) {
+        this->engine->SaveSimilarityHeatMap(gui_data);
+    }
+
     if (is_state_changed && !this->engine->is_simulating) {
         this->engine->Start(gui_data);
     }

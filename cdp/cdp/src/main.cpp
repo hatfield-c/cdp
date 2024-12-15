@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define VK_USE_PLATFORM_WIN32_KHR
 
 #include "system/MainApplication.h"

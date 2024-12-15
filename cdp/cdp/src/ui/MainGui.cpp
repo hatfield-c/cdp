@@ -214,6 +214,7 @@ void MainGui::DrawInspector() {
         ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &this->ihm_position_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
 
         this->gui_data.is_verify_ihm = ImGui::Button("Verify");
+        this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
     }
 
     ImGui::End();
