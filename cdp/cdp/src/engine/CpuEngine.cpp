@@ -163,7 +163,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	std::string base_path = "./data/results/heat_";
 	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
 
-	for (int k = 0; k < this->world_space->space_data.world_size.y; k++) {
+	for (int k = 4; k < this->world_space->space_data.world_size.y - 10; k++) {
 		
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
 		
