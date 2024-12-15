@@ -160,6 +160,8 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	unsigned long long byte_count = img_size.x * img_size.y * img_size.z;
 	byte* img = new byte[byte_count];
 
+	this->ihm_generator.directions_cpu[11];
+
 	std::string base_path = "./data/results/heat_";
 	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
 
@@ -169,8 +171,9 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 		
 		memset(img, 0, byte_count);
 
-		for (int i = 0; i < img_size.y; i++) {
-			for (int j = 0; j < img_size.x; j++) {
+		for (int i = 0; i < img_size.y; i+= 10) {
+			printf("%d\n", i);
+			for (int j = 0; j < img_size.x; j+= 10) {
 				unsigned long long world_index = Indexer::FlatIndex3(
 					j,
 					k,
@@ -182,13 +185,29 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 				VoxelData voxel_data = this->world_space->space_data.space[world_index];
 
 				if (voxel_data.entity_id > 0) {
-					unsigned long long r_index = Indexer::FlatIndex3(0, i, j, img_size.z, img_size.x);
-					unsigned long long g_index = Indexer::FlatIndex3(1, i, j, img_size.z, img_size.x);
-					unsigned long long b_index = Indexer::FlatIndex3(2, i, j, img_size.z, img_size.x);
+					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, img_size.z, img_size.x);
+					unsigned long long g_index = Indexer::FlatIndex3(1, j, i, img_size.z, img_size.x);
+					unsigned long long b_index = Indexer::FlatIndex3(2, j, i, img_size.z, img_size.x);
 
 					img[r_index] = 255;
 					img[g_index] = 255;
 					img[b_index] = 255;
+				}
+				else {
+					this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
+					this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
+					this->RenderUpdate(gui_data);
+
+					double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, false) - 1;
+					score = log(score + 1);
+					score = 0.25 * score;
+					score = 255 * score;
+					score = Transform::Clip(score, 0.0, 255.0);
+
+					int pixel_val = (int)score;
+
+					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, img_size.z, img_size.x);
+					img[r_index] = pixel_val;
 				}
 			}
 		}

@@ -387,6 +387,18 @@ struct Transform {
 		return value;
 	}
 
+	static __host__ __device__ double Clip(double value, double lower, double upper) {
+		if (value < lower) {
+			value = lower;
+		}
+
+		if (value > upper) {
+			value = upper;
+		}
+
+		return value;
+	}
+
 	static __host__ __device__ float Norm2(Vector2 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y);
 		norm_val = sqrt(norm_val);
