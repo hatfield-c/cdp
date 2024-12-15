@@ -4,18 +4,19 @@ WorldSpace::WorldSpace() {
 	this->space_data.voxel_count = (unsigned long long)(this->space_data.world_size.x * this->space_data.world_size.y * this->space_data.world_size.z);
 	this->space_data.memory_size = this->space_data.voxel_count * sizeof(VoxelData);
 
-	this->space_data.space = (VoxelData*)malloc(this->space_data.memory_size);
-
 	printf("Voxel Count: %lld\n", this->space_data.voxel_count);
 	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
 	printf("    Total Memory: %.2f MB\n\n", this->space_data.memory_size / 1000000.0f);
 
 	printf("Initializing Voxel World...\n");
 
+	this->space_data.space = (VoxelData*)malloc(this->space_data.memory_size);
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
-	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+	//CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
 	this->InitWorldMemory(false, true);
+
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Done!\n\n");
 }
@@ -55,6 +56,10 @@ void WorldSpace::LoadWorld(std::string load_path) {
 
 	printf("    Writing points to GPU world space...\n");
 	this->WritePointsToCuda(vertices);
+
+	printf("    Copying loaded world state to CPU...\n");
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
 	printf("    Done!\n\n");
 }

@@ -156,24 +156,47 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 }
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
-	Vector3 img_size{ 16, 16, 3 };
+	Vector3 img_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z, 3 };
 	unsigned long long byte_count = img_size.x * img_size.y * img_size.z;
 	byte* img = new byte[byte_count];
-	memset(img, 0, byte_count);
 
-	unsigned long long r_index = Indexer::FlatIndex3(0, 7, 7, img_size.z, img_size.x);
-	unsigned long long g_index = Indexer::FlatIndex3(1, 3, 3, img_size.z, img_size.x);
-	unsigned long long b_index = Indexer::FlatIndex3(2, 11, 11, img_size.z, img_size.x);
+	std::string base_path = "./data/results/heat_";
+	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
 
-	img[r_index] = 255;
-	img[g_index] = 255;
-	img[b_index] = 255;
+	for (int k = 0; k < this->world_space->space_data.world_size.y; k++) {
+		
+		std::string save_path = base_path + std::to_string(k) + ".jpg";
+		
+		memset(img, 0, byte_count);
 
-	std::string test = "./data/results/test.jpg";
-	printf("Saving Heatmap at location: %s\n", test.c_str());
+		for (int i = 0; i < img_size.y; i++) {
+			for (int j = 0; j < img_size.x; j++) {
+				unsigned long long world_index = Indexer::FlatIndex3(
+					j,
+					k,
+					i,
+					this->ihm_generator.world_size.x,
+					this->ihm_generator.world_size.y
+				);
 
-	int result = stbi_write_jpg(test.c_str(), img_size.x, img_size.y, img_size.z, img, 100);
-	printf("    Result: %d\n", result);
+				VoxelData voxel_data = this->world_space->space_data.space[world_index];
+
+				if (voxel_data.entity_id > 0) {
+					unsigned long long r_index = Indexer::FlatIndex3(0, i, j, img_size.z, img_size.x);
+					unsigned long long g_index = Indexer::FlatIndex3(1, i, j, img_size.z, img_size.x);
+					unsigned long long b_index = Indexer::FlatIndex3(2, i, j, img_size.z, img_size.x);
+
+					img[r_index] = 255;
+					img[g_index] = 255;
+					img[b_index] = 255;
+				}
+			}
+		}
+
+		int result = stbi_write_jpg(save_path.c_str(), img_size.x, img_size.y, img_size.z, img, 100);
+	}
+
+	printf("    Done!\n");
 }
 
 void CpuEngine::Cleanup() {
