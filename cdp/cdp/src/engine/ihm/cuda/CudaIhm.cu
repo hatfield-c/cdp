@@ -1,9 +1,5 @@
 #include "CudaIhm.cuh"
 
-//#ifndef __CUDACC__  
-//#define __CUDACC__
-//#endif
-
 __device__ void CudaIhm::SyncThreads() {
     __syncthreads();
 }
@@ -24,6 +20,10 @@ __global__ void CudaIhm::GetDifferenceVector_Kernel (IhmCortex ihm_cortex, byte*
 
 __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
     ihm_generator.Generate(space_data, &camera, ihm);
+}
+
+__global__ void CudaIhm::RenderHeatmap_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, IhmRenderer ihm_renderer, byte* ihm) {
+    //ihm_renderer.RenderHeatmap(space_data, &camera, ihm_generator, ihm);
 }
 
 double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_verbose) {
@@ -202,6 +202,26 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     printf("        Progress (Max 16 *): ");
     GenerateIhm_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm);
     
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+    printf("\n");
+}
+
+void CudaIhm::RenderHeatmap(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, IhmRenderer ihm_renderer, byte* ihm, byte* img) {
+    Vector2 resolution = camera.phash_data_size;
+
+    dim3 threads_per_block(1, 8, 4);
+
+    unsigned long long image_count = ihm_renderer.pixel_count;
+    unsigned long long x_blocks = ceil(resolution.x / (float)threads_per_block.y);
+    unsigned long long y_blocks = ceil(resolution.y / (float)threads_per_block.z);
+
+    dim3 blocks_per_grid(image_count, x_blocks, y_blocks);
+
+    printf("        Block Count: (%lld, %lld, %lld)\n", image_count, x_blocks, y_blocks);
+    printf("        Progress (Max 16 *): ");
+    RenderHeatmap_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm_renderer, ihm);
+
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
     printf("\n");

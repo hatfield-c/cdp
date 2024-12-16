@@ -2,14 +2,21 @@
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
 	this->world_space = new WorldSpace();
-	this->ihm_generator.Init();
+	this->ihm_generator.Init(
+		3,
+		Vector::ZERO3(),
+		this->world_space->space_data.world_size,
+		this->world_space->space_data.world_size,
+		Vector3{ 10, 10, 10 },
+		Vector2{ 16, 16 }
+	);
 
 	for (int i = 0; i < depth_textures.size(); i++) {
 		CUdeviceptr depth_texture = depth_textures[i];
 		CUdeviceptr phash_texture = phash_textures[i];
 		CUdeviceptr shaded_texture = shaded_textures[i];
 
-		Camera* camera = new Camera{};// new Camera("camera " + i, gpu_texture);
+		Camera* camera = new Camera{};
 		camera->Init("camera " + i, depth_texture, phash_texture, shaded_texture);
 		
 		this->camera_list.push_back(camera);
@@ -82,6 +89,7 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
 	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
+	IhmGenerator heatmap_generator{};
 	byte* ihm_cpu = new byte[memory_size];
 
 	printf("    Allocating IHM GPU memory...\n");

@@ -9,24 +9,47 @@
 #include "../Indexer.h"
 
 struct IhmGenerator {
+	int direction_density;
 	int direction_count;
 	unsigned long long voxel_count;
 	unsigned long long state_count;
 	unsigned long long phash_count;
 	unsigned long long bit_count;
 
-	Vector2 phash_size{ 16, 16 };
-	Vector3 world_size{ 1000, 300, 1000 };
-	Vector3 world_size_strided{ 100, 30, 100 };
-	Vector3 world_stride{ 10, 10, 10 };
+	Vector3 world_origin;
+	Vector3 world_width;
+	Vector3 world_size;
+	Vector3 world_stride;
+	Vector3 world_width_strided;
+	Vector3 world_size_strided;
+	Vector2 phash_size;
 
 	Vector3* directions_cpu;
 	Vector3* directions;
 
-	void Init() {
-		this->PreBuildDirections(3);
+	void Init(int direction_density, Vector3 world_origin, Vector3 world_width, Vector3 world_size, Vector3 world_stride, Vector2 phash_size) {
+		this->direction_density = direction_density;
+		this->PreBuildDirections(direction_density);
+
+		this->world_origin = world_origin;
+		this->world_width = world_width;
+		this->world_size = world_size;
+		this->world_stride = world_stride;
+
+		this->world_width_strided = world_width / world_stride;
+		this->world_width_strided.x = (int)world_width_strided.x;
+		this->world_width_strided.y = (int)world_width_strided.y;
+		this->world_width_strided.z = (int)world_width_strided.z;
+
+		this->world_size_strided = world_size / world_stride;
+		this->world_size_strided.x = (int)world_size_strided.x;
+		this->world_size_strided.y = (int)world_size_strided.y;
+		this->world_size_strided.z = (int)world_size_strided.z;
+
+		this->phash_size = phash_size;
+
 		this->phash_count = this->phash_size.x * this->phash_size.y;
-		this->voxel_count = this->world_size_strided.x * this->world_size_strided.y * this->world_size_strided.z;
+		this->voxel_count = this->world_width_strided.x * this->world_width_strided.y * this->world_width_strided.z;
 		this->state_count = this->voxel_count * ((unsigned long long)this->direction_count);
 		this->bit_count = this->state_count * this->phash_count;
 
@@ -101,11 +124,12 @@ struct IhmGenerator {
 
 	__device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
 		IhmState ihm_state;
-		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_size_strided.x, this->world_size_strided.y);
+		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 		
 		ihm_state.position.x = state_data.y * this->world_stride.x;
 		ihm_state.position.y = state_data.z * this->world_stride.y;
 		ihm_state.position.z = state_data.w * this->world_stride.z;
+		ihm_state.position += this->world_origin;
 
 		int direction_index = state_data.x;
 		Vector3 direction{};

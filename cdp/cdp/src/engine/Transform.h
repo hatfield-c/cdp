@@ -367,8 +367,6 @@ struct Vector {
 	static __host__ __device__ Vector3 DOWN() {
 		return Vector3{ 0, -1, 0 };
 	}
-
-	
 };
 
 struct Transform {
