@@ -13,85 +13,100 @@ struct IhmRenderer {
 
 	Vector2 render_size;
 	Vector2 render_stride;
-	Vector4 render_rotation;
-	float render_height;
 	unsigned long long pixel_count;
 
-	void Init(Vector2 render_size, Vector2 render_stride, Vector4 render_rotation, float render_height) {
+	void Init(Vector2 render_size, Vector2 render_stride) {
 		this->render_size = render_size;
 		this->render_stride = render_stride;
-		this->render_rotation = render_rotation;
-		this->render_height = render_height;
 		this->pixel_count = render_size.x * render_size.y;
 	}
 
-	__device__ void RenderHeatmap(SpaceData space_data, Camera* camera, IhmGenerator ihm_generator, byte* ihm, void(*SyncThreads)()) {
-		Vector2 phash_position{
-			Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y),
-			Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
-		};
+	__device__ void RenderSimilarityHeatmap(IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, double* score_buffer, byte* img, int direction_index, int height, void(*SyncThreads)()) {
+		Vector2 slice_position = Indexer::InverseFlatIndex2(blockIdx.x, slice_generator.world_width_strided.x);
+		unsigned long long thread_units = ceil(((double)ihm_generator.voxel_count) / ((double)blockDim.x));
 
-		if (phash_position.x == phash_position.y && blockIdx.x == 0) {
+		if (blockIdx.x % 1000 == 0 && threadIdx.x == 0) {
 			printf("*");
 		}
 
-		if (phash_position.x >= camera->phash_data_size.x || phash_position.y >= camera->phash_data_size.y) {
+		unsigned long long thread_buffer_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		unsigned long long slice_state_index = Indexer::FlatIndex4(direction_index, slice_position.x, height, slice_position.y, slice_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
+
+		if (slice_state_index >= slice_generator.bit_count) {
 			return;
 		}
 
-		Vector2 stride = (camera->camera_size - 1) / (camera->phash_data_size - 1);
-		stride.x = (int)stride.x;
-		stride.y = (int)stride.y;
+		double thread_score = 0;
+		for (unsigned long long i = 0; i < thread_units; i++) {
+			unsigned long long ihm_voxel_index = i + (threadIdx.x * thread_units);
 
-		Vector2 pixel_position = phash_position * stride;
-		pixel_position.x = (int)pixel_position.x;
-		pixel_position.y = (int)pixel_position.y;
+			if (ihm_voxel_index >= ihm_generator.voxel_count) {
+				break;
+			}
 
-		Vector3 render_position{
-			pixel_position.x * this->render_stride.x,
-			pixel_position.y * this->render_stride.y,
-			this->render_height
-		};
+			Vector3 voxel_position = Indexer::InverseFlatIndex3(ihm_voxel_index, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 
-		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, 16, 16);
+			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);;
+		
+			int difference_count = 0;
+			for (int j = 0; j < ihm_generator.phash_size.x; j++) {
+				for (int k = 0; k < ihm_generator.phash_size.y; k++) {
+					unsigned long long slice_data_index = Indexer::FlatIndex3(k, j, slice_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
+					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, ihm_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
 
-		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, this->render_rotation);
-		RaycastHitData hit_data = Physics::Raycast(space_data, render_position, ray_direction, pixel_position, camera->max_render_distance);
+					if (slice_data_index >= slice_generator.bit_count || ihm_data_index >= ihm_generator.bit_count) {
+						continue;
+					}
 
-		Vector3 direction_buffer;
-		RaycastHitData depth_data_buffer;
-
-		int width = 1;
-		int vote_threshold = 4;
-		int depth_votes = 0;
-		for (int i = -width; i < (width + 1); i++) {
-			for (int j = -width; j < (width + 1); j++) {
-
-				if (i == 0 && j == 0) {
-					continue;
+					if (ihm[ihm_data_index] != ihm_slice[slice_data_index]) {
+						difference_count++;
+					}
 				}
+			}
 
-				Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
-
-				if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= camera->camera_size.x || camera_query_position.y >= camera->camera_size.y) {
-					continue;
-				}
-
-				direction_buffer = Camera::GetCameraRayDirection(camera_query_position, camera->camera_size, camera->fov, this->render_rotation);
-				depth_data_buffer = Physics::Raycast(space_data, render_position, direction_buffer, camera_query_position, camera->max_render_distance);
-
-				float depth_delta = hit_data.distance - depth_data_buffer.distance;
-				if (depth_delta > 0) {
-					depth_votes++;
-				}
+			if (difference_count == 0) {
+				thread_score++;
 			}
 		}
 
-		if (depth_votes >= vote_threshold) {
-			ihm[data_index] = 1;
-		}
+		score_buffer[thread_buffer_index] = thread_score;
 
 		SyncThreads();
+
+		if (threadIdx.x > 0) {
+			return;
+		}
+
+		double pixel_score = 0;
+		for (int i = 0; i < blockDim.x; i++) {
+			unsigned long long thread_score_index = Indexer::FlatIndex2(i, blockIdx.x, blockDim.x);
+
+			pixel_score += score_buffer[thread_score_index];
+		}
+
+		pixel_score = log(pixel_score + 1);
+		pixel_score = 255 * 0.25 * pixel_score;
+		pixel_score = Transform::Clip(pixel_score, 0.0, 255.0);
+
+		byte r_val = (int)pixel_score;
+		byte g_val = 255 - r_val;
+		byte b_val = 0;
+
+		if (pixel_score == 0) {
+			r_val = 0;
+			g_val = 0;
+			b_val = 255;
+		}
+
+		Vector2 render_position = slice_position * this->render_stride;
+		Vector2 render_size = this->render_size * this->render_stride;
+
+		unsigned long long r_index = Indexer::FlatIndex3(0, render_position.x, render_position.y, 3, render_size.x);
+		//unsigned long long g_index = Indexer::FlatIndex3(1, render_position.x, render_position.y, 3, render_size.x);
+		//unsigned long long b_index = Indexer::FlatIndex3(2, render_position.x, render_position.y, 3, render_size.x);
+		img[r_index] = r_val;
+		img[r_index + 1] = g_val;
+		img[r_index + 2] = b_val;
 	}
 
 };

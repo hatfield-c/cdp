@@ -22,8 +22,9 @@ __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera,
     ihm_generator.Generate(space_data, &camera, ihm);
 }
 
-__global__ void CudaIhm::RenderHeatmap_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, IhmRenderer ihm_renderer, byte* ihm) {
-    //ihm_renderer.RenderHeatmap(space_data, &camera, ihm_generator, ihm);
+__global__ void CudaIhm::RenderHeatmap_Kernel(IhmRenderer ihm_renderer, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, double* score_buffer, byte* img, int direction_index, int height) {
+    void(*func_ptr)() = &CudaIhm::SyncThreads;
+    ihm_renderer.RenderSimilarityHeatmap(ihm_generator, slice_generator, ihm, ihm_slice, score_buffer, img, direction_index, height, func_ptr);
 }
 
 double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_verbose) {
@@ -58,7 +59,7 @@ double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_ve
     }
 
     double* score_buffer;
-    int buffer_size = threads_per_block.x * blocks_per_grid.x * sizeof(unsigned long long);
+    int buffer_size = threads_per_block.x * blocks_per_grid.x * sizeof(double);
     CudaError::CheckError((cudaError_enum)cudaMalloc(&score_buffer, buffer_size), __FILE__, __LINE__);
 
     for (int i = 0; i < iterations_max; i++) {
@@ -198,6 +199,7 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
 
     dim3 blocks_per_grid(image_count, x_blocks, y_blocks);
 
+    printf("    Generating IHM:\n");
     printf("        Block Count: (%lld, %lld, %lld)\n", image_count, x_blocks, y_blocks);
     printf("        Progress (Max 16 *): ");
     GenerateIhm_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm);
@@ -207,20 +209,21 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     printf("\n");
 }
 
-void CudaIhm::RenderHeatmap(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, IhmRenderer ihm_renderer, byte* ihm, byte* img) {
-    Vector2 resolution = camera.phash_data_size;
+void CudaIhm::RenderHeatmap(IhmRenderer ihm_renderer, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, byte* img, int direction_index, int height) {
+    
+    dim3 threads_per_block(32, 1, 1);
+    dim3 blocks_per_grid(slice_generator.voxel_count, 1, 1);
 
-    dim3 threads_per_block(1, 8, 4);
+    double* score_buffer;
+    unsigned long long buffer_size = threads_per_block.x * blocks_per_grid.x * sizeof(double);
+    CudaError::CheckError((cudaError_enum)cudaMalloc(&score_buffer, buffer_size), __FILE__, __LINE__);
 
-    unsigned long long image_count = ihm_renderer.pixel_count;
-    unsigned long long x_blocks = ceil(resolution.x / (float)threads_per_block.y);
-    unsigned long long y_blocks = ceil(resolution.y / (float)threads_per_block.z);
+    printf("    Rendering Heatmap:\n");
+    printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
+    printf("        Progress (Max X *): ");
+    RenderHeatmap_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_renderer, ihm_generator, slice_generator, ihm, ihm_slice, score_buffer, img, direction_index, height);
 
-    dim3 blocks_per_grid(image_count, x_blocks, y_blocks);
-
-    printf("        Block Count: (%lld, %lld, %lld)\n", image_count, x_blocks, y_blocks);
-    printf("        Progress (Max 16 *): ");
-    RenderHeatmap_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm_renderer, ihm);
+    cudaFree(score_buffer);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);

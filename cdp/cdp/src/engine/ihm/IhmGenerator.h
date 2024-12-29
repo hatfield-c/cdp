@@ -45,14 +45,14 @@ struct IhmGenerator {
 		this->world_size_strided.x = (int)world_size_strided.x;
 		this->world_size_strided.y = (int)world_size_strided.y;
 		this->world_size_strided.z = (int)world_size_strided.z;
-
+		
 		this->phash_size = phash_size;
 
 		this->phash_count = this->phash_size.x * this->phash_size.y;
 		this->voxel_count = this->world_width_strided.x * this->world_width_strided.y * this->world_width_strided.z;
 		this->state_count = this->voxel_count * ((unsigned long long)this->direction_count);
 		this->bit_count = this->state_count * this->phash_count;
-
+		
 		int memory_size = this->direction_count * sizeof(Vector3);
 
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->directions, memory_size), __FILE__, __LINE__);

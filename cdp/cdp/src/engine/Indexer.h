@@ -21,6 +21,17 @@ struct Indexer {
 		return index;
 	}
 	
+	static __host__ __device__ Vector2 InverseFlatIndex2(unsigned long long index, unsigned long long x_max) {
+		unsigned long long x_progress = index % x_max;
+
+		Vector2 result{
+			x_progress,
+			(int)(index / x_max),
+		};
+
+		return result;
+	}
+
 	static __host__ __device__ Vector3 InverseFlatIndex3(unsigned long long index, unsigned long long x_max, unsigned long long y_max) {
 		unsigned long long xy_progress = index % (x_max * y_max);
 

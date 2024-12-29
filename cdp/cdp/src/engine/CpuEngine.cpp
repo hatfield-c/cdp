@@ -61,10 +61,11 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	this->camera_list[0]->transform.rotation = ihm_state.rotation;
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 
-	//printf("(%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n", 
-		//this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
-		//this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
-	//);
+	printf("[%lld] (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n",
+		gui_data.ihm_position_index,
+		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
+		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
+	);
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {
@@ -89,7 +90,6 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
 	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
-	IhmGenerator heatmap_generator{};
 	byte* ihm_cpu = new byte[memory_size];
 
 	printf("    Allocating IHM GPU memory...\n");
@@ -164,6 +164,72 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 }
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
+	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
+	Vector3 render_stride{ 10, 1, 10 };
+	std::string base_path = "./data/results/heat_";
+
+	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
+
+	Camera camera = *this->camera_list[0];
+	unsigned long long byte_count = render_size.x * render_size.y * 3;
+	byte* img_cpu = new byte[byte_count];
+	byte* img;
+
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&img, byte_count), __FILE__, __LINE__);
+
+	for (int k = 10; k < this->world_space->space_data.world_size.y - 10; k += 10) {
+		std::string save_path = base_path + std::to_string(k) + ".jpg";
+
+		IhmGenerator heatmap_generator{};
+		heatmap_generator.Init(
+			3,
+			Vector3{ 0, (float)k, 0 },
+			Vector3{ render_size.x, 1, render_size.y},
+			this->world_space->space_data.world_size,
+			render_stride,
+			Vector2{ 16, 16 }
+		);
+
+		IhmRenderer ihm_renderer{};
+		ihm_renderer.Init(
+			Vector2{ heatmap_generator.world_width_strided.x, heatmap_generator.world_width_strided.z },
+			Vector2{ render_stride.x, render_stride.z }
+		);
+
+		unsigned long long memory_size = heatmap_generator.bit_count * sizeof(byte);
+		byte* heatmap_ihm;
+		CudaError::CheckError((cudaError_enum)cudaMalloc(&heatmap_ihm, memory_size), __FILE__, __LINE__);
+
+		CudaIhm::GenerateIhm(this->world_space->space_data, camera, heatmap_generator, heatmap_ihm);
+		CudaIhm::RenderHeatmap(ihm_renderer, this->ihm_generator, heatmap_generator, this->ihm_cortex.ihm, heatmap_ihm, img, 12, k);
+
+		CudaError::CheckError((cudaError_enum)cudaMemcpy(img_cpu, img, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+		for (int i = 0; i < render_size.y; i++) {
+			for (int j = 0; j < render_size.x; j++) {
+				unsigned long long index = Indexer::FlatIndex3(j, k, i, this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.y);
+				if (this->world_space->space_data.space[index].entity_id > 0) {
+					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, 3, render_size.x);
+					unsigned long long g_index = Indexer::FlatIndex3(1, j, i, 3, render_size.x);
+					unsigned long long b_index = Indexer::FlatIndex3(2, j, i, 3, render_size.x);
+					img_cpu[r_index] = 255;
+					img_cpu[g_index] = 255;
+					img_cpu[b_index] = 255;
+				}
+			}
+		}
+
+		int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, img_cpu, 100);
+		
+	}
+
+	cudaFree(img);
+
+	printf("    Done!\n");
+}
+
+/*
+void CpuEngine::SaveSimilarityHeatMap_Old(GuiData gui_data) {
 	Vector3 img_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z, 3 };
 	unsigned long long byte_count = img_size.x * img_size.y * img_size.z;
 	byte* img = new byte[byte_count];
@@ -231,7 +297,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	}
 
 	printf("    Done!\n");
-}
+}*/
 
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
