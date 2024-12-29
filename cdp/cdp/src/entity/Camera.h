@@ -23,7 +23,6 @@ struct Camera {
 
     float min_render_distance = 0.05f;
     float max_render_distance = 350.0f;
-    int vote_threshold = 4;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
@@ -149,37 +148,12 @@ struct Camera {
     __device__ void Phash(RaycastHitData raycast_data, Vector2 pixel_position, Vector2 spatial_offset) {
         Vector2 phash_position = pixel_position / spatial_offset;
 
-        int width = 1;
         Vector4 color_white{ 255, 255, 255, 255 };
         Vector4 color_black = Vector4{ 0, 0, 0, 255 };
         Vector4 phash_color = color_black;
-        int lower_votes = 0;
-
-        RaycastHitData depth_data_buffer;
-        int depth_votes = 0;
-        for (int i = -width; i < (width + 1); i++) {
-            for (int j = -width; j < (width + 1); j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-
-                Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
-
-                if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= this->camera_size.x || camera_query_position.y >= this->camera_size.y) {
-                    continue;
-                }
-
-                depth_data_buffer = Camera::ReadDepth(this->depth_data, camera_query_position, this->camera_size);
-
-                float depth_delta = raycast_data.distance - depth_data_buffer.distance;
-                if (depth_delta > 0) {
-                    depth_votes++;
-                }
-            }
-        }
 
         byte value = 0;
-        if (depth_votes >= this->vote_threshold) {
+        if (((int)raycast_data.distance) % 2 == 0) {
             phash_color = color_white;
             value = 1;
         }

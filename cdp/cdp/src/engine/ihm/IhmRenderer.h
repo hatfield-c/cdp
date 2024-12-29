@@ -46,7 +46,7 @@ struct IhmRenderer {
 
 			Vector3 voxel_position = Indexer::InverseFlatIndex3(ihm_voxel_index, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 
-			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);;
+			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
 		
 			int difference_count = 0;
 			for (int j = 0; j < ihm_generator.phash_size.x; j++) {

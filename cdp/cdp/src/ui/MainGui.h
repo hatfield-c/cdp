@@ -17,7 +17,6 @@
 class MainGui {
 	public:
 		int render_texture = 0;
-		int vote_threshold = 4;
 		unsigned long long ihm_position_index = Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
 
 		int camera_index = 0;

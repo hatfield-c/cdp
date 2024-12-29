@@ -88,36 +88,7 @@ struct IhmGenerator {
 		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
 		RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
 
-		Vector3 direction_buffer;
-		RaycastHitData depth_data_buffer;
-		
-		int width = 1;
-		int vote_threshold = 4;
-		int depth_votes = 0;
-		for (int i = -width; i < (width + 1); i++) {
-			for (int j = -width; j < (width + 1); j++) {
-
-				if (i == 0 && j == 0) {
-					continue;
-				}
-
-				Vector2 camera_query_position{ pixel_position.x + i, pixel_position.y + j };
-
-				if (camera_query_position.x < 0 || camera_query_position.y < 0 || camera_query_position.x >= camera->camera_size.x || camera_query_position.y >= camera->camera_size.y) {
-					continue;
-				}
-
-				direction_buffer = Camera::GetCameraRayDirection(camera_query_position, camera->camera_size, camera->fov, ihm_state.rotation);
-				depth_data_buffer = Physics::Raycast(space_data, ihm_state.position, direction_buffer, camera_query_position, camera->max_render_distance);
-
-				float depth_delta = hit_data.distance - depth_data_buffer.distance;
-				if (depth_delta > 0) {
-					depth_votes++;
-				}
-			}
-		}
-
-		if (depth_votes >= vote_threshold) {			
+		if (((int)hit_data.distance) % 2 == 0) {
 			ihm[data_index] = 1;
 		}
 	}

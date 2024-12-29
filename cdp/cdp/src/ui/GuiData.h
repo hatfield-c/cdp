@@ -12,7 +12,6 @@ struct GuiData {
 	std::string save_ihm_path = "";
 	unsigned long long ihm_position_index = 0;
 	int camera_index = 0;
-	int vote_threshold = 0;
 	bool is_verify_ihm = false;
 	bool is_save_heatmap = false;
 };

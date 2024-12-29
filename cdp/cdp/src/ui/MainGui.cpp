@@ -81,8 +81,6 @@ void MainGui::RefreshGuiData() {
     else {
         this->gui_data.save_ihm_path = "";
     }
-
-    this->gui_data.vote_threshold = this->vote_threshold;
 }
 
 void MainGui::DrawBackground() {
@@ -200,10 +198,6 @@ void MainGui::DrawInspector() {
     if (!ImGui::CollapsingHeader("p-Hash")) {
         int min_val = 0;
         int max_val = 8;
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Vote Threshold");
-        ImGui::SameLine();
-        ImGui::SliderScalar("##phash_votes", ImGuiDataType_U8, &this->vote_threshold, &min_val, &max_val);
 
         ImGui::Separator();
 

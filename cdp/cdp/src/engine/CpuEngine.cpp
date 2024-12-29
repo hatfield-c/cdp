@@ -59,13 +59,12 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 
 	this->camera_list[0]->transform.position = ihm_state.position;
 	this->camera_list[0]->transform.rotation = ihm_state.rotation;
-	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 
-	printf("[%lld] (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n",
+	/*printf("[%lld] (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n",
 		gui_data.ihm_position_index,
 		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
 		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
-	);
+	);*/
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {
@@ -96,7 +95,6 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	byte* ihm;
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
 
-	printf("    Generating IHM...\n");
 	CudaIhm::GenerateIhm(this->world_space->space_data, camera, this->ihm_generator, ihm);
 
 	printf("    Copying IHM to CPU...\n");
