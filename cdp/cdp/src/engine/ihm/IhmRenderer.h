@@ -25,7 +25,7 @@ struct IhmRenderer {
 		Vector2 slice_position = Indexer::InverseFlatIndex2(blockIdx.x, slice_generator.world_width_strided.x);
 		unsigned long long thread_units = ceil(((double)ihm_generator.voxel_count) / ((double)blockDim.x));
 
-		if (blockIdx.x % 1000 == 0 && threadIdx.x == 0) {
+		if (blockIdx.x % ((int)(blockIdx.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
 		}
 
@@ -48,7 +48,7 @@ struct IhmRenderer {
 
 			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
 		
-			int difference_count = 0;
+			bool is_same = true;
 			for (int j = 0; j < ihm_generator.phash_size.x; j++) {
 				for (int k = 0; k < ihm_generator.phash_size.y; k++) {
 					unsigned long long slice_data_index = Indexer::FlatIndex3(k, j, slice_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
@@ -59,12 +59,17 @@ struct IhmRenderer {
 					}
 
 					if (ihm[ihm_data_index] != ihm_slice[slice_data_index]) {
-						difference_count++;
+						is_same = false;
+						break;
 					}
+				}
+
+				if (!is_same) {
+					break;
 				}
 			}
 
-			if (difference_count == 0) {
+			if (is_same) {
 				thread_score++;
 			}
 		}

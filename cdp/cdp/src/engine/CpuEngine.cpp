@@ -163,7 +163,7 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
-	Vector3 render_stride{ 10, 1, 10 };
+	Vector3 render_stride{ 1, 1, 1 };
 	std::string base_path = "./data/results/heat_";
 
 	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
@@ -218,7 +218,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 		}
 
 		int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, img_cpu, 100);
-		
+		cudaFree(heatmap_ihm);
 	}
 
 	cudaFree(img);

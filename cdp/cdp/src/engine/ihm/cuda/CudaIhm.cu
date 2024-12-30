@@ -220,7 +220,7 @@ void CudaIhm::RenderHeatmap(IhmRenderer ihm_renderer, IhmGenerator ihm_generator
 
     printf("    Rendering Heatmap:\n");
     printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
-    printf("        Progress (Max X *): ");
+    printf("        Progress (Max 20 *): ");
     RenderHeatmap_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_renderer, ihm_generator, slice_generator, ihm, ihm_slice, score_buffer, img, direction_index, height);
 
     cudaFree(score_buffer);
