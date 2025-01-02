@@ -19,6 +19,24 @@ MainGui::MainGui(int camera_count) {
     }
 
     this->vulkan_pipeline = new VulkanPipeline(this->camera_count);
+
+    this->ihm_generator.Init(
+        3,
+        Vector::ZERO3(),
+        Vector3{ 1000, 300, 1000 },
+        Vector3{ 1000, 300, 1000 },
+        Vector3{ 10, 10, 10 },
+        Vector2{ 16, 16 }
+    );
+    this->gui_data.ihm_index = Indexer::FlatIndex4(
+        this->gui_data.camera_rotation_index, 
+        this->gui_data.camera_position.x, 
+        this->gui_data.camera_position.y,
+        this->gui_data.camera_position.z,
+        this->ihm_generator.direction_count, 
+        this->ihm_generator.world_width_strided.x, 
+        this->ihm_generator.world_width_strided.y
+    );
 }
 
 void MainGui::Update() {
@@ -208,22 +226,16 @@ void MainGui::DrawInspector() {
 
         float camera_position[3] = { this->gui_data.camera_position.x, this->gui_data.camera_position.y, this->gui_data.camera_position.z };
         int direction_index = this->gui_data.camera_rotation_index;
+        ImGuiInputTextFlags_ ihm_index_flag = ImGuiInputTextFlags_None;
+        ImGuiInputTextFlags_ camera_state_flag = ImGuiInputTextFlags_None;
         
-        IhmGenerator ihm_generator{};
-        ihm_generator.Init(
-            3,
-            Vector::ZERO3(),
-            Vector3{ 1000, 300, 1000 },
-            Vector3{ 1000, 300, 1000 },
-            Vector3{ 10, 10, 10 },
-            Vector2{ 16, 16 }
-        );
-
-        if (this->gui_data.control_index == 0 ||  this->gui_data.control_index == 3) {
-
+        if (this->gui_data.control_index == 0) {
+            ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
+            camera_state_flag = ImGuiInputTextFlags_ReadOnly;
         }
         else if (this->gui_data.control_index == 1) {
-            IhmState ihm_state = ihm_generator.GetIhmState(ihm_index, false);
+            camera_state_flag = ImGuiInputTextFlags_ReadOnly;
+            IhmState ihm_state = this->ihm_generator.GetIhmState(ihm_index, false);
 
             camera_position[0] = ihm_state.position_strided.x;
             camera_position[1] = ihm_state.position_strided.y;
@@ -231,32 +243,69 @@ void MainGui::DrawInspector() {
             direction_index = ihm_state.direction_index;
         }
         else if (this->gui_data.control_index == 2) {
-            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
+            ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
+            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
+        }
+        else if (this->gui_data.control_index == 3) {
+            ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
+            camera_state_flag = ImGuiInputTextFlags_ReadOnly;
+
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_1))) {
+                camera_position[0]++;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_2))) {
+                camera_position[0]--;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Q))) {
+                camera_position[1]++;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_W))) {
+                camera_position[1]--;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A))) {
+                camera_position[2]++;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S))) {
+                camera_position[2]--;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+                direction_index++;
+            }
+            else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_X))) {
+                direction_index--;
+            }
+
+            camera_position[0] = Transform::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
+            camera_position[1] = Transform::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
+            camera_position[2] = Transform::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
+            direction_index = Transform::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
+
+            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }
 
-        Vector3 direction = ihm_generator.directions_cpu[direction_index];
+        Vector3 direction = this->ihm_generator.directions_cpu[direction_index];
         float camera_direction[3] = { direction.x, direction.y, direction.z };
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("IHM Index");
         ImGui::SameLine();
         unsigned long long one_val = 1;
-        ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &ihm_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
+        ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &ihm_index, &one_val, NULL, NULL, ihm_index_flag);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Camera Position");
         ImGui::SameLine();
-        ImGui::InputFloat3("##camera_position", camera_position);
+        ImGui::InputFloat3("##camera_position", camera_position, NULL, camera_state_flag);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Camera Direction");
         ImGui::SameLine();
-        ImGui::InputFloat3("##camera_direction", camera_direction);
+        ImGui::InputFloat3("##camera_direction", camera_direction, NULL, camera_state_flag);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Direction Index");
         ImGui::SameLine();
-        ImGui::InputInt("##direction_index", &direction_index);
+        ImGui::InputInt("##direction_index", &direction_index, 1, 100, camera_state_flag);
 
         this->gui_data.is_verify_ihm = ImGui::Button("Verify");
         this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
