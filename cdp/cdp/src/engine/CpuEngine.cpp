@@ -55,7 +55,7 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 	*/
 
-	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_position_index, false);
+	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
 
 	this->camera_list[0]->transform.position = ihm_state.position;
 	this->camera_list[0]->transform.rotation = ihm_state.rotation;

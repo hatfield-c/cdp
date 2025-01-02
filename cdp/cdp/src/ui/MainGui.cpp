@@ -47,9 +47,6 @@ void MainGui::Update() {
 void MainGui::RefreshGuiData() {
     this->gui_data.is_window_open = !this->IsWindowClosed();
 
-    unsigned long long gui_index_data = this->ihm_position_index;
-    bool is_index_changed = gui_index_data != this->gui_data.ihm_position_index;
-    this->gui_data.ihm_position_index = gui_index_data;
     this->gui_data.camera_index = this->camera_index;
 
     if (this->load_env_dialog.HasSelected()) {
@@ -199,16 +196,76 @@ void MainGui::DrawInspector() {
         int min_val = 0;
         int max_val = 8;
 
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Control Method");
+        ImGui::SameLine();
+        const char* selector_options[] = { "None", "IHM Index", "Camera State", "Keyboard" };
+        ImGui::Combo("##control_selector", &this->gui_data.control_index, selector_options, IM_ARRAYSIZE(selector_options));
+
         ImGui::Separator();
+
+        unsigned long long ihm_index = this->gui_data.ihm_index;
+
+        float camera_position[3] = { this->gui_data.camera_position.x, this->gui_data.camera_position.y, this->gui_data.camera_position.z };
+        int direction_index = this->gui_data.camera_rotation_index;
+        
+        IhmGenerator ihm_generator{};
+        ihm_generator.Init(
+            3,
+            Vector::ZERO3(),
+            Vector3{ 1000, 300, 1000 },
+            Vector3{ 1000, 300, 1000 },
+            Vector3{ 10, 10, 10 },
+            Vector2{ 16, 16 }
+        );
+
+        if (this->gui_data.control_index == 0 ||  this->gui_data.control_index == 3) {
+
+        }
+        else if (this->gui_data.control_index == 1) {
+            IhmState ihm_state = ihm_generator.GetIhmState(ihm_index, false);
+
+            camera_position[0] = ihm_state.position_strided.x;
+            camera_position[1] = ihm_state.position_strided.y;
+            camera_position[2] = ihm_state.position_strided.z;
+            direction_index = ihm_state.direction_index;
+        }
+        else if (this->gui_data.control_index == 2) {
+            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
+        }
+
+        Vector3 direction = ihm_generator.directions_cpu[direction_index];
+        float camera_direction[3] = { direction.x, direction.y, direction.z };
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("IHM Index");
         ImGui::SameLine();
         unsigned long long one_val = 1;
-        ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &this->ihm_position_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
+        ImGui::InputScalar("##ihm_index", ImGuiDataType_U64, &ihm_index, &one_val, NULL, NULL, ImGuiInputTextFlags_None);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Camera Position");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##camera_position", camera_position);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Camera Direction");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##camera_direction", camera_direction);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Direction Index");
+        ImGui::SameLine();
+        ImGui::InputInt("##direction_index", &direction_index);
 
         this->gui_data.is_verify_ihm = ImGui::Button("Verify");
         this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
+
+        this->gui_data.ihm_index = ihm_index;
+        this->gui_data.camera_position.x = camera_position[0];
+        this->gui_data.camera_position.y = camera_position[1];
+        this->gui_data.camera_position.z = camera_position[2];
+        this->gui_data.camera_rotation_index = direction_index;
     }
 
     ImGui::End();

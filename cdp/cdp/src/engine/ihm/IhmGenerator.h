@@ -7,6 +7,8 @@
 #include "../Transform.h"
 #include "../Quaternion.h"
 #include "../Indexer.h"
+#include "../RaycastHitData.h"
+#include "../../entity/Camera.h"
 
 struct IhmGenerator {
 	int direction_density;
@@ -97,9 +99,15 @@ struct IhmGenerator {
 		IhmState ihm_state;
 		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 		
+		ihm_state.position_strided.x = state_data.y;
+		ihm_state.position_strided.y = state_data.z;
+		ihm_state.position_strided.z = state_data.w;
+
 		ihm_state.position.x = state_data.y * this->world_stride.x;
 		ihm_state.position.y = state_data.z * this->world_stride.y;
 		ihm_state.position.z = state_data.w * this->world_stride.z;
+
+		ihm_state.position_strided += this->world_origin;
 		ihm_state.position += this->world_origin;
 
 		int direction_index = state_data.x;

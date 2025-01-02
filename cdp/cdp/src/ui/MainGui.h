@@ -12,6 +12,7 @@
 #include "vulkan/VulkanTexture.h"
 
 #include "../engine/Indexer.h"
+#include "../engine/ihm/IhmGenerator.h"
 #include "GuiData.h"
 
 class MainGui {
@@ -21,7 +22,6 @@ class MainGui {
 
 		int camera_index = 0;
 		int camera_count = 0;
-		bool is_alert = false;
 
 		std::vector<std::string> camera_labels{};
 
