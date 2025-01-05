@@ -12,12 +12,16 @@
 struct IhmRenderer {
 
 	Vector2 render_size;
+	Vector2 render_size_strided;
 	Vector2 render_stride;
 	unsigned long long pixel_count;
 
 	void Init(Vector2 render_size, Vector2 render_stride) {
 		this->render_size = render_size;
 		this->render_stride = render_stride;
+
+		this->render_size_strided = Vector2{ (float)(int)(render_size.x / render_stride.x), (float)(int)(render_size.y / render_stride.y)};
+
 		this->pixel_count = render_size.x * render_size.y;
 	}
 
@@ -25,12 +29,12 @@ struct IhmRenderer {
 		Vector2 slice_position = Indexer::InverseFlatIndex2(blockIdx.x, slice_generator.world_width_strided.x);
 		unsigned long long thread_units = ceil(((double)ihm_generator.voxel_count) / ((double)blockDim.x));
 
-		if (blockIdx.x % ((int)(blockIdx.x / 20)) == 0 && threadIdx.x == 0) {
+		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
 		}
 
 		unsigned long long thread_buffer_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
-		unsigned long long slice_state_index = Indexer::FlatIndex4(direction_index, slice_position.x, height, slice_position.y, slice_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
+		unsigned long long slice_state_index = Indexer::FlatIndex4(direction_index, slice_position.x, 0, slice_position.y, slice_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
 
 		if (slice_state_index >= slice_generator.bit_count) {
 			return;
@@ -46,13 +50,19 @@ struct IhmRenderer {
 
 			Vector3 voxel_position = Indexer::InverseFlatIndex3(ihm_voxel_index, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 
-			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, slice_generator.world_width_strided.x, slice_generator.world_width_strided.y);
+			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 		
 			bool is_same = true;
 			for (int j = 0; j < ihm_generator.phash_size.x; j++) {
 				for (int k = 0; k < ihm_generator.phash_size.y; k++) {
 					unsigned long long slice_data_index = Indexer::FlatIndex3(k, j, slice_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
-					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, ihm_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
+					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, ihm_state_index, ihm_generator.phash_size.x, ihm_generator.phash_size.y);
+
+					//if (slice_position.x == 14 && slice_position.y == 78 && ihm_state_index == 225012) {
+						//byte ihm_test = ihm[ihm_data_index];
+						//byte slice_test = ihm_slice[slice_data_index];
+						//printf("<%lld %lld %lld> <%lld %lld %lld> - %d %0.2f - %.2f %.2f = %.2f %.2f %.2f | [%d, %d] %d %d %d\n", ihm_state_index, ihm_data_index, ihm_generator.bit_count, slice_state_index, slice_data_index, slice_generator.bit_count, is_same, thread_score, slice_position.x, slice_position.y, voxel_position.x, voxel_position.y, voxel_position.z, k, j, ihm_test, slice_test, ihm_test != slice_test);
+					//}
 
 					if (slice_data_index >= slice_generator.bit_count || ihm_data_index >= ihm_generator.bit_count) {
 						continue;
@@ -104,11 +114,9 @@ struct IhmRenderer {
 		}
 
 		Vector2 render_position = slice_position * this->render_stride;
-		Vector2 render_size = this->render_size * this->render_stride;
+		//Vector2 render_size = this->render_size * this->render_stride;
 
-		unsigned long long r_index = Indexer::FlatIndex3(0, render_position.x, render_position.y, 3, render_size.x);
-		//unsigned long long g_index = Indexer::FlatIndex3(1, render_position.x, render_position.y, 3, render_size.x);
-		//unsigned long long b_index = Indexer::FlatIndex3(2, render_position.x, render_position.y, 3, render_size.x);
+		unsigned long long r_index = Indexer::FlatIndex3(0, render_position.x, render_position.y, 3, this->render_size.x);
 		img[r_index] = r_val;
 		img[r_index + 1] = g_val;
 		img[r_index + 2] = b_val;

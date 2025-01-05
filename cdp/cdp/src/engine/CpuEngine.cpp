@@ -162,11 +162,9 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 }
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
-	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
 	Vector3 render_stride{ 1, 1, 1 };
+	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
 	std::string base_path = "./data/results/heat_";
-
-	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
 
 	Camera camera = *this->camera_list[0];
 	unsigned long long byte_count = render_size.x * render_size.y * 3;
@@ -178,6 +176,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	for (int k = 10; k < this->world_space->space_data.world_size.y - 10; k += 10) {
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
 
+		printf("Creating image: %s\n", save_path.c_str());
 		IhmGenerator heatmap_generator{};
 		heatmap_generator.Init(
 			3,
@@ -190,7 +189,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 		IhmRenderer ihm_renderer{};
 		ihm_renderer.Init(
-			Vector2{ heatmap_generator.world_width_strided.x, heatmap_generator.world_width_strided.z },
+			Vector2{ heatmap_generator.world_width.x, heatmap_generator.world_width.z },
 			Vector2{ render_stride.x, render_stride.z }
 		);
 
@@ -225,77 +224,6 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 	printf("    Done!\n");
 }
-
-/*
-void CpuEngine::SaveSimilarityHeatMap_Old(GuiData gui_data) {
-	Vector3 img_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z, 3 };
-	unsigned long long byte_count = img_size.x * img_size.y * img_size.z;
-	byte* img = new byte[byte_count];
-
-	this->ihm_generator.directions_cpu[11];
-
-	std::string base_path = "./data/results/heat_";
-	printf("Saving Heatmap at location: %sX.jpg\n", base_path.c_str());
-
-	double average_time = 0;
-	for (int k = 4; k < this->world_space->space_data.world_size.y - 10; k++) {
-		
-		std::string save_path = base_path + std::to_string(k) + ".jpg";
-		
-		memset(img, 0, byte_count);
-
-		for (int i = 0; i < img_size.y; i+= 10) {
-			printf("%d %.1f\n", i, average_time);
-			for (int j = 0; j < img_size.x; j+= 10) {
-				std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-				unsigned long long world_index = Indexer::FlatIndex3(
-					j,
-					k,
-					i,
-					this->ihm_generator.world_size.x,
-					this->ihm_generator.world_size.y
-				);
-
-				VoxelData voxel_data = this->world_space->space_data.space[world_index];
-
-				if (voxel_data.entity_id > 0) {
-					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, img_size.z, img_size.x);
-					unsigned long long g_index = Indexer::FlatIndex3(1, j, i, img_size.z, img_size.x);
-					unsigned long long b_index = Indexer::FlatIndex3(2, j, i, img_size.z, img_size.x);
-
-					img[r_index] = 255;
-					img[g_index] = 255;
-					img[b_index] = 255;
-				}
-				else {
-					this->camera_list[0]->transform.position = Vector3{ (float)j, (float)k, (float)i };
-					this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
-					this->RenderUpdate(gui_data);
-
-					double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, false) - 1;
-					score = log(score + 1);
-					score = 0.25 * score;
-					score = 255 * score;
-					score = Transform::Clip(score, 0.0, 255.0);
-
-					int pixel_val = (int)score;
-
-					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, img_size.z, img_size.x);
-					img[r_index] = pixel_val;
-				}
-
-				std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-				int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-				average_time = (average_time + time_lapsed) / 2;
-			}
-		}
-
-		int result = stbi_write_jpg(save_path.c_str(), img_size.x, img_size.y, img_size.z, img, 100);
-	}
-
-	printf("    Done!\n");
-}*/
 
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
