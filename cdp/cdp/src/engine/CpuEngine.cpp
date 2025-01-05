@@ -173,7 +173,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&img, byte_count), __FILE__, __LINE__);
 
-	for (int k = 10; k < this->world_space->space_data.world_size.y - 10; k += 10) {
+	for (int k = 40; k < this->world_space->space_data.world_size.y - 10; k += 10) {
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
 
 		printf("Creating image: %s\n", save_path.c_str());

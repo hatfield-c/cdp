@@ -29,6 +29,10 @@ struct IhmRenderer {
 		Vector2 slice_position = Indexer::InverseFlatIndex2(blockIdx.x, slice_generator.world_width_strided.x);
 		unsigned long long thread_units = ceil(((double)ihm_generator.voxel_count) / ((double)blockDim.x));
 
+		//if (slice_position.x < 380 || slice_position.y < 580) {
+			//return;
+		//}
+
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
 		}
@@ -58,7 +62,7 @@ struct IhmRenderer {
 					unsigned long long slice_data_index = Indexer::FlatIndex3(k, j, slice_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
 					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, ihm_state_index, ihm_generator.phash_size.x, ihm_generator.phash_size.y);
 
-					//if (slice_position.x == 14 && slice_position.y == 78 && ihm_state_index == 225012) {
+					//if (slice_position.x == 400 && slice_position.y == 603 && ihm_state_index == 4330572) {
 						//byte ihm_test = ihm[ihm_data_index];
 						//byte slice_test = ihm_slice[slice_data_index];
 						//printf("<%lld %lld %lld> <%lld %lld %lld> - %d %0.2f - %.2f %.2f = %.2f %.2f %.2f | [%d, %d] %d %d %d\n", ihm_state_index, ihm_data_index, ihm_generator.bit_count, slice_state_index, slice_data_index, slice_generator.bit_count, is_same, thread_score, slice_position.x, slice_position.y, voxel_position.x, voxel_position.y, voxel_position.z, k, j, ihm_test, slice_test, ihm_test != slice_test);
@@ -114,7 +118,6 @@ struct IhmRenderer {
 		}
 
 		Vector2 render_position = slice_position * this->render_stride;
-		//Vector2 render_size = this->render_size * this->render_stride;
 
 		unsigned long long r_index = Indexer::FlatIndex3(0, render_position.x, render_position.y, 3, this->render_size.x);
 		img[r_index] = r_val;
