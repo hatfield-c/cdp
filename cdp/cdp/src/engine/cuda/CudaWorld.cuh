@@ -9,10 +9,13 @@
 #include "../Indexer.h"
 #include "../VoxelData.h"
 #include "../SpaceData.h"
+#include "../SpaceBuilder.h"
 #include "../../system/CudaError.h"
 
 __global__ void AssignChunk_Kernel(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper);
 __global__ void AssignPoints_Kernel(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data);
+__global__ void PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count);
 void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper);
 void AssignAll(SpaceData space_data, VoxelData voxel_data);
 void AssignPoints(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data);
+void PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count);

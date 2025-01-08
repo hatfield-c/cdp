@@ -55,7 +55,19 @@ void WorldSpace::LoadWorld(std::string load_path) {
 	printf("        Total Points: %d\n", (int)vertices.size());
 
 	printf("    Writing points to GPU world space...\n");
-	this->WritePointsToCuda(vertices);
+	Vector3* points_cuda = this->WritePointsToCuda(vertices);
+
+	SpaceBuilder space_builder;
+	space_builder.Init();
+
+	printf("    Build world state...\n");
+	for (int i = 0; i < 1; i++) {
+		if (i % 1 == 0) {
+			printf("        Planar densify: Step %d...\n", i + 1);
+		}
+
+		PlanarDensify(space_builder, this->space_data, points_cuda, vertices.size());
+	}
 
 	printf("    Copying loaded world state to CPU...\n");
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -64,7 +76,7 @@ void WorldSpace::LoadWorld(std::string load_path) {
 	printf("    Done!\n\n");
 }
 
-void WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_list) {
+Vector3* WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_list) {
 	int memory_size = point_list.size() * sizeof(Vector3);
 
 	VoxelData voxel_data{ 1, 1 };
@@ -85,6 +97,8 @@ void WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_list
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(points_cuda, points, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
 	AssignPoints(this->space_data, points_cuda, (int)point_list.size(), voxel_data);
+
+	return points_cuda;
 }
 
 void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data) {

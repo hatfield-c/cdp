@@ -196,6 +196,7 @@
     <ClInclude Include="src\engine\Quaternion.h" />
     <ClInclude Include="src\engine\RaycastHitData.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
+    <ClInclude Include="src\engine\SpaceBuilder.h" />
     <ClInclude Include="src\engine\SpaceData.h" />
     <ClInclude Include="src\engine\VoxelData.h" />
     <ClInclude Include="src\engine\WorldSpace.h" />

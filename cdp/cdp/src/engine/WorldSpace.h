@@ -11,6 +11,7 @@
 #include "Indexer.h"
 #include "SpaceData.h"
 #include "VoxelData.h"
+#include "SpaceBuilder.h"
 #include "../system/CudaError.h"
 
 #include "cuda/CudaWorld.cuh"
@@ -22,7 +23,7 @@ class WorldSpace {
 		WorldSpace();
 		void InitWorldMemory(bool is_debug_cube, bool is_floor);
 		void LoadWorld(std::string load_path);
-		void WritePointsToCuda(std::vector<std::array<double, 3>> point_list);
+		Vector3* WritePointsToCuda(std::vector<std::array<double, 3>> point_list);
 		void SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data);
 		void Cleanup();
 };

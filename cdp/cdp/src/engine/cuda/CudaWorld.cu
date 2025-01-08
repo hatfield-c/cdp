@@ -40,6 +40,10 @@ __global__ void AssignPoints_Kernel(SpaceData space_data, Vector3* points, int p
     space_data.space_cuda[space_index] = voxel_data;
 }
 
+__global__ void PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count) {
+    space_builder.PlanarDensify(space_data, points, point_count);
+}
+
 void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
     float x_size = upper.x - lower.x;
     float y_size = upper.y - lower.y;
@@ -74,6 +78,19 @@ void AssignPoints(SpaceData space_data, Vector3* points, int point_count, VoxelD
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
     AssignPoints_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, points, point_count, voxel_data);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+}
+
+void PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count) {
+    dim3 threads_per_block(1024, 1, 1);
+
+    int x_blocks = ceil(point_count / threads_per_block.x);
+
+    dim3 blocks_per_grid(x_blocks, 1, 1);
+
+    PlanarDensify_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, points, point_count);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
