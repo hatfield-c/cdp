@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <chrono>
+#include <thread>
 #include "cuda.h"
 #include "stb_image_write.h"
 
@@ -13,6 +14,8 @@
 #include "Quaternion.h"
 #include "WorldSpace.h"
 #include "../entity/Camera.h"
+#include "../entity/DroneAlpha.h"
+
 #include "ihm/IhmState.h"
 #include "ihm/IhmGenerator.h"
 #include "ihm/IhmCortex.h"
@@ -24,11 +27,13 @@
 class CpuEngine {
 	public:
 		int cycle_count = 0;
+		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
 		bool is_simulating = false;
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		IhmGenerator ihm_generator{};
 		IhmCortex ihm_cortex{};
+		DroneAlpha drone_alpha{};
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData gui_data);

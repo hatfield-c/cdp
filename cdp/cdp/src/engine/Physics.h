@@ -10,8 +10,23 @@
 #include "Indexer.h"
 
 struct Physics {
-    static __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, Vector2 pixel_position, float max_distance) {
+    static __host__ __device__ float DeltaTime() {
+        return 1.0f / 60.0f;
+    }
 
+    static __host__ __device__ float DeltaTimeMilli() {
+        return Physics::DeltaTime() * 1000;
+    }
+
+    static __host__ __device__ Vector3 Gravity() {
+        return Vector3{ 0, -9.80665, 0 };
+    }
+
+    static __host__ __device__ float Pi() {
+        return 3.14159265358979323846f;
+    }
+
+    static __host__ __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, Vector2 pixel_position, float max_distance) {
         RaycastHitData hit_data{};
         VoxelData voxel_data{};
         Vector3 hit_position{};

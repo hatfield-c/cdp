@@ -21,6 +21,12 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 		
 		this->camera_list.push_back(camera);
 	}
+
+	this->drone_alpha.Init();
+	this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
+	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
+	this->drone_alpha.rigidbody.velocity.z = 1;
+	this->drone_alpha.rigidbody.angular_velocity.y = -0.1;
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -34,6 +40,17 @@ void CpuEngine::Update(GuiData gui_data) {
 	this->ScenarioUpdate(gui_data);
 	this->PhysicsUpdate(gui_data);
 	this->RenderUpdate(gui_data);
+
+	std::chrono::steady_clock::duration frame_time_passed = std::chrono::steady_clock::now() - this->frame_begin_time;
+	unsigned long long time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time_passed).count();
+	unsigned long long delta_time_steps = Physics::DeltaTimeMilli();
+
+	if (time_lapsed < delta_time_steps) {
+		unsigned long long sleep_time = delta_time_steps - time_lapsed;
+		std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
+	}
+
+	this->frame_begin_time = std::chrono::steady_clock::now();
 }
 
 void CpuEngine::End(GuiData gui_data) {
@@ -55,20 +72,35 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
 	*/
 
-	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
+	if (gui_data.control_index != 0) {
+		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
 
-	this->camera_list[0]->transform.position = ihm_state.position;
-	this->camera_list[0]->transform.rotation = ihm_state.rotation;
+		this->camera_list[0]->transform.position = ihm_state.position;
+		this->camera_list[0]->transform.rotation = ihm_state.rotation;
+	}
+	else {
+		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.rotation;
 
-	/*printf("[%lld] (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f, %.2f)\n",
-		gui_data.ihm_position_index,
+		gui_data.camera_position = this->drone_alpha.rigidbody.position;
+	}
+
+	printf(
+		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
+		gui_data.ihm_index,
 		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
-		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w
-	);*/
+		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w,
+		this->drone_alpha.rigidbody.velocity.x, this->drone_alpha.rigidbody.velocity.y, this->drone_alpha.rigidbody.velocity.z,
+		this->drone_alpha.rigidbody.angular_velocity.x, this->drone_alpha.rigidbody.angular_velocity.y, this->drone_alpha.rigidbody.angular_velocity.z
+	);
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {
+	Vector3 wind = Vector::ZERO3();
 
+	//this->drone_alpha.rigidbody.Accelerate(Physics::Gravity());
+	this->drone_alpha.rigidbody.AirResistance(wind);
+	this->drone_alpha.rigidbody.Update();
 }
 
 void CpuEngine::RenderUpdate(GuiData gui_data) {
