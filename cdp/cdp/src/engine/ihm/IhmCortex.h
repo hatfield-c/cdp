@@ -34,22 +34,26 @@ struct IhmCortex {
 
 		byte* ihm = this->ihm_cpu;
 
-		int difference_count = 0;
+		unsigned long long difference_count = 0;
 		for (int i = 0; i < this->phash_size.x; i++) {
 			for (int j = 0; j < this->phash_size.y; j++) {
 				unsigned long long ihm_index = Indexer::FlatIndex3(j, i, state_index, this->phash_size.x, this->phash_size.y);
 				int phash_index = Indexer::FlatIndex2(j, i, this->phash_size.x);
 
-				if (phash[phash_index] - this->ihm[ihm_index] != 0) {
-					if (difference_count == 255) {
-						continue;
-					}
+				int phash_value = phash[phash_index];
+				int ihm_value = this->ihm[ihm_index];
+				int value_diff = phash_value - ihm_value;
+				value_diff = abs(value_diff);
 
-					difference_count++;
+				difference_count += value_diff;
+
+				if (state_index == 3034764) {
+					printf("[%d, %d] %d %d %d\n", j, i, phash_value, ihm_value, value_diff);
 				}
 			}
 		}
 
+		difference_count = Transform::Clip(difference_count, 0, 255);
 		difference_vector[state_index] = difference_count;
 	}
 

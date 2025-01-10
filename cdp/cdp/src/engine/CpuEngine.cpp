@@ -184,9 +184,10 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	unsigned long long smallest_index = CudaIhm::FindIhmIndex(this->ihm_cortex, this->camera_list[0]->phash_data, true);
-	printf("\nSmallest Index: %lld\n", smallest_index);
-	double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
-	printf("\nSimilarity Score: %f\n", score);
+	printf("\nSmallest Index: %lld\n\n", smallest_index);
+
+	//double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
+	//printf("\nSimilarity Score: %f\n", score);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();

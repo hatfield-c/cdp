@@ -90,9 +90,11 @@ struct IhmGenerator {
 		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
 		RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
 
-		if (((int)hit_data.distance) % 2 == 0) {
-			ihm[data_index] = 1;
-		}
+		float distance = hit_data.distance / 10;
+		distance = Transform::Clip(distance, 0.0, 30.0);
+		byte value = (byte)(int)(255 * distance / 30.0);
+
+		ihm[data_index] = value;
 	}
 
 	__device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {

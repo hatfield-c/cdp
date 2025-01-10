@@ -150,7 +150,6 @@ struct Camera {
 
         float distance = raycast_data.distance / 10;
         distance = Transform::Clip(distance, 0.0, 30.0);
-
         byte value = (byte)(int)(255 * distance / 30.0);
         Vector4 phash_color{ value, value, value, 255 };
 
