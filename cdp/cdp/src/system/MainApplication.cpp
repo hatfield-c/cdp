@@ -45,6 +45,14 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->SaveSimilarityHeatMap(gui_data);
     }
 
+    if (gui_data.is_save_heatmap) {
+        this->engine->SaveSimilarityHeatMap(gui_data);
+    }
+
+    if (gui_data.is_stochastic_subtraction) {
+        this->engine->world_space->ActivateStochasticSubtraction();
+    }
+
     if (is_state_changed && !this->engine->is_simulating) {
         this->engine->Start(gui_data);
     }

@@ -18,6 +18,8 @@ WorldSpace::WorldSpace() {
 
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
+	this->space_builder.Init();
+
 	printf("    Done!\n\n");
 }
 
@@ -56,9 +58,6 @@ void WorldSpace::LoadWorld(std::string load_path) {
 
 	printf("    Writing points to GPU world space...\n");
 	Vector3* points_cuda = this->WritePointsToCuda(vertices);
-
-	SpaceBuilder space_builder;
-	space_builder.Init();
 
 	printf("    Build world state...\n");
 	for (int i = 0; i < 1; i++) {
@@ -112,6 +111,10 @@ void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_da
 			}
 		}
 	}
+}
+
+void WorldSpace::ActivateStochasticSubtraction() {
+	StochasticSubtraction(this->space_builder, this->space_data);
 }
 
 void WorldSpace::Cleanup() {

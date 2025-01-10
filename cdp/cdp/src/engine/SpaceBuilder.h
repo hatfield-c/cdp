@@ -1,8 +1,9 @@
 #pragma once
 
 #include "cuda.h"
+#include <curand.h>
+#include <curand_kernel.h>
 
-#include "../engine/WorldSpace.h"
 #include "../engine/Physics.h"
 #include "../engine/Transform.h"
 #include "../engine/Quaternion.h"
@@ -12,8 +13,98 @@ typedef unsigned char byte;
 
 struct SpaceBuilder {
 
-	void Init() {
+	unsigned long long seed;
 
+	float large_subtraction_p = 0.000003;
+	float mid_subtraction_p = 0.00005;
+	float small_subtraction_p = 0.001;
+	float large_subtraction_radius = 30;
+	float mid_subtraction_radius = 10;
+	float small_subtraction_radius = 3;
+
+	VoxelData empty_voxel{ 0, 0 };
+
+	void Init() {
+		this->seed = 0;
+	}
+
+	__device__ void StochasticSubtraction(SpaceData space_data) {
+		int voxel_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+
+		if (voxel_index >= space_data.voxel_count) {
+			return;
+		}
+
+		if (threadIdx.x == 0 && blockIdx.x % ((int)(gridDim.x / 20)) == 0) {
+			printf("*");
+		}
+
+		if (space_data.space_cuda[voxel_index].entity_id == 0) {
+			return;
+		}
+
+		Vector3 voxel_position = Indexer::InverseFlatIndex3(voxel_index, space_data.world_size.x, space_data.world_size.y);
+
+		curandState_t curand_state;
+		unsigned long sequence = voxel_index;
+		curand_init(seed, sequence, 0, &curand_state);
+
+		float dice_roll = curand_uniform(&curand_state);
+
+		if (dice_roll < large_subtraction_p) {
+			this->AssignSphere(space_data, voxel_position, this->large_subtraction_radius, this->empty_voxel);
+		}
+		else{
+			dice_roll = curand_uniform(&curand_state);
+
+			if (dice_roll < mid_subtraction_p) {
+				this->AssignSphere(space_data, voxel_position, this->mid_subtraction_radius, this->empty_voxel);
+			}
+			else{
+				dice_roll = curand_uniform(&curand_state);
+
+				if (dice_roll < small_subtraction_p) {
+					this->AssignSphere(space_data, voxel_position, this->small_subtraction_radius, this->empty_voxel);
+				}
+			}
+
+		}
+		
+	}
+
+	__device__ void AssignSphere(SpaceData space_data, Vector3 origin, int radius, VoxelData voxel_data) {
+		Vector3 brush_position{};
+
+		for (int i = -radius; i <= radius; i++) {
+			for (int j = -radius; j <= radius; j++) {
+				for (int k = -radius; k <= radius; k++) {
+					brush_position.x = origin.x + i;
+					brush_position.y = origin.y + j;
+					brush_position.z = origin.z + k;
+
+					if (
+						brush_position.x < 0 ||
+						brush_position.y < 0 ||
+						brush_position.z < 0 ||
+						brush_position.x >= space_data.world_size.x ||
+						brush_position.y >= space_data.world_size.y ||
+						brush_position.z >= space_data.world_size.z
+					) {
+						continue;
+					}
+
+					float distance = Transform::Norm3(Vector3{ (float)i, (float)j, (float)k });
+
+					if (distance > radius) {
+						continue;
+					}
+
+					unsigned long long voxel_index = Indexer::FlatIndex3(brush_position.x, brush_position.y, brush_position.z, space_data.world_size.x, space_data.world_size.y);
+
+					space_data.space_cuda[voxel_index] = this->empty_voxel;
+				}
+			}
+		}
 	}
 
 	__device__ void PlanarDensify(SpaceData space_data, Vector3* points, int point_count) {

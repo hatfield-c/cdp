@@ -3,6 +3,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <chrono>
 
 #include "../Transform.h"
 #include "../Quaternion.h"
@@ -15,7 +16,9 @@
 __global__ void AssignChunk_Kernel(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper);
 __global__ void AssignPoints_Kernel(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data);
 __global__ void PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count);
+__global__ void StochasticSubtraction_Kernel(SpaceBuilder space_builder, SpaceData space_data);
 void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper);
 void AssignAll(SpaceData space_data, VoxelData voxel_data);
 void AssignPoints(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data);
 void PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count);
+void StochasticSubtraction(SpaceBuilder space_builder, SpaceData space_data);

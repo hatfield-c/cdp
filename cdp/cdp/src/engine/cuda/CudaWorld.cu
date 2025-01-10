@@ -44,6 +44,10 @@ __global__ void PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space
     space_builder.PlanarDensify(space_data, points, point_count);
 }
 
+__global__ void StochasticSubtraction_Kernel(SpaceBuilder space_builder, SpaceData space_data) {
+    space_builder.StochasticSubtraction(space_data);
+}
+
 void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
     float x_size = upper.x - lower.x;
     float y_size = upper.y - lower.y;
@@ -94,4 +98,27 @@ void PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* po
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+}
+
+void StochasticSubtraction(SpaceBuilder space_builder, SpaceData space_data) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    dim3 threads_per_block(32, 1, 1);
+
+    int x_blocks = ceil(space_data.voxel_count / threads_per_block.x);
+
+    dim3 blocks_per_grid(x_blocks, 1, 1);
+
+    printf("    Stochastic Subtraction:\n");
+    printf("        Block Count : (%lld, %lld, %lld)\n", x_blocks, 1, 1);
+    printf("        Thread Count: (%lld, %lld, %lld)\n", threads_per_block.x, 1, 1);
+    printf("        Progress (Max 20 *): ");
+    StochasticSubtraction_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+    printf("\n        Done!\n");
+    printf("            Time Elapsed: %d s\n", time_lapsed);
 }

@@ -19,11 +19,13 @@
 class WorldSpace {
 	public:
 		SpaceData space_data;
+		SpaceBuilder space_builder;
 		
 		WorldSpace();
 		void InitWorldMemory(bool is_debug_cube, bool is_floor);
 		void LoadWorld(std::string load_path);
 		Vector3* WritePointsToCuda(std::vector<std::array<double, 3>> point_list);
 		void SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data);
+		void ActivateStochasticSubtraction();
 		void Cleanup();
 };

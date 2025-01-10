@@ -210,7 +210,7 @@ void MainGui::DrawInspector() {
         ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Shaded\0\0");
     }
 
-    if (!ImGui::CollapsingHeader("p-Hash")) {
+    if (!ImGui::CollapsingHeader("Camera")) {
         int min_val = 0;
         int max_val = 8;
 
@@ -307,14 +307,20 @@ void MainGui::DrawInspector() {
         ImGui::SameLine();
         ImGui::InputInt("##direction_index", &direction_index, 1, 100, camera_state_flag);
 
-        this->gui_data.is_verify_ihm = ImGui::Button("Verify");
-        this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
-
         this->gui_data.ihm_index = ihm_index;
         this->gui_data.camera_position.x = camera_position[0];
         this->gui_data.camera_position.y = camera_position[1];
         this->gui_data.camera_position.z = camera_position[2];
         this->gui_data.camera_rotation_index = direction_index;
+    }
+
+    if (ImGui::CollapsingHeader("World Building")) {
+        this->gui_data.is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
+    }
+
+    if (ImGui::CollapsingHeader("IHM Testing")) {
+        this->gui_data.is_verify_ihm = ImGui::Button("Verify");
+        this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
     }
 
     ImGui::End();
