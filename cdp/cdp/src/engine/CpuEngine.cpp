@@ -85,14 +85,14 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 		gui_data.camera_position = this->drone_alpha.rigidbody.position;
 	}
 
-	printf(
+	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
 		gui_data.ihm_index,
 		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
 		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w,
 		this->drone_alpha.rigidbody.velocity.x, this->drone_alpha.rigidbody.velocity.y, this->drone_alpha.rigidbody.velocity.z,
 		this->drone_alpha.rigidbody.angular_velocity.x, this->drone_alpha.rigidbody.angular_velocity.y, this->drone_alpha.rigidbody.angular_velocity.z
-	);
+	);*/
 }
 
 void CpuEngine::PhysicsUpdate(GuiData gui_data) {

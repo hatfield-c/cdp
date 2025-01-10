@@ -22,7 +22,7 @@ struct Camera {
     Vector3 target_offset{ -1, 1, 0 };
 
     float min_render_distance = 0.05f;
-    float max_render_distance = 350.0f;
+    float max_render_distance = 300.0f;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
@@ -117,7 +117,7 @@ struct Camera {
         is_phash_pixel = is_phash_pixel && ((int)pixel_position.y % (int)spatial_offset.y == 0);
 
         if (is_phash_pixel) {
-            this->Phash(raycast_data, pixel_position, spatial_offset);
+            this->Phash(space_data, raycast_data, pixel_position, spatial_offset);
         } 
     }
 
@@ -145,18 +145,14 @@ struct Camera {
         return ray_direction;
     }
 
-    __device__ void Phash(RaycastHitData raycast_data, Vector2 pixel_position, Vector2 spatial_offset) {
+    __device__ void Phash(SpaceData space_data, RaycastHitData raycast_data, Vector2 pixel_position, Vector2 spatial_offset) {
         Vector2 phash_position = pixel_position / spatial_offset;
 
-        Vector4 color_white{ 255, 255, 255, 255 };
-        Vector4 color_black = Vector4{ 0, 0, 0, 255 };
-        Vector4 phash_color = color_black;
+        float distance = raycast_data.distance / 10;
+        distance = Transform::Clip(distance, 0.0, 30.0);
 
-        byte value = 0;
-        if (((int)raycast_data.distance) % 2 == 0) {
-            phash_color = color_white;
-            value = 1;
-        }
+        byte value = (byte)(int)(255 * distance / 30.0);
+        Vector4 phash_color{ value, value, value, 255 };
 
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, value);
 
