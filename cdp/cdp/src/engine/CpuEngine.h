@@ -46,5 +46,6 @@ class CpuEngine {
 		void LoadIhm(GuiData gui_data);
 		void VerifyIhm(GuiData gui_data);
 		void SaveSimilarityHeatMap(GuiData gui_data);
+		void EstimatePositionIhm(GuiData gui_data);
 		void Cleanup();
 };

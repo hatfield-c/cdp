@@ -41,6 +41,10 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->VerifyIhm(gui_data);
     }
 
+    if (gui_data.is_estimate_position) {
+        this->engine->EstimatePositionIhm(gui_data);
+    }
+
     if (gui_data.is_save_heatmap) {
         this->engine->SaveSimilarityHeatMap(gui_data);
     }

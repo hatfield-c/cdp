@@ -97,7 +97,7 @@ struct IhmGenerator {
 		ihm[data_index] = value;
 	}
 
-	__device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
+	__host__ __device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
 		IhmState ihm_state;
 		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 		

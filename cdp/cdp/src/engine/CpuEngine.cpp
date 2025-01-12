@@ -186,12 +186,12 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	unsigned long long smallest_index = CudaIhm::FindIhmIndex(this->ihm_cortex, this->camera_list[0]->phash_data, true);
 	printf("\nSmallest Index: %lld\n\n", smallest_index);
 
-	//double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
-	//printf("\nSimilarity Score: %f\n", score);
+	double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
+	printf("\nSimilarity Score: %f\n", score);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-	printf("        Time Elapsed: %d ms\n", time_lapsed);
+	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+	printf("        Time Elapsed: %d s\n", time_lapsed);
 }
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
@@ -207,9 +207,10 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&img, byte_count), __FILE__, __LINE__);
 
 	for (int k = 40; k < this->world_space->space_data.world_size.y - 10; k += 10) {
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
 
-		printf("Creating image: %s\n", save_path.c_str());
+		printf("\nCreating image: %s\n", save_path.c_str());
 		IhmGenerator heatmap_generator{};
 		heatmap_generator.Init(
 			3,
@@ -231,7 +232,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&heatmap_ihm, memory_size), __FILE__, __LINE__);
 
 		CudaIhm::GenerateIhm(this->world_space->space_data, camera, heatmap_generator, heatmap_ihm);
-		CudaIhm::RenderHeatmap(ihm_renderer, this->ihm_generator, heatmap_generator, this->ihm_cortex.ihm, heatmap_ihm, img, 12, k);
+		CudaIhm::RenderHeatmap(this->world_space->space_data, ihm_renderer, this->ihm_generator, heatmap_generator, this->ihm_cortex.ihm, heatmap_ihm, img, 12, k);
 
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(img_cpu, img, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
@@ -251,11 +252,34 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 		int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, img_cpu, 100);
 		cudaFree(heatmap_ihm);
+
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+		int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+		printf("    Done!\n", time_lapsed);
+		printf("        Time Elapsed: %d s\n", time_lapsed);
 	}
 
 	cudaFree(img);
 
 	printf("    Done!\n");
+}
+
+void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
+	Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
+	anchor.x += 2;
+	anchor.z += 3;
+	Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, ihm_state.direction_index);
+	
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+	printf("        Time Elapsed: %d s\n", time_lapsed);
+
+	printf("\nEstimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
+	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
+	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n\n", estimates[2].x, estimates[2].y, estimates[2].z);
 }
 
 void CpuEngine::Cleanup() {

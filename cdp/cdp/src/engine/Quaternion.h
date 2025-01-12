@@ -3,7 +3,7 @@
 #include "Transform.h"
 
 struct Quaternion {
-    static __device__ Vector4 GetQuaternionConjugate(Vector4 original) {
+    static __host__ __device__ Vector4 GetQuaternionConjugate(Vector4 original) {
         Vector4 conjugate{
             -original.x,
             -original.y,
@@ -14,7 +14,7 @@ struct Quaternion {
         return conjugate;
     }
 
-    static __device__ Vector4 MultiplyQuaternions(Vector4 q0, Vector4 q1, bool is_normalized) {
+    static __host__ __device__ Vector4 MultiplyQuaternions(Vector4 q0, Vector4 q1, bool is_normalized) {
         Vector4 result{
             (q0.w * q1.x) + (q0.x * q1.w) + (q0.y * q1.z) - (q0.z * q1.y),
             (q0.w * q1.y) - (q0.x * q1.z) + (q0.y * q1.w) + (q0.z * q1.x),
@@ -29,7 +29,7 @@ struct Quaternion {
         return result;
     }
 
-    static __device__ Vector3 RotatePoint(Vector3 position, Vector4 quaternion) {
+    static __host__ __device__ Vector3 RotatePoint(Vector3 position, Vector4 quaternion) {
         Vector4 position_quaternized{
             position.x,
             position.y,
@@ -50,7 +50,7 @@ struct Quaternion {
         return result;
     }
 
-    static __device__ Vector4 QuaternionFromEulerAngles(Vector3 angles) {
+    static __host__ __device__ Vector4 QuaternionFromEulerAngles(Vector3 angles) {
         float x = angles.x / 2;
         float y = angles.y / 2;
         float z = angles.z / 2;
@@ -65,7 +65,7 @@ struct Quaternion {
         return quaternion;
     }
 
-    static __device__ Vector4 QuaternionFromEulerParams(Vector3 axis, float angle) {
+    static __host__ __device__ Vector4 QuaternionFromEulerParams(Vector3 axis, float angle) {
         float sin_val = sin(angle / 2);
 
         Vector4 quaternion{
@@ -78,14 +78,14 @@ struct Quaternion {
         return quaternion;
     }
 
-    static __device__ Vector4 QuaternionFromDirection(Vector3 unit_vector) {
+    static __host__ __device__ Vector4 QuaternionFromDirection(Vector3 unit_vector) {
         Vector3 angles = Quaternion::EulerAnglesFromDirection(unit_vector);
         Vector4 quaternion = Quaternion::QuaternionFromEulerAngles(angles);
 
         return quaternion;
     }
 
-    static __device__ Vector3 EulerAnglesFromDirection(Vector3 vector) {
+    static __host__ __device__ Vector3 EulerAnglesFromDirection(Vector3 vector) {
         Vector2 xz{ vector.x, vector.z };
         float xz_norm = Transform::Norm2(xz);
 
@@ -101,7 +101,7 @@ struct Quaternion {
         return angles;
     }
 
-    static __device__ float Atan2(float x, float y) {
+    static __host__ __device__ float Atan2(float x, float y) {
         float a = 0;
         float pi = 3.141592654f;
 

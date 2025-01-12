@@ -16,6 +16,7 @@ struct GuiData {
 	int camera_index = 0;
 	int control_index = 0;
 	bool is_verify_ihm = false;
+	bool is_estimate_position = false;
 	bool is_save_heatmap = false;
 	bool is_stochastic_subtraction = false;
 };

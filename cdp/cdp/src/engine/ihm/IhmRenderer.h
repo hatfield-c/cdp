@@ -25,16 +25,16 @@ struct IhmRenderer {
 		this->pixel_count = render_size.x * render_size.y;
 	}
 
-	__device__ void RenderSimilarityHeatmap(IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, double* score_buffer, byte* img, int direction_index, int height, void(*SyncThreads)()) {
+	__device__ void RenderSimilarityHeatmap(SpaceData space_data, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, double* score_buffer, byte* img, int direction_index, int height, void(*SyncThreads)()) {
 		Vector2 slice_position = Indexer::InverseFlatIndex2(blockIdx.x, slice_generator.world_width_strided.x);
 		unsigned long long thread_units = ceil(((double)ihm_generator.voxel_count) / ((double)blockDim.x));
 
-		//if (slice_position.x < 380 || slice_position.y < 580) {
-			//return;
-		//}
-
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
+		}
+
+		if (slice_position.x < 100 || slice_position.y < 440 || slice_position.x > 500 || slice_position.y > 770) {
+			return;
 		}
 
 		unsigned long long thread_buffer_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
@@ -45,6 +45,7 @@ struct IhmRenderer {
 		}
 
 		double thread_score = 0;
+		double score_threshold = 51;
 		for (unsigned long long i = 0; i < thread_units; i++) {
 			unsigned long long ihm_voxel_index = i + (threadIdx.x * thread_units);
 
@@ -56,7 +57,7 @@ struct IhmRenderer {
 
 			unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 		
-			bool is_same = true;
+			double phash_score = 0;
 			for (int j = 0; j < ihm_generator.phash_size.x; j++) {
 				for (int k = 0; k < ihm_generator.phash_size.y; k++) {
 					unsigned long long slice_data_index = Indexer::FlatIndex3(k, j, slice_state_index, slice_generator.phash_size.x, slice_generator.phash_size.y);
@@ -72,18 +73,16 @@ struct IhmRenderer {
 						continue;
 					}
 
-					if (ihm[ihm_data_index] != ihm_slice[slice_data_index]) {
-						is_same = false;
-						break;
-					}
-				}
+					int slice_value = ihm_slice[slice_data_index];
+					int ihm_value = ihm[ihm_data_index];
+					int value_diff = slice_value - ihm_value;
+					value_diff = abs(value_diff);
 
-				if (!is_same) {
-					break;
+					phash_score += value_diff;
 				}
 			}
 
-			if (is_same) {
+			if (phash_score < score_threshold) {
 				thread_score++;
 			}
 		}

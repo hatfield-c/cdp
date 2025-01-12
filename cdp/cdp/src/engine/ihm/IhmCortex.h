@@ -12,7 +12,6 @@
 #include "../Quaternion.h"
 #include "../Indexer.h"
 
-
 typedef unsigned char byte;
 
 struct IhmCortex {
@@ -29,7 +28,7 @@ struct IhmCortex {
 		this->state_count = state_count;
 	}
 
-	__device__ void GetDifferenceVector(byte* phash, byte* difference_vector) {
+	__device__ void GetDifferenceVector(byte* phash, byte* difference_vector, unsigned long long difference_threshold = 0) {
 		unsigned long long state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
 
 		byte* ihm = this->ihm_cpu;
@@ -45,16 +44,68 @@ struct IhmCortex {
 				int value_diff = phash_value - ihm_value;
 				value_diff = abs(value_diff);
 
-				difference_count += value_diff;
-
-				if (state_index == 3034764) {
-					printf("[%d, %d] %d %d %d\n", j, i, phash_value, ihm_value, value_diff);
+				if (value_diff > difference_threshold) {
+					difference_count++;
 				}
 			}
 		}
 
 		difference_count = Transform::Clip(difference_count, 0, 255);
 		difference_vector[state_index] = difference_count;
+	}
+
+	// iterate through the query cube voxel positions directly (no reduction). check for optimal +/- offset. store the ihm index for each voxel position
+	//		that passes the phash_error_threshold (0 is stored otherwise) (only need to store into smaller offset matrix). manually search these resulting small lists 
+	//		to get the average positions from the IHM indexes
+	//
+	//		dont bother with optimal offset for now. too much uncertainty.
+
+	__device__ void FilterLocalOffsets(IhmGenerator ihm_generator, byte* difference_vector, unsigned long long* index_matrix0, unsigned long long* index_matrix1, unsigned long long* index_matrix2, int direction_index, Vector3 anchor) {
+		unsigned long long phash_error_threshold0 = 8;
+		unsigned long long phash_error_threshold1 = 78;
+		unsigned long long phash_error_threshold2 = 154;
+		Vector3 search_radius{ 16, 8, 16 };
+		Vector3 search_size = search_radius * 2;
+		
+		unsigned long long voxel_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		
+		Vector3 voxel_offset = Indexer::InverseFlatIndex3(voxel_index, search_size.x, search_size.y);
+
+		if (voxel_offset.x >= search_size.x || voxel_offset.y >= search_size.y || voxel_offset.z >= search_size.z) {
+			return;
+		}
+
+		Vector3 query_position = anchor + (voxel_offset - search_radius);
+
+		if (
+			query_position.x < 0 ||
+			query_position.y < 0 ||
+			query_position.z < 0 ||
+			query_position.x >= ihm_generator.world_size_strided.x ||
+			query_position.y >= ihm_generator.world_size_strided.y ||
+			query_position.z >= ihm_generator.world_size_strided.z
+		) {
+			return;
+		}
+		
+		unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, query_position.x, query_position.y, query_position.z, ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
+		byte phash_score = difference_vector[ihm_state_index];
+
+		if (phash_score <= phash_error_threshold0) {
+			index_matrix0[voxel_index] = ihm_state_index;
+		}
+		
+		if (phash_score <= phash_error_threshold1) {
+			index_matrix1[voxel_index] = ihm_state_index;
+		}
+		
+		if (phash_score <= phash_error_threshold2) {
+			index_matrix2[voxel_index] = ihm_state_index;
+		}
+
+		//if (threadIdx.x == 0 && blockIdx.x == 0) {
+			//printf("%lld %d %d { %.2f, %.2f, %.2f } [ %.2f, %.2f, %.2f ] ( %.2f, %.2f, %.2f )\n", voxel_index, threadIdx.x, blockIdx.x, anchor.x, anchor.y, anchor.z, voxel_offset.x, voxel_offset.y, voxel_offset.z, query_position.x, query_position.y, query_position.z);
+		//}
 	}
 
 	__device__ void IndexReduction(int iteration, byte* difference_vector, unsigned long long* index_buffer, void(*SyncThreads)()) {
