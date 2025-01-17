@@ -109,6 +109,24 @@ struct Vector2 {
 
 		return result;
 	}
+
+	__host__ __device__ Vector2 Floor() {
+		Vector2 result{
+			floor(this->x),
+			floor(this->y)
+		};
+
+		return result;
+	}
+
+	__host__ __device__ Vector2 Ceil() {
+		Vector2 result{
+			ceil(this->x),
+			ceil(this->y)
+		};
+
+		return result;
+	}
 };
 
 

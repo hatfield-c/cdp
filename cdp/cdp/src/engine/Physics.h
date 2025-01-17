@@ -34,7 +34,7 @@ struct Physics {
         Vector3 query_point = start_position;
 
         float distance_traveled = 0;
-        while (distance_traveled < max_distance) {
+        while (distance_traveled <= max_distance) {
             query_point += ray_direction;
 
             int x_index = (int)query_point.x;

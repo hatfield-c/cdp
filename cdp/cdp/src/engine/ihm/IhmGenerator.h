@@ -62,6 +62,62 @@ struct IhmGenerator {
 	}
 
 	__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
+		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
+
+		Vector2 chunk_size = (camera->camera_size / this->phash_size).Ceil();
+		Vector2 pixel_position;
+
+		for(int w = 0; w < this->phash_size.x; w++) {
+			for (int h = 0; h < this->phash_size.y; h++) {
+
+				float avg_distance = 0;
+				int avg_count = 0;
+
+				for (int i = 0; i < chunk_size.x; i++) {
+					pixel_position.x = Indexer::FlatIndex2(i, w, chunk_size.x);
+
+					if (pixel_position.x >= camera->camera_size.x) {
+						continue;
+					}
+
+					for (int j = 0; j < chunk_size.y; j++) {
+						pixel_position.y = Indexer::FlatIndex2(j, h, chunk_size.y);
+
+						if (pixel_position.y >= camera->camera_size.y) {
+							continue;
+						}
+
+						Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
+						RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
+						float depth = hit_data.distance;
+
+						if (depth >= camera->max_render_distance) {
+							continue;
+						}
+
+						avg_distance += depth;
+						avg_count++;
+					}
+				}
+
+				if (avg_count < 1) {
+					avg_distance = camera->max_render_distance;
+					avg_count = 1;
+				}
+
+				avg_distance = avg_distance / avg_count;
+
+				float distance = avg_distance / 10;
+				distance = Transform::Clip(distance, 0.0, 20.0);
+				byte value = (byte)(int)(255 * distance / 20.0);
+
+				unsigned long long data_index = Indexer::FlatIndex3(w, h, blockIdx.x, 16, 16);
+				ihm[data_index] = value;
+			}
+		}
+	}
+
+	/*__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
 		Vector2 phash_position{
 			Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y),
 			Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
@@ -85,17 +141,46 @@ struct IhmGenerator {
 		pixel_position.x = (int)pixel_position.x;
 		pixel_position.y = (int)pixel_position.y;
 		
+		float avg_distance = 0;
+		int avg_count = 0;
+		for (int i = -20; i < 20; i++) {
+			for (int j = -15; j < 15; j++) {
+				Vector2 pixel_offset{ i, j };
+				pixel_offset += pixel_position;
+
+				if (pixel_offset.x < 0 || pixel_offset.y < 0 || pixel_offset.x >= camera->camera_size.x || pixel_offset.y >= camera->camera_size.y) {
+					continue;
+				}
+
+				Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
+				RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
+
+				float depth = hit_data.distance;
+
+				if (depth >= camera->max_render_distance) {
+					continue;
+				}
+
+				avg_distance += depth;
+				avg_count++;
+			}
+		}
+
+		if (avg_count < 1) {
+			avg_distance = camera->max_render_distance;
+			avg_count = 1;
+		}
+
+		avg_distance = avg_distance / avg_count;
+
+		float distance = avg_distance / 10;
+		//float distance = hit_data.distance / 10;
+		distance = Transform::Clip(distance, 0.0, 20.0);
+		byte value = (byte)(int)(255 * distance / 20.0);
+
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, 16, 16);
-
-		Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
-		RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
-
-		float distance = hit_data.distance / 10;
-		distance = Transform::Clip(distance, 0.0, 30.0);
-		byte value = (byte)(int)(255 * distance / 30.0);
-
 		ihm[data_index] = value;
-	}
+	}*/
 
 	__host__ __device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
 		IhmState ihm_state;

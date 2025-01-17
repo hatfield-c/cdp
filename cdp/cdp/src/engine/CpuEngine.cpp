@@ -106,8 +106,6 @@ void CpuEngine::PhysicsUpdate(GuiData gui_data) {
 void CpuEngine::RenderUpdate(GuiData gui_data) {
 	int camera_index = gui_data.camera_index;
 
-	CudaCamera::DepthUpdate(*this->camera_list[camera_index], this->world_space->space_data);
-	cudaDeviceSynchronize();
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 	cudaDeviceSynchronize();
 }
@@ -281,8 +279,8 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 
 	int k = 40;
 
-	for (int w = 4; w < chunk_count.x; w++) {
-		for (int h = 5; h < chunk_count.z; h++) {
+	for (int w = 0; w < chunk_count.x; w++) {
+		for (int h = 0; h < chunk_count.z; h++) {
 
 			std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
