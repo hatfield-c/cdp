@@ -264,6 +264,102 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	printf("    Done!\n");
 }
 
+void CpuEngine::SaveConfusionMap(GuiData gui_data) {
+	
+
+	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
+	Vector3 render_size_3d{ this->world_space->space_data.world_size.x, 1, this->world_space->space_data.world_size.z };
+	Vector3 chunk_size{ 100, 1, 100 };
+	Vector3 chunk_count = (render_size_3d / chunk_size).Ceil();
+	Vector3 chunked_size = chunk_count * chunk_size;
+	std::string save_path = "./data/results/confusion_map.jpg";
+
+	Camera camera = *this->camera_list[0];
+	unsigned long long byte_count = chunked_size.x * chunked_size.z * 3;
+	byte* img_cpu = new byte[byte_count];
+	memset(img_cpu, 0, byte_count);
+
+	int k = 40;
+
+	for (int w = 4; w < chunk_count.x; w++) {
+		for (int h = 5; h < chunk_count.z; h++) {
+
+			std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+			for (int i = 0; i < chunk_size.x; i += 1) {
+				printf("*");
+				if (i >= render_size.y) {
+					continue;
+				}
+
+				for (int j = 0; j < chunk_size.z; j += 1) {
+					if (j >= render_size.x) {
+						continue;
+					}
+
+					unsigned long long x_index = Indexer::FlatIndex2(j, w, chunk_size.x);
+					unsigned long long y_index = Indexer::FlatIndex2(i, h, chunk_size.z);
+
+					unsigned long long voxel_index = Indexer::FlatIndex3(x_index, k, y_index, this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.y);
+
+					unsigned long long r_index = Indexer::FlatIndex3(0, x_index, y_index, 3, render_size.x);
+					unsigned long long g_index = Indexer::FlatIndex3(1, x_index, y_index, 3, render_size.x);
+					unsigned long long b_index = Indexer::FlatIndex3(2, x_index, y_index, 3, render_size.x);
+
+					if (this->world_space->space_data.space[voxel_index].entity_id > 0) {
+						img_cpu[r_index] = 255;
+						img_cpu[g_index] = 255;
+						img_cpu[b_index] = 255;
+					}
+					else {
+						int direction_index = 12;// this->ihm_generator.GetClosestDirectionIndex(Quaternion::RotatePoint(Vector::RIGHT(), camera.transform.rotation));
+
+						this->camera_list[0]->transform.position = Vector3{ (float)x_index, (float)k, (float)y_index };
+						this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[direction_index]);
+						this->RenderUpdate(gui_data);
+
+						Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
+						anchor = anchor.Floor();
+						anchor.x += 0;
+						anchor.z += 0;
+
+						Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
+						Vector3 estimate = estimates[0];
+
+						if (Transform::Norm3(estimate) == 0) {
+							estimate = estimates[1];
+
+							if (Transform::Norm3(estimate) == 0) {
+								estimate = estimates[2];
+							}
+						}
+
+						float score = Transform::Norm3(this->camera_list[0]->transform.position - estimate);
+						score = (255.0 / 100.0) * score;
+						score = Transform::Clip(score, 0.0, 255.0);
+
+						int r_val = (int)score;
+						int g_val = 255 - r_val;
+
+						img_cpu[r_index] = r_val;
+						img_cpu[g_index] = g_val;
+					}
+				}
+			}
+			int result = stbi_write_jpg(save_path.c_str(), chunked_size.x, chunked_size.z, 3, img_cpu, 100);
+
+			std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+			int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+			printf("        Saving chunk...\n");
+			printf("            Chunk Time: %d s\n", time_lapsed);
+		}
+	}
+
+	free(img_cpu);
+
+	printf("    Done!\n");
+}
+
 void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -280,6 +376,8 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	printf("\nEstimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
 	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
 	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n\n", estimates[2].x, estimates[2].y, estimates[2].z);
+
+	//free(estimates);
 }
 
 void CpuEngine::Cleanup() {

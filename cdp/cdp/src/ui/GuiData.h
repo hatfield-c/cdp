@@ -18,5 +18,6 @@ struct GuiData {
 	bool is_verify_ihm = false;
 	bool is_estimate_position = false;
 	bool is_save_heatmap = false;
+	bool is_save_confusion = false;
 	bool is_stochastic_subtraction = false;
 };

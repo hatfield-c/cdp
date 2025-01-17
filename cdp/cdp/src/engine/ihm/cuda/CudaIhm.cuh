@@ -24,5 +24,5 @@ namespace CudaIhm {
 	byte* GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_verbose = false, unsigned long long difference_threshold = 0);
 	void GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm);
 	void RenderHeatmap(SpaceData space_data, IhmRenderer ihm_renderer, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, byte* img, int direction_index, int height);
-	Vector3* EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index);
+	Vector3* EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index, bool is_verbose = true);
 }

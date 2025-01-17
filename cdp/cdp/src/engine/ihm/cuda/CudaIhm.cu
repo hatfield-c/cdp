@@ -172,6 +172,7 @@ byte* CudaIhm::GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_ve
 
     byte* difference_vector;
     CudaError::CheckError((cudaError_enum)cudaMalloc(&difference_vector, memory_size), __FILE__, __LINE__);
+    cudaMemset(difference_vector, 0, memory_size);
 
     dim3 threads_per_block(32, 1, 1);
 
@@ -234,7 +235,7 @@ void CudaIhm::RenderHeatmap(SpaceData space_data, IhmRenderer ihm_renderer, IhmG
     printf("\n");
 }
 
-Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index) {
+Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index, bool is_verbose) {
     Vector3 search_radius{ 16, 8, 16 };
     Vector3 search_size = search_radius * 2;
     int voxel_count = search_size.x * search_size.y * search_size.z;
@@ -247,20 +248,30 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
     CudaError::CheckError((cudaError_enum)cudaMalloc(&index_matrix0, voxel_count * sizeof(unsigned long long)), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaMalloc(&index_matrix1, voxel_count * sizeof(unsigned long long)), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaMalloc(&index_matrix2, voxel_count * sizeof(unsigned long long)), __FILE__, __LINE__);
+
+    cudaMemset(index_matrix0, 0, voxel_count * sizeof(unsigned long long));
+    cudaMemset(index_matrix1, 0, voxel_count * sizeof(unsigned long long));
+    cudaMemset(index_matrix2, 0, voxel_count * sizeof(unsigned long long));
     
     dim3 threads_per_block(32, 1, 1);
 
     unsigned long long x_blocks = ceil(voxel_count / (float)threads_per_block.x);
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
-    printf("    Estimating Position:\n");
-    printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
-    printf("        Progress (Max 20 *): ");
+    if (is_verbose) {
+        printf("    Estimating Position:\n");
+        printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
+        printf("        Progress (Max 20 *): ");
+    }
     FilterLocalOffsets_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, ihm_generator, difference, index_matrix0, index_matrix1, index_matrix2, direction_index, anchor);
     
     unsigned long long* candidate_matrix0 = new unsigned long long[voxel_count];
     unsigned long long* candidate_matrix1 = new unsigned long long[voxel_count];
     unsigned long long* candidate_matrix2 = new unsigned long long[voxel_count];
+
+    memset(candidate_matrix0, 0, voxel_count * sizeof(unsigned long long));
+    memset(candidate_matrix1, 0, voxel_count * sizeof(unsigned long long));
+    memset(candidate_matrix2, 0, voxel_count * sizeof(unsigned long long));
 
     CudaError::CheckError((cudaError_enum)cudaMemcpy(candidate_matrix0, index_matrix0, voxel_count * sizeof(unsigned long long), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaMemcpy(candidate_matrix1, index_matrix1, voxel_count * sizeof(unsigned long long), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -317,15 +328,22 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
 
     //printf("\n<%.2f %.2f %.2f>\n", estimates[0].x, estimates[0].y, estimates[0].z);
 
-    printf("        Done!\n");
-    printf("            Nonzero Count 0: %d\n", nonzero_counts[0]);
-    printf("            Nonzero Count 1: %d\n", nonzero_counts[1]);
-    printf("            Nonzero Count 2: %d\n", nonzero_counts[2]);
+    if (is_verbose) {
+        printf("        Done!\n");
+        printf("            Nonzero Count 0: %d\n", nonzero_counts[0]);
+        printf("            Nonzero Count 1: %d\n", nonzero_counts[1]);
+        printf("            Nonzero Count 2: %d\n", nonzero_counts[2]);
+    }
 
     cudaFree(difference);
     cudaFree(index_matrix0);
     cudaFree(index_matrix1);
     cudaFree(index_matrix2);
+
+    //free(candidate_matrix0);
+    //free(candidate_matrix1);
+    //free(candidate_matrix2);
+    //free(nonzero_counts);
 
     return estimates;
 }

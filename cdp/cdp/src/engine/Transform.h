@@ -229,6 +229,26 @@ struct Vector3 {
 
 		return result;
 	}
+
+	__host__ __device__ Vector3 Floor() {
+		Vector3 result{
+			floor(this->x),
+			floor(this->y),
+			floor(this->z)
+		};
+
+		return result;
+	}
+
+	__host__ __device__ Vector3 Ceil() {
+		Vector3 result{
+			ceil(this->x),
+			ceil(this->y),
+			ceil(this->z)
+		};
+
+		return result;
+	}
 };
 
 struct Vector4 {

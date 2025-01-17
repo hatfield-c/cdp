@@ -188,4 +188,20 @@ struct IhmGenerator {
 
 		this->directions_cpu = vertices;
 	}
+
+	int GetClosestDirectionIndex(Vector3 unit_vector) {
+		int closest_index = 0;
+		float smallest_norm = 99999999999999;
+		for (int i = 0; i < this->direction_count; i++) {
+			Vector3 direction = this->directions_cpu[i];
+			float diff_norm = Transform::Norm3(direction - unit_vector);
+
+			if (diff_norm < smallest_norm) {
+				closest_index = i;
+				smallest_norm = diff_norm;
+			}
+		}
+
+		return closest_index;
+	}
 };
