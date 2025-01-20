@@ -1,22 +1,32 @@
 #include "WorldSpace.h"
 
 WorldSpace::WorldSpace() {
-	this->space_data.voxel_count = (unsigned long long)(this->space_data.world_size.x * this->space_data.world_size.y * this->space_data.world_size.z);
-	this->space_data.memory_size = this->space_data.voxel_count * sizeof(VoxelData);
+	this->space_data.voxel_count0 = this->space_data.world_size0.Mult();
+	this->space_data.voxel_count1 = this->space_data.world_size1.Mult();
+	this->space_data.voxel_count2 = this->space_data.world_size2.Mult();
 
-	printf("Voxel Count: %lld\n", this->space_data.voxel_count);
+	this->space_data.memory_size0 = this->space_data.voxel_count0 * sizeof(VoxelData);
+	this->space_data.memory_size1 = this->space_data.voxel_count1 * sizeof(VoxelData);
+	this->space_data.memory_size2 = this->space_data.voxel_count2 * sizeof(VoxelData);
+
+	printf("World Data:\n");
 	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
-	printf("    Total Memory: %.2f MB\n\n", this->space_data.memory_size / 1000000.0f);
+	printf("    Voxel Count:\n");
+	printf("        Level 0: %lld\n", this->space_data.voxel_count0);
+	printf("        Level 1: %lld\n", this->space_data.voxel_count1);
+	printf("        Level 2: %lld\n", this->space_data.voxel_count2);
+	printf("    Total Memory:\n");
+	printf("        Level 0: %.2f MB\n", this->space_data.memory_size0 / 1000000.0f);
+	printf("        Level 1: %.2f MB\n", this->space_data.memory_size1 / 1000000.0f);
+	printf("        Level 2: %.2f MB\n\n", this->space_data.memory_size2 / 1000000.0f);
 
 	printf("Initializing Voxel World...\n");
 
-	this->space_data.space = (VoxelData*)malloc(this->space_data.memory_size);
-	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space_cuda, this->space_data.memory_size), __FILE__, __LINE__);
-	//CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space_cuda, this->space_data.space, this->space_data.memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space0, this->space_data.memory_size0), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space1, this->space_data.memory_size1), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space2, this->space_data.memory_size2), __FILE__, __LINE__);
 
 	this->InitWorldMemory(false, true);
-
-	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	this->space_builder.Init();
 
@@ -24,26 +34,26 @@ WorldSpace::WorldSpace() {
 }
 
 void WorldSpace::InitWorldMemory(bool is_debug_cube, bool is_floor) {
-	Vector3 lower{ 0, 0, 0 };
-	Vector3 upper{ this->space_data.world_size.x, this->space_data.world_size.y, this->space_data.world_size.z };
 	VoxelData init_data{ 0, 0 };
 
-	AssignChunk(this->space_data, init_data, lower, upper);
+	CudaWorld::FillBox(this->space_builder, this->space_data, init_data, Vector::ZERO3(), this->space_data.world_size0);
 
 	if (is_debug_cube) {
-		lower = Vector3{ 480, 60, 480 };
-		upper = Vector3{ 520, 110, 520 };
+		Vector3 lower = Vector3{ 480, 60, 480 };
+		Vector3 upper = Vector3{ 520, 110, 520 };
+		Vector3 width = upper - lower;
 		VoxelData cube_data{ 1, 1 };
 
-		AssignChunk(this->space_data, cube_data, lower, upper);
+		CudaWorld::FillBox(this->space_builder, this->space_data, cube_data, lower, width);
 	}
 
 	if (is_floor) {
-		lower = Vector3{ 0, 0, 0};
-		upper = Vector3{ this->space_data.world_size.x, 3, this->space_data.world_size.z };
+		Vector3 lower = Vector3{ 0, 0, 0};
+		Vector3 upper = Vector3{ this->space_data.world_size0.x, 3, this->space_data.world_size0.z };
+		Vector3 width = upper - lower;
 		VoxelData floor_data{ 1, 1 };
 
-		AssignChunk(this->space_data, floor_data, lower, upper);
+		CudaWorld::FillBox(this->space_builder, this->space_data, floor_data, lower, width);
 	}
 }
 
@@ -54,7 +64,7 @@ void WorldSpace::LoadWorld(std::string load_path) {
 	
 	printf("    Extracting point cloud...\n");
 	std::vector<std::array<double, 3>> vertices = plyIn.getVertexPositions();
-	printf("        Total Points: %d\n", (int)vertices.size());
+	printf("        Total Points: %lld\n", (unsigned long long)vertices.size());
 
 	printf("    Writing points to GPU world space...\n");
 	Vector3* points_cuda = this->WritePointsToCuda(vertices);
@@ -65,12 +75,8 @@ void WorldSpace::LoadWorld(std::string load_path) {
 			printf("        Planar densify: Step %d...\n", i + 1);
 		}
 
-		PlanarDensify(space_builder, this->space_data, points_cuda, vertices.size());
+		CudaWorld::PlanarDensify(space_builder, this->space_data, points_cuda,(unsigned long long)vertices.size());
 	}
-
-	printf("    Copying loaded world state to CPU...\n");
-	CudaError::CheckError((cudaError_enum)cudaMemcpy(this->space_data.space, this->space_data.space_cuda, this->space_data.memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-	CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
 	printf("    Done!\n\n");
 }
@@ -95,31 +101,18 @@ Vector3* WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&points_cuda, memory_size), __FILE__, __LINE__);
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(points_cuda, points, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	AssignPoints(this->space_data, points_cuda, (int)point_list.size(), voxel_data);
+	CudaWorld::WritePoints(this->space_builder, this->space_data, points_cuda, (unsigned long long)point_list.size(), voxel_data);
 
 	return points_cuda;
 }
 
-void WorldSpace::SetWorldRegion(Vector3 lower, Vector3 upper, VoxelData voxel_data) {
-
-	for (int i = lower.x; i < upper.x; i++) {
-		for (int j = lower.y; j < upper.y; j++) {
-			for (int k = lower.z; k < upper.z; k++) {
-				int index = Indexer::FlatIndex3(i, j, k, this->space_data.world_size.x, this->space_data.world_size.y);
-
-				this->space_data.space[index] = voxel_data;
-			}
-		}
-	}
-}
-
 void WorldSpace::ActivateStochasticSubtraction() {
-	StochasticSubtraction(this->space_builder, this->space_data);
+	CudaWorld::StochasticSubtraction(this->space_builder, this->space_data);
 }
 
 void WorldSpace::Cleanup() {
-	printf("    Freeing world space GPU...\n");
-	cudaFree(this->space_data.space_cuda);
-	printf("    Freeing world space CPU...\n");
-	free(this->space_data.space);
+	printf("    Freeing world space...\n");
+	cudaFree(this->space_data.space0);
+	cudaFree(this->space_data.space1);
+	cudaFree(this->space_data.space2);
 }

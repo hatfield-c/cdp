@@ -95,7 +95,7 @@ struct Camera {
                 }
 
                 Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, this->camera_size, this->fov, this->transform.rotation);
-                RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, pixel_position, this->max_render_distance);
+                RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, this->max_render_distance);
                 float depth = hit_data.distance;
 
                 byte depth_pixel_val = this->DepthToInversePixel(depth);

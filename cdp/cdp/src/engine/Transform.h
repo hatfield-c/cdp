@@ -248,6 +248,22 @@ struct Vector3 {
 		return result;
 	}
 
+	__host__ __device__ float Sum() {
+		float sum = this->x + this->y + this->z;
+
+		return sum;
+	}
+
+	__host__ __device__ float Mult() {
+		float mult = this->x * this->y * this->z;
+
+		return mult;
+	}
+
+	__host__ __device__ float Average() {
+		return this->Sum() / 3;
+	}
+
 	__host__ __device__ Vector3 Floor() {
 		Vector3 result{
 			floor(this->x),

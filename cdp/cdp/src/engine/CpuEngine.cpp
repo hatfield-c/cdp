@@ -5,8 +5,8 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	this->ihm_generator.Init(
 		3,
 		Vector::ZERO3(),
-		this->world_space->space_data.world_size,
-		this->world_space->space_data.world_size,
+		this->world_space->space_data.world_size0,
+		this->world_space->space_data.world_size0,
 		Vector3{ 10, 10, 10 },
 		Vector2{ 16, 16 }
 	);
@@ -194,7 +194,7 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 
 void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 	Vector3 render_stride{ 1, 1, 1 };
-	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 	std::string base_path = "./data/results/heat_";
 
 	Camera camera = *this->camera_list[0];
@@ -204,7 +204,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&img, byte_count), __FILE__, __LINE__);
 
-	for (int k = 40; k < this->world_space->space_data.world_size.y - 10; k += 10) {
+	for (int k = 40; k < this->world_space->space_data.world_size0.y - 10; k += 10) {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		std::string save_path = base_path + std::to_string(k) + ".jpg";
 
@@ -214,7 +214,7 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 			3,
 			Vector3{ 0, (float)k, 0 },
 			Vector3{ render_size.x, 1, render_size.y},
-			this->world_space->space_data.world_size,
+			this->world_space->space_data.world_size0,
 			render_stride,
 			Vector2{ 16, 16 }
 		);
@@ -236,8 +236,12 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 
 		for (int i = 0; i < render_size.y; i++) {
 			for (int j = 0; j < render_size.x; j++) {
-				unsigned long long index = Indexer::FlatIndex3(j, k, i, this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.y);
-				if (this->world_space->space_data.space[index].entity_id > 0) {
+				unsigned long long index = Indexer::FlatIndex3(j, k, i, this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.y);
+
+				Vector3 voxel_position{ j, k, i };
+				VoxelData voxel_data = CudaWorld::ReadVoxel(this->world_space->space_data, voxel_position);
+
+				if (voxel_data.entity_id > 0) {
 					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, 3, render_size.x);
 					unsigned long long g_index = Indexer::FlatIndex3(1, j, i, 3, render_size.x);
 					unsigned long long b_index = Indexer::FlatIndex3(2, j, i, 3, render_size.x);
@@ -265,8 +269,8 @@ void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
 void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 	
 
-	Vector2 render_size{ this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.z };
-	Vector3 render_size_3d{ this->world_space->space_data.world_size.x, 1, this->world_space->space_data.world_size.z };
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
+	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
 	Vector3 chunk_size{ 100, 1, 100 };
 	Vector3 chunk_count = (render_size_3d / chunk_size).Ceil();
 	Vector3 chunked_size = chunk_count * chunk_size;
@@ -298,13 +302,14 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 					unsigned long long x_index = Indexer::FlatIndex2(j, w, chunk_size.x);
 					unsigned long long y_index = Indexer::FlatIndex2(i, h, chunk_size.z);
 
-					unsigned long long voxel_index = Indexer::FlatIndex3(x_index, k, y_index, this->world_space->space_data.world_size.x, this->world_space->space_data.world_size.y);
-
 					unsigned long long r_index = Indexer::FlatIndex3(0, x_index, y_index, 3, render_size.x);
 					unsigned long long g_index = Indexer::FlatIndex3(1, x_index, y_index, 3, render_size.x);
 					unsigned long long b_index = Indexer::FlatIndex3(2, x_index, y_index, 3, render_size.x);
 
-					if (this->world_space->space_data.space[voxel_index].entity_id > 0) {
+					Vector3 voxel_position{ x_index, k, y_index };
+					VoxelData voxel_data = CudaWorld::ReadVoxel(this->world_space->space_data, voxel_position);
+
+					if (voxel_data.entity_id > 0) {
 						img_cpu[r_index] = 255;
 						img_cpu[g_index] = 255;
 						img_cpu[b_index] = 255;

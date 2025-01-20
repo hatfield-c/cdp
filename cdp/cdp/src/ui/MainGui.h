@@ -18,7 +18,7 @@
 class MainGui {
 	public:
 		int render_texture = 0;
-		unsigned long long ihm_position_index = Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
+		//unsigned long long ihm_position_index = Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
 		IhmGenerator ihm_generator{};
 
 		int camera_index = 0;

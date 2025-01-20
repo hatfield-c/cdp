@@ -88,7 +88,7 @@ struct IhmGenerator {
 						}
 
 						Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
-						RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, pixel_position, camera->max_render_distance);
+						RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, camera->max_render_distance);
 						float depth = hit_data.distance;
 
 						if (depth >= camera->max_render_distance) {

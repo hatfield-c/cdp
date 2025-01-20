@@ -26,7 +26,7 @@ struct Physics {
         return 3.14159265358979323846f;
     }
 
-    static __host__ __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, Vector2 pixel_position, float max_distance) {
+    static __host__ __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, float max_distance) {
         RaycastHitData hit_data{};
         VoxelData voxel_data{};
         Vector3 hit_position{};
@@ -41,13 +41,13 @@ struct Physics {
             int y_index = (int)query_point.y;
             int z_index = (int)query_point.z;
 
-            x_index = Transform::Clip(x_index, 0, (int)space_data.world_size.x - 1);
-            y_index = Transform::Clip(y_index, 0, (int)space_data.world_size.y - 1);
-            z_index = Transform::Clip(z_index, 0, (int)space_data.world_size.z - 1);
+            x_index = Transform::Clip(x_index, 0, (int)space_data.world_size0.x - 1);
+            y_index = Transform::Clip(y_index, 0, (int)space_data.world_size0.y - 1);
+            z_index = Transform::Clip(z_index, 0, (int)space_data.world_size0.z - 1);
 
-            int world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size.x, space_data.world_size.y);
+            int world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size0.x, space_data.world_size0.y);
 
-            voxel_data = space_data.space_cuda[world_index];
+            voxel_data = space_data.space0[world_index];
 
             hit_position.x = x_index;
             hit_position.y = y_index;

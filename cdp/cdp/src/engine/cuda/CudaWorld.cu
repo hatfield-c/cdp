@@ -1,54 +1,34 @@
 #include "CudaWorld.cuh"
 
-__global__ void AssignChunk_Kernel(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
-    Vector3 local_offset{
-        blockDim.x * blockIdx.x + threadIdx.x,
-        blockDim.y * blockIdx.y + threadIdx.y,
-        blockDim.z * blockIdx.z + threadIdx.z
-    };
-
-    if (local_offset.x >= upper.x || local_offset.y >= upper.y || local_offset.z >= upper.z) {
-        return;
-    }
-
-    Vector3 voxel_indices = local_offset + lower;
-
-    if (voxel_indices.x >= space_data.world_size.x || voxel_indices.y >= space_data.world_size.y || voxel_indices.z >= space_data.world_size.z) {
-        return;
-    }
-
-    int space_index = Indexer::FlatIndex3(voxel_indices.x, voxel_indices.y, voxel_indices.z, space_data.world_size.x, space_data.world_size.y);
-
-    space_data.space_cuda[space_index] = voxel_data;
+__global__ void CudaWorld::FillBox_Kernel(SpaceBuilder space_builder, SpaceData space_data, VoxelData voxel_data, Vector3 origin, Vector3 width) {
+    space_builder.FillBox(space_data, voxel_data, origin, width);
 }
 
-__global__ void AssignPoints_Kernel(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data) {
-    int point_index = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (point_index >= point_count) {
-        return;
-    }
-    
-    Vector3 point = points[point_index];
-
-    if (point.x >= space_data.world_size.x || point.y >= space_data.world_size.y || point.z >= space_data.world_size.z) {
-        return;
-    }
-
-    int space_index = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size.x, space_data.world_size.y);
-
-    space_data.space_cuda[space_index] = voxel_data;
+__global__ void CudaWorld::WritePoints_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, unsigned long long point_count, VoxelData voxel_data) {
+    space_builder.WritePoints(space_data, points, point_count, voxel_data);
 }
 
-__global__ void PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count) {
+__global__ void CudaWorld::PlanarDensify_Kernel(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, unsigned long long point_count) {
     space_builder.PlanarDensify(space_data, points, point_count);
 }
 
-__global__ void StochasticSubtraction_Kernel(SpaceBuilder space_builder, SpaceData space_data) {
+__global__ void CudaWorld::StochasticSubtraction_Kernel(SpaceBuilder space_builder, SpaceData space_data) {
     space_builder.StochasticSubtraction(space_data);
 }
 
-void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
+VoxelData CudaWorld::ReadVoxel(SpaceData space_data, Vector3 position) {
+    unsigned long long voxel_index = Indexer::FlatIndex3(position.x, position.y, position.z, space_data.world_size0.x, space_data.world_size0.y);
+    VoxelData voxel_data{};
+
+    CudaError::CheckError((cudaError_enum)cudaMemcpy(&voxel_data, space_data.space0 + voxel_index , sizeof(VoxelData), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+    return voxel_data;
+}
+
+void CudaWorld::FillBox(SpaceBuilder space_builder, SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
     float x_size = upper.x - lower.x;
     float y_size = upper.y - lower.y;
     float z_size = upper.z - lower.z;
@@ -61,50 +41,53 @@ void AssignChunk(SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vect
 
     dim3 blocks_per_grid(x_blocks, y_blocks, z_blocks);
 
-	AssignChunk_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, voxel_data, lower, upper);
-}
-
-void AssignAll(SpaceData space_data, VoxelData voxel_data) {
-	Vector3 lower{ 0, 0, 0 };
-	Vector3 upper{ space_data.world_size.x, space_data.world_size.y, space_data.world_size.z };
-
-	AssignChunk(space_data, voxel_data, lower, upper);
+    CudaWorld::FillBox_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, voxel_data, lower, upper);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 }
 
-void AssignPoints(SpaceData space_data, Vector3* points, int point_count, VoxelData voxel_data) {
+void CudaWorld::AssignAll(SpaceBuilder space_builder, SpaceData space_data, VoxelData voxel_data) {
+	Vector3 lower{ 0, 0, 0 };
+	Vector3 upper{ space_data.world_size0.x, space_data.world_size0.y, space_data.world_size0.z };
+
+    CudaWorld::FillBox(space_builder, space_data, voxel_data, lower, upper);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+}
+
+void CudaWorld::WritePoints(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, unsigned long long point_count, VoxelData voxel_data) {
     dim3 threads_per_block(32, 1, 1);
 
     int x_blocks = ceil(point_count / (float)threads_per_block.x);
 
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
-    AssignPoints_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, points, point_count, voxel_data);
+    CudaWorld::WritePoints_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, points, point_count, voxel_data);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 }
 
-void PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, int point_count) {
-    dim3 threads_per_block(1024, 1, 1);
+void CudaWorld::PlanarDensify(SpaceBuilder space_builder, SpaceData space_data, Vector3* points, unsigned long long point_count) {
+    dim3 threads_per_block(512, 1, 1);
 
-    int x_blocks = ceil(point_count / threads_per_block.x);
+    unsigned long long x_blocks = ceil(point_count / threads_per_block.x);
 
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
-    PlanarDensify_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, points, point_count);
+    CudaWorld::PlanarDensify_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, points, point_count);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 }
 
-void StochasticSubtraction(SpaceBuilder space_builder, SpaceData space_data) {
+void CudaWorld::StochasticSubtraction(SpaceBuilder space_builder, SpaceData space_data) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     dim3 threads_per_block(32, 1, 1);
 
-    int x_blocks = ceil(space_data.voxel_count / threads_per_block.x);
+    int x_blocks = ceil(space_data.voxel_count0 / threads_per_block.x);
 
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
@@ -112,7 +95,7 @@ void StochasticSubtraction(SpaceBuilder space_builder, SpaceData space_data) {
     printf("        Block Count : (%lld, %lld, %lld)\n", x_blocks, 1, 1);
     printf("        Thread Count: (%lld, %lld, %lld)\n", threads_per_block.x, 1, 1);
     printf("        Progress (Max 20 *): ");
-    StochasticSubtraction_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data);
+    CudaWorld::StochasticSubtraction_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
