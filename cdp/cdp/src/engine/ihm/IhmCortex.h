@@ -50,7 +50,7 @@ struct IhmCortex {
 			}
 		}
 
-		difference_count = Transform::Clip(difference_count, 0, 255);
+		difference_count = Math::Clip(difference_count, 0, 255);
 		difference_vector[state_index] = difference_count;
 	}
 

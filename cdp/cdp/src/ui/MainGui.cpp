@@ -23,8 +23,8 @@ MainGui::MainGui(int camera_count) {
     this->ihm_generator.Init(
         3,
         Vector::ZERO3(),
-        Vector3{ 1000, 300, 1000 },
-        Vector3{ 1000, 300, 1000 },
+        Vector3{ 1024, 128, 1024 },
+        Vector3{ 1024, 128, 1024 },
         Vector3{ 10, 10, 10 },
         Vector2{ 16, 16 }
     );
@@ -275,10 +275,10 @@ void MainGui::DrawInspector() {
                 direction_index--;
             }
 
-            camera_position[0] = Transform::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
-            camera_position[1] = Transform::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
-            camera_position[2] = Transform::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
-            direction_index = Transform::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
+            camera_position[0] = Math::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
+            camera_position[1] = Math::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
+            camera_position[2] = Math::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
+            direction_index = Math::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
 
             ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }

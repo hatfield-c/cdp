@@ -197,6 +197,9 @@
     <ClInclude Include="src\engine\SpaceBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\Math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />

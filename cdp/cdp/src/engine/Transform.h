@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math.h>
+#include "Math.h"
 #include "cuda.h"
 #include "cudart_platform.h"
 #include "device_launch_parameters.h"
@@ -155,6 +156,16 @@ struct Vector3 {
 		return result;
 	}
 
+	__host__ __device__ Vector3 operator+(float operand) {
+		Vector3 result{
+			this->x + operand,
+			this->y + operand,
+			this->z + operand,
+		};
+
+		return result;
+	}
+
 	__host__ __device__ Vector3 operator-(float operand) {
 		Vector3 result{
 			this->x - operand,
@@ -248,6 +259,30 @@ struct Vector3 {
 		return result;
 	}
 
+	__host__ __device__ float operator [](const int& i) const
+	{
+		if (i == 0) {
+			return this->x;
+		}
+		else if (i == 1) {
+			return this->y;
+		}
+
+		return this->z;
+	}
+
+	__host__ __device__ float& operator [](const int& i)
+	{
+		if (i == 0) {
+			return this->x;
+		}
+		else if (i == 1) {
+			return this->y;
+		}
+
+		return this->z;
+	}
+
 	__host__ __device__ float Sum() {
 		float sum = this->x + this->y + this->z;
 
@@ -262,6 +297,12 @@ struct Vector3 {
 
 	__host__ __device__ float Average() {
 		return this->Sum() / 3;
+	}
+
+	__host__ __device__ float Dot(Vector3 operand) {
+		Vector3 mult = (*this) * operand;
+
+		return mult.Sum();
 	}
 
 	__host__ __device__ Vector3 Floor() {
@@ -280,6 +321,60 @@ struct Vector3 {
 			ceil(this->y),
 			ceil(this->z)
 		};
+
+		return result;
+	}
+
+	__host__ __device__ Vector3 Absolute() {
+		Vector3 result{
+			abs(this->x),
+			abs(this->y),
+			abs(this->z)
+		};
+
+		return result;
+	}
+
+	__host__ __device__ Vector3 Sign() {
+		Vector3 result{ 0, 0, 0 };
+
+		if (this->x > 0) {
+			result.x = 1;
+		}
+
+		if (this->x < 0) {
+			result.x = -1;
+		}
+
+		if (this->y > 0) {
+			result.y = 1;
+		}
+
+		if (this->y < 0) {
+			result.y = -1;
+		}
+
+		if (this->z > 0) {
+			result.z = 1;
+		}
+
+		if (this->z < 0) {
+			result.z = -1;
+		}
+
+		return result;
+	}
+
+	__host__ __device__ Vector3 Clip(Vector3 lower, Vector3 upper) {
+		Vector3 result{
+			this->x,
+			this->y,
+			this->z
+		};
+
+		result.x = Math::Clip(result.x, lower.x, upper.x);
+		result.y = Math::Clip(result.y, lower.y, upper.y);
+		result.z = Math::Clip(result.z, lower.z, upper.z);
 
 		return result;
 	}
@@ -426,30 +521,6 @@ struct Vector {
 struct Transform {
 	Vector3 position{ 0, 0, 0 };
 	Vector4 rotation{ 0, 0, 0, 1 };
-
-	static __host__ __device__ int Clip(int value, int lower, int upper) {
-		if (value < lower) {
-			value = lower;
-		}
-
-		if (value > upper) {
-			value = upper;
-		}
-
-		return value;
-	}
-
-	static __host__ __device__ double Clip(double value, double lower, double upper) {
-		if (value < lower) {
-			value = lower;
-		}
-
-		if (value > upper) {
-			value = upper;
-		}
-
-		return value;
-	}
 
 	static __host__ __device__ float Norm2(Vector2 vector) {
 		float norm_val = (vector.x * vector.x) + (vector.y * vector.y);

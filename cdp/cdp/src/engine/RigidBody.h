@@ -37,8 +37,8 @@ struct Rigidbody {
 	void AirResistance(Vector3 wind) {
 		this->AddTorque(this->angular_velocity * -0.000617f);
 
-		Vector3 velocity_drag_force = this->velocity * - 0.5 * (1.293e-3) * 0.47 * Physics::Pi() * (0.25 * 0.25);
-		Vector3 wind_drag_force = wind * -0.5 * (1.293e-3) * 0.47 * Physics::Pi() * (0.25 * 0.25);
+		Vector3 velocity_drag_force = this->velocity * - 0.5 * (1.293e-3) * 0.47 * Math::Pi() * (0.25 * 0.25);
+		Vector3 wind_drag_force = wind * -0.5 * (1.293e-3) * 0.47 * Math::Pi() * (0.25 * 0.25);
 
 		this->AddForce(velocity_drag_force);
 		this->AddForce(wind_drag_force);

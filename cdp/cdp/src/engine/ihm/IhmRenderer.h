@@ -104,7 +104,7 @@ struct IhmRenderer {
 
 		pixel_score = log(pixel_score + 1);
 		pixel_score = 255 * 0.25 * pixel_score;
-		pixel_score = Transform::Clip(pixel_score, 0.0, 255.0);
+		pixel_score = Math::Clip(pixel_score, 0.0, 255.0);
 
 		byte r_val = (int)pixel_score;
 		byte g_val = 255 - r_val;

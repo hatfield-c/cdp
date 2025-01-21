@@ -7,7 +7,7 @@
 
 struct SpaceData {
 	const float indices_per_meter = 10;
-	Vector3 world_size0{ 1024, 128, 1024};
+	Vector3 world_size0{ 1024, 128, 1024 };
 	Vector3 world_size1{ 512, 64, 512 };
 	Vector3 world_size2{ 256, 32, 256 };
 	Vector3 level_stride{ 2, 2, 2 };

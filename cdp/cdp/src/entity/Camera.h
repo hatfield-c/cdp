@@ -136,57 +136,6 @@ struct Camera {
         }
     }
 
-    /*__device__ void DepthUpdate(SpaceData space_data) {
-        Vector2 pixel_position{
-            Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
-            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
-        };
-
-        if (pixel_position.x >= this->camera_size.x || pixel_position.y >= this->camera_size.y) {
-            return;
-        }
-
-        Vector3 ray_direction = this->GetCameraRayDirection(pixel_position, this->camera_size, this->fov, this->transform.rotation);
-        RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, pixel_position, this->max_render_distance);
-        
-        this->WriteDepth(this->depth_data, pixel_position, this->camera_size, hit_data);
-    }
-
-    __device__ void Render(SpaceData space_data) {
-        Vector2 pixel_position{
-            Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
-            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
-        };
-
-        RaycastHitData raycast_data = this->ReadDepth(this->depth_data, pixel_position, this->camera_size);
-        float depth = raycast_data.distance;
-
-        float depth_pixel_val = 0;
-        if (raycast_data.voxel_data.entity_id == 1) {
-            depth_pixel_val = depth / this->max_render_distance;
-            depth_pixel_val = 255 * (1 - depth_pixel_val);
-
-            if (depth_pixel_val < 0) {
-                depth_pixel_val = 0;
-            }
-        }
-        
-        Vector4 depth_color{depth_pixel_val, depth_pixel_val, depth_pixel_val, 255};
-
-        this->WriteRGBA(this->depth_texture, pixel_position, this->camera_size, depth_color);
-        this->WriteRGBA(this->shaded_texture, pixel_position, this->camera_size, depth_color);
-
-        Vector2 spatial_offset = (this->camera_size - 1) / (this->phash_data_size - 1);
-        spatial_offset.x = (int)spatial_offset.x;
-        spatial_offset.y = (int)spatial_offset.y;
-
-        bool is_phash_pixel = (int)pixel_position.x % (int)spatial_offset.x == 0;
-        is_phash_pixel = is_phash_pixel && ((int)pixel_position.y % (int)spatial_offset.y == 0);
-
-        if (is_phash_pixel) {
-            this->Phash(space_data, raycast_data, pixel_position, spatial_offset);
-        } 
-    }*/
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
         Vector2 fov_offset{
@@ -212,64 +161,11 @@ struct Camera {
         return ray_direction;
     }
 
-    /*__device__ void Phash(SpaceData space_data, RaycastHitData raycast_data, Vector2 pixel_position, Vector2 spatial_offset) {
-        Vector2 phash_position = pixel_position / spatial_offset;
-
-        float avg_distance = 0;
-        int avg_count = 0;
-        for (int i = 0; i < this->phash_data_stride.x; i++) {
-            for (int j = 0; j < this->phash_data_stride.y; j++) {
-                Vector2 pixel_offset{ i, j };
-                pixel_offset -= (this->phash_data_stride / 2).Floor();
-                pixel_offset += pixel_position;
-
-                if (pixel_offset.x < 0 || pixel_offset.y < 0 || pixel_offset.x >= this->camera_size.x || pixel_offset.y >= this->camera_size.y) {
-                    continue;
-                }
-
-                RaycastHitData data = this->ReadDepth(this->depth_data, pixel_offset, this->camera_size);
-                float depth = data.distance;
-
-                if (depth >= this->max_render_distance) {
-                    continue;
-                }
-
-                avg_distance += depth;
-                avg_count++;
-            }
-        }
-
-        if (avg_count < 1) {
-            avg_distance = this->max_render_distance;
-            avg_count = 1;
-        }
-
-        avg_distance = avg_distance / avg_count;
-
-        float distance = avg_distance / 10;
-        //float distance = raycast_data.distance / 10;
-        distance = Transform::Clip(distance, 0.0, 20.0);
-        byte value = (byte)(int)(255 * distance / 20.0);
-        Vector4 phash_color{ value, value, value, 255 };
-
-        Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, value);
-
-        Vector2 texture_position{};
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 2; j++) {
-                texture_position.x = (2 * phash_position.x) + i;
-                texture_position.y = (2 * phash_position.y) + j;
-
-                Camera::WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
-            }
-        }
-    }*/
-
     __host__ __device__ byte DepthToPixel(float depth) {
-        float depth_pixel_val = Transform::Clip(depth, 0.0, this->max_render_distance);
+        float depth_pixel_val = Math::Clip(depth, 0.0, this->max_render_distance);
         depth_pixel_val = depth_pixel_val / this->max_render_distance;
         depth_pixel_val = 255 * depth_pixel_val;
-        depth_pixel_val = Transform::Clip(depth_pixel_val, 0.0, 255.0);
+        depth_pixel_val = Math::Clip(depth_pixel_val, 0.0, 255.0);
 
         byte pixel_val = depth_pixel_val;
 
@@ -277,10 +173,10 @@ struct Camera {
     }
 
     __host__ __device__ byte DepthToInversePixel(float depth) {
-        float depth_pixel_val = Transform::Clip(depth, 0.0, this->max_render_distance);
+        float depth_pixel_val = Math::Clip(depth, 0.0, this->max_render_distance);
         depth_pixel_val = depth_pixel_val / this->max_render_distance;
         depth_pixel_val = 255 * (1 - depth_pixel_val);
-        depth_pixel_val = Transform::Clip(depth_pixel_val, 0.0, 255.0);
+        depth_pixel_val = Math::Clip(depth_pixel_val, 0.0, 255.0);
 
         byte pixel_val = depth_pixel_val;
 

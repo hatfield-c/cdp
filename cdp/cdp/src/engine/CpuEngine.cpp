@@ -339,7 +339,7 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 
 						float score = Transform::Norm3(this->camera_list[0]->transform.position - estimate);
 						score = (255.0 / 100.0) * score;
-						score = Transform::Clip(score, 0.0, 255.0);
+						score = Math::Clip(score, 0.0, 255.0);
 
 						int r_val = (int)score;
 						int g_val = 255 - r_val;

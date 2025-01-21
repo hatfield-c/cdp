@@ -108,7 +108,7 @@ struct IhmGenerator {
 				avg_distance = avg_distance / avg_count;
 
 				float distance = avg_distance / 10;
-				distance = Transform::Clip(distance, 0.0, 20.0);
+				distance = Math::Clip(distance, 0.0, 20.0);
 				byte value = (byte)(int)(255 * distance / 20.0);
 
 				unsigned long long data_index = Indexer::FlatIndex3(w, h, blockIdx.x, 16, 16);
