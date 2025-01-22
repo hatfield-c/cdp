@@ -34,6 +34,7 @@ struct Physics {
         Vector3 start_voxel = start_position.Floor();
         Vector3 current_voxel = start_position.Floor();
         Vector3 end_voxel = end_position.Floor();
+        Vector3 end_voxel2 = (end_voxel / 4).Floor();
 
         Vector3 voxel_difference = end_voxel - start_voxel;
         Vector3 voxel_distance = voxel_difference.Absolute();
@@ -68,31 +69,29 @@ struct Physics {
             current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
 
             current_voxel = current_position.Floor();
+            Vector3 travel_distance = (end_voxel - current_voxel).Absolute();
 
-            Vector3 query0 = current_voxel;
-            Vector3 query1 = (current_voxel / 2).Floor();
             Vector3 query2 = (current_voxel / 4).Floor();
 
-            unsigned long long world_index0 = Indexer::FlatIndex3(query0.x, query0.y, query0.z, space_data.world_size0.x, space_data.world_size0.y);
-            /*unsigned long long world_index1 = Indexer::FlatIndex3(query1.x, query1.y, query1.z, space_data.world_size1.x, space_data.world_size1.y);
             unsigned long long world_index2 = Indexer::FlatIndex3(query2.x, query2.y, query2.z, space_data.world_size2.x, space_data.world_size2.y);
-
             VoxelData voxel_data2 = space_data.space2[world_index2];
 
             if (voxel_data2.entity_id == 0) {
-                //float remaining2 = 
+                int v2 = floor(current_voxel[driving_axis] / 4.0);
 
-                float next0 = ((query2[driving_axis] + 1) * 4) + 0.5;
-                float t = (next0 - start_voxel[driving_axis]) / (end_voxel[driving_axis] - start_voxel[driving_axis]);
+                if (v2 != end_voxel2[driving_axis]) {
+                    int remaining_voxels2 = 3 - ((int)current_voxel[driving_axis] % 4);
+                    current_position[driving_axis] += remaining_voxels2;
 
-                Vector3 current_voxel = (start_voxel * (1 - t)) + (end_voxel * t);
-                current_voxel = current_voxel.Floor();
+                    continue;
+                }
+            }
 
-                p1 = 2 * voxel_distance[second_axis] - voxel_distance[driving_axis];
-                p2 = 2 * voxel_distance[third_axis] - voxel_distance[driving_axis];
-            }*/
+            Vector3 query0 = current_voxel;
+            //Vector3 query1 = (current_voxel / 2).Floor();
 
-            Vector3 travel_distance = (end_voxel - current_voxel).Absolute();
+            unsigned long long world_index0 = Indexer::FlatIndex3(query0.x, query0.y, query0.z, space_data.world_size0.x, space_data.world_size0.y);
+            //unsigned long long world_index1 = Indexer::FlatIndex3(query1.x, query1.y, query1.z, space_data.world_size1.x, space_data.world_size1.y);
 
             VoxelData voxel_data = space_data.space0[world_index0];
 
