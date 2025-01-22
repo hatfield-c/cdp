@@ -108,6 +108,9 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 	cudaDeviceSynchronize();
+
+	// debug code
+	//std::cin.ignore();
 }
 
 void CpuEngine::GenerateIhm(GuiData gui_data) {

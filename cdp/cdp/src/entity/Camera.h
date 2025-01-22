@@ -77,6 +77,11 @@ struct Camera {
         Vector2 phash_position{ threadIdx.x, threadIdx.y };
         Vector2 pixel_position;
 
+        /// degug remove
+        //if (phash_position.x != 3 || phash_position.y != 1) {
+            //return;
+        //}
+
         float avg_distance = 0;
         int avg_count = 0;
 
@@ -93,6 +98,11 @@ struct Camera {
                 if (pixel_position.y >= this->camera_size.y) {
                     continue;
                 }
+
+                /// degug remove
+                //if (i != 0 || j != 0) {
+                    //return;
+                //}
 
                 Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, this->camera_size, this->fov, this->transform.rotation);
                 RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, this->max_render_distance);

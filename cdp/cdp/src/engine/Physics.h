@@ -26,12 +26,13 @@ struct Physics {
     static __host__ __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, float max_distance) {
         RaycastHitData hit_data{};
         VoxelData voxel_data{};
-        Vector3 hit_position{};
 
+        Vector3 current_position = start_position;
         Vector3 end_position = start_position + (ray_direction * max_distance);
         end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0);
 
         Vector3 start_voxel = start_position.Floor();
+        Vector3 current_voxel = start_position.Floor();
         Vector3 end_voxel = end_position.Floor();
 
         Vector3 voxel_difference = end_voxel - start_voxel;
@@ -53,91 +54,57 @@ struct Physics {
             third_axis = 0;
         }
 
-        int p1 = 2 * voxel_distance[second_axis] - voxel_distance[driving_axis];
-        int p2 = 2 * voxel_distance[third_axis] - voxel_distance[driving_axis];
+        float second_slope = voxel_difference[second_axis] / voxel_difference[driving_axis];
+        float third_slope = voxel_difference[third_axis] / voxel_difference[driving_axis];
 
-        while (start_voxel[driving_axis] != end_voxel[driving_axis]) {
-            start_voxel[driving_axis] += difference_sign[driving_axis];
+        float second_bias = start_voxel[second_axis] - (start_voxel[driving_axis] * second_slope);
+        float third_bias = start_voxel[third_axis] - (start_voxel[driving_axis] * third_slope);
 
-            if (p1 >= 0) {
-                start_voxel[second_axis] += difference_sign[second_axis];
-                p1 -= 2 * voxel_distance[driving_axis];
-            }
-            if (p2 >= 0) {
-                start_voxel[third_axis] += difference_sign[third_axis];
-                p2 -= 2 * voxel_distance[driving_axis];
-            }
+        //printf("[%.2f %.2f %.2f] [%.2f %.2f %.2f]\n", start_position.x, start_position.y, start_position.z, end_position.x, end_position.y, end_position.z);
 
-            p1 += 2 * voxel_distance[second_axis];
-            p2 += 2 * voxel_distance[third_axis];
+        while (current_voxel[driving_axis] != end_voxel[driving_axis]) {
+            current_position[driving_axis] += difference_sign[driving_axis];
+            current_position[second_axis] = (current_position[driving_axis] * second_slope) + second_bias;
+            current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
 
-            int x_index = (int)start_voxel.x;
-            int y_index = (int)start_voxel.y;
-            int z_index = (int)start_voxel.z;
+            current_voxel = current_position.Floor();
 
-            x_index = Math::Clip(x_index, 0, (int)space_data.world_size0.x - 1);
-            y_index = Math::Clip(y_index, 0, (int)space_data.world_size0.y - 1);
-            z_index = Math::Clip(z_index, 0, (int)space_data.world_size0.z - 1);
+            Vector3 query0 = current_voxel;
+            Vector3 query1 = (current_voxel / 2).Floor();
+            Vector3 query2 = (current_voxel / 4).Floor();
 
-            unsigned long long world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size0.x, space_data.world_size0.y);
+            unsigned long long world_index0 = Indexer::FlatIndex3(query0.x, query0.y, query0.z, space_data.world_size0.x, space_data.world_size0.y);
+            /*unsigned long long world_index1 = Indexer::FlatIndex3(query1.x, query1.y, query1.z, space_data.world_size1.x, space_data.world_size1.y);
+            unsigned long long world_index2 = Indexer::FlatIndex3(query2.x, query2.y, query2.z, space_data.world_size2.x, space_data.world_size2.y);
 
-            voxel_data = space_data.space0[world_index];
+            VoxelData voxel_data2 = space_data.space2[world_index2];
 
-            hit_position.x = x_index;
-            hit_position.y = y_index;
-            hit_position.z = z_index;
+            if (voxel_data2.entity_id == 0) {
+                //float remaining2 = 
 
-            Vector3 travel_distance = (end_voxel - start_voxel).Absolute();
+                float next0 = ((query2[driving_axis] + 1) * 4) + 0.5;
+                float t = (next0 - start_voxel[driving_axis]) / (end_voxel[driving_axis] - start_voxel[driving_axis]);
 
-            hit_data.position = hit_position;
+                Vector3 current_voxel = (start_voxel * (1 - t)) + (end_voxel * t);
+                current_voxel = current_voxel.Floor();
+
+                p1 = 2 * voxel_distance[second_axis] - voxel_distance[driving_axis];
+                p2 = 2 * voxel_distance[third_axis] - voxel_distance[driving_axis];
+            }*/
+
+            Vector3 travel_distance = (end_voxel - current_voxel).Absolute();
+
+            VoxelData voxel_data = space_data.space0[world_index0];
+
+            hit_data.position = current_voxel;
             hit_data.voxel_data = voxel_data;
             hit_data.distance = Transform::Norm3(voxel_distance) - Transform::Norm3(travel_distance);
 
-            if (voxel_data.entity_id != 0) {
-                break;
-            }
-        }
-
-        return hit_data;
-    }
-
-    static __host__ __device__ RaycastHitData Raycast_Old(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, float max_distance) {
-        RaycastHitData hit_data{};
-        VoxelData voxel_data{};
-        Vector3 hit_position{};
-
-        Vector3 query_point = start_position;
-
-        float distance_traveled = 0;
-        while (distance_traveled <= max_distance) {
-            query_point += ray_direction;
-
-            int x_index = (int)query_point.x;
-            int y_index = (int)query_point.y;
-            int z_index = (int)query_point.z;
-
-            x_index = Math::Clip(x_index, 0, (int)space_data.world_size0.x - 1);
-            y_index = Math::Clip(y_index, 0, (int)space_data.world_size0.y - 1);
-            z_index = Math::Clip(z_index, 0, (int)space_data.world_size0.z - 1);
-
-            int world_index = Indexer::FlatIndex3(x_index, y_index, z_index, space_data.world_size0.x, space_data.world_size0.y);
-
-            voxel_data = space_data.space0[world_index];
-
-            hit_position.x = x_index;
-            hit_position.y = y_index;
-            hit_position.z = z_index;
-
-            hit_data.position = hit_position;
-            hit_data.voxel_data = voxel_data;
-            hit_data.distance = distance_traveled;
+            //printf("    %d [%.2f %.2f %.2f] [%.2f %.2f %.2f] %lld\n", voxel_data.entity_id, current_position.x, current_position.y, current_position.z, current_voxel.x, current_voxel.y, current_voxel.z, world_index0);
 
             if (voxel_data.entity_id != 0) {
                 break;
             }
-
-            distance_traveled += 1;
-
         }
 
         return hit_data;
