@@ -41,14 +41,11 @@ struct SpaceBuilder {
 		}
 
 		unsigned long long index0 = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size0.x, space_data.world_size0.y);
-		point = (point / 2).Floor();
+		point = (point / space_data.level_stride).Floor();
 		unsigned long long index1 = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size1.x, space_data.world_size1.y);
-		point = (point / 2).Floor();
-		unsigned long long index2 = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size2.x, space_data.world_size2.y);
 
 		space_data.space0[index0] = voxel_data;
 		space_data.space1[index1] = voxel_data;
-		space_data.space2[index2] = voxel_data;
 	}
 
 	__device__ void WritePoints(SpaceData space_data, Vector3* points, unsigned long long point_count, VoxelData voxel_data) {
@@ -64,18 +61,21 @@ struct SpaceBuilder {
 
 	__device__ void FillBox(SpaceData space_data, VoxelData voxel_data, Vector3 origin, Vector3 width) {
 		Vector3 local_offset{
-			blockDim.x * blockIdx.x + threadIdx.x,
-			blockDim.y * blockIdx.y + threadIdx.y,
-			blockDim.z * blockIdx.z + threadIdx.z
+			Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
+			Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y),
+			Indexer::FlatIndex2(threadIdx.z, blockIdx.z, blockDim.z)
 		};
 
-		Vector3 upper = origin + width;
-
-		if (local_offset.x >= upper.x || local_offset.y >= upper.y || local_offset.z >= upper.z) {
+		if (local_offset.x >= width.x || local_offset.y >= width.y || local_offset.z >= width.z) {
 			return;
 		}
 
+		Vector3 upper = origin + width;
 		Vector3 brush_position = origin + local_offset;
+
+		if (brush_position.x >= upper.x || brush_position.y >= upper.y || brush_position.z >= upper.z) {
+			return;
+		}
 
 		this->AssignPoint(space_data, brush_position, voxel_data);
 	}

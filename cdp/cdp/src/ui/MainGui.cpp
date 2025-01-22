@@ -23,8 +23,8 @@ MainGui::MainGui(int camera_count) {
     this->ihm_generator.Init(
         3,
         Vector::ZERO3(),
-        Vector3{ 1024, 128, 1024 },
-        Vector3{ 1024, 128, 1024 },
+        Vector3{ 1000, 100, 1000 },
+        Vector3{ 1000, 100, 1000 },
         Vector3{ 10, 10, 10 },
         Vector2{ 16, 16 }
     );

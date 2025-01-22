@@ -29,12 +29,12 @@ struct Physics {
 
         Vector3 current_position = start_position;
         Vector3 end_position = start_position + (ray_direction * max_distance);
-        end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0);
+        end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0 - 1);
 
         Vector3 start_voxel = start_position.Floor();
         Vector3 current_voxel = start_position.Floor();
         Vector3 end_voxel = end_position.Floor();
-        Vector3 end_voxel2 = (end_voxel / 4).Floor();
+        Vector3 end_voxel1 = (end_voxel / space_data.level_stride).Floor();
 
         Vector3 voxel_difference = end_voxel - start_voxel;
         Vector3 voxel_distance = voxel_difference.Absolute();
@@ -51,8 +51,8 @@ struct Physics {
         }
         else if (voxel_distance.z >= voxel_distance.x && voxel_distance.z >= voxel_distance.y) {
             driving_axis = 2;
-            second_axis = 1;
-            third_axis = 0;
+            second_axis = 0;
+            third_axis = 1;
         }
 
         float second_slope = voxel_difference[second_axis] / voxel_difference[driving_axis];
@@ -71,28 +71,26 @@ struct Physics {
             current_voxel = current_position.Floor();
             Vector3 travel_distance = (end_voxel - current_voxel).Absolute();
 
-            Vector3 query2 = (current_voxel / 4).Floor();
+            Vector3 query1 = (current_voxel / space_data.level_stride).Floor();
 
-            unsigned long long world_index2 = Indexer::FlatIndex3(query2.x, query2.y, query2.z, space_data.world_size2.x, space_data.world_size2.y);
-            VoxelData voxel_data2 = space_data.space2[world_index2];
+            unsigned long long world_index1 = Indexer::FlatIndex3(query1.x, query1.y, query1.z, space_data.world_size1.x, space_data.world_size1.y);
+            VoxelData voxel_data1 = space_data.space1[world_index1];
 
-            if (voxel_data2.entity_id == 0) {
-                int v2 = floor(current_voxel[driving_axis] / 4.0);
+            if (voxel_data1.entity_id == 0) {
+                int voxel_index = floor(current_voxel[driving_axis] / space_data.level_stride);
 
-                if (v2 != end_voxel2[driving_axis]) {
-                    int remaining_voxels2 = 3 - ((int)current_voxel[driving_axis] % 4);
-                    current_position[driving_axis] += remaining_voxels2;
+                if (voxel_index != end_voxel1[driving_axis]) {
+                    int remaining_voxels = (space_data.level_stride - 1) - ((int)current_voxel[driving_axis] % (int)space_data.level_stride);
+                    current_position[driving_axis] += remaining_voxels;
+
+                    //printf("    warp: %.2f [%.2f %.2f %.2f] %d (%.2f %.2f) (%.2f %.2f)\n", current_position[driving_axis], query1.x, query1.y, query1.z, driving_axis, second_slope, second_bias, third_slope, third_bias);
 
                     continue;
                 }
             }
 
             Vector3 query0 = current_voxel;
-            //Vector3 query1 = (current_voxel / 2).Floor();
-
             unsigned long long world_index0 = Indexer::FlatIndex3(query0.x, query0.y, query0.z, space_data.world_size0.x, space_data.world_size0.y);
-            //unsigned long long world_index1 = Indexer::FlatIndex3(query1.x, query1.y, query1.z, space_data.world_size1.x, space_data.world_size1.y);
-
             VoxelData voxel_data = space_data.space0[world_index0];
 
             hit_data.position = current_voxel;

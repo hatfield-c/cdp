@@ -108,15 +108,14 @@ struct Camera {
                 RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, this->max_render_distance);
                 float depth = hit_data.distance;
 
+                if (hit_data.voxel_data.entity_id == 0) {
+                    depth = this->max_render_distance;
+                }
+
                 byte depth_pixel_val = this->DepthToInversePixel(depth);
                 Vector4 depth_color{ depth_pixel_val, depth_pixel_val, depth_pixel_val, 255 };
 
                 this->WriteRGBA(this->depth_texture, pixel_position, this->camera_size, depth_color);
-                this->WriteRGBA(this->shaded_texture, pixel_position, this->camera_size, depth_color);
-
-                if (depth >= this->max_render_distance) {
-                    continue;
-                }
 
                 avg_distance += depth;
                 avg_count++;

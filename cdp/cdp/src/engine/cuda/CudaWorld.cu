@@ -28,20 +28,16 @@ VoxelData CudaWorld::ReadVoxel(SpaceData space_data, Vector3 position) {
     return voxel_data;
 }
 
-void CudaWorld::FillBox(SpaceBuilder space_builder, SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 upper) {
-    float x_size = upper.x - lower.x;
-    float y_size = upper.y - lower.y;
-    float z_size = upper.z - lower.z;
-
+void CudaWorld::FillBox(SpaceBuilder space_builder, SpaceData space_data, VoxelData voxel_data, Vector3 lower, Vector3 width) {
     dim3 threads_per_block(4, 4, 4);
 
-    int x_blocks = ceil(x_size / (float)threads_per_block.x);
-    int y_blocks = ceil(y_size / (float)threads_per_block.y);
-    int z_blocks = ceil(z_size / (float)threads_per_block.z);
+    int x_blocks = ceil(width.x / (float)threads_per_block.x);
+    int y_blocks = ceil(width.y / (float)threads_per_block.y);
+    int z_blocks = ceil(width.z / (float)threads_per_block.z);
 
     dim3 blocks_per_grid(x_blocks, y_blocks, z_blocks);
 
-    CudaWorld::FillBox_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, voxel_data, lower, upper);
+    CudaWorld::FillBox_Kernel<<<blocks_per_grid, threads_per_block>>>(space_builder, space_data, voxel_data, lower, width);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);

@@ -3,28 +3,23 @@
 WorldSpace::WorldSpace() {
 	this->space_data.voxel_count0 = this->space_data.world_size0.Mult();
 	this->space_data.voxel_count1 = this->space_data.world_size1.Mult();
-	this->space_data.voxel_count2 = this->space_data.world_size2.Mult();
 
 	this->space_data.memory_size0 = this->space_data.voxel_count0 * sizeof(VoxelData);
 	this->space_data.memory_size1 = this->space_data.voxel_count1 * sizeof(VoxelData);
-	this->space_data.memory_size2 = this->space_data.voxel_count2 * sizeof(VoxelData);
 
 	printf("World Data:\n");
 	printf("    Per-Voxel Memory: %lld Bytes\n", sizeof(VoxelData));
 	printf("    Voxel Count:\n");
 	printf("        Level 0: %lld\n", this->space_data.voxel_count0);
 	printf("        Level 1: %lld\n", this->space_data.voxel_count1);
-	printf("        Level 2: %lld\n", this->space_data.voxel_count2);
 	printf("    Total Memory:\n");
 	printf("        Level 0: %.2f MB\n", this->space_data.memory_size0 / 1000000.0f);
 	printf("        Level 1: %.2f MB\n", this->space_data.memory_size1 / 1000000.0f);
-	printf("        Level 2: %.2f MB\n\n", this->space_data.memory_size2 / 1000000.0f);
 
 	printf("Initializing Voxel World...\n");
 
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space0, this->space_data.memory_size0), __FILE__, __LINE__);
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space1, this->space_data.memory_size1), __FILE__, __LINE__);
-	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space2, this->space_data.memory_size2), __FILE__, __LINE__);
 
 	this->InitWorldMemory(false, true);
 
@@ -114,5 +109,4 @@ void WorldSpace::Cleanup() {
 	printf("    Freeing world space...\n");
 	cudaFree(this->space_data.space0);
 	cudaFree(this->space_data.space1);
-	cudaFree(this->space_data.space2);
 }
