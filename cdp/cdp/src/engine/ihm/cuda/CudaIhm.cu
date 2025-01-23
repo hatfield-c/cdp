@@ -194,11 +194,9 @@ byte* CudaIhm::GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_ve
 }
 
 void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
-    //Vector2 resolution = camera.phash_data_size;
-
     dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
 
-    unsigned long long x_blocks = 10000;//ihm_generator.state_count;
+    unsigned long long x_blocks = ihm_generator.state_count;
     unsigned long long y_blocks = ceil(camera.phash_data_size.y / 2);
 
     dim3 blocks_per_grid(x_blocks, y_blocks, 1);

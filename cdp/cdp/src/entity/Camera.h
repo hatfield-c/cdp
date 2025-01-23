@@ -19,7 +19,7 @@ struct Camera {
     Vector2 phash_texture_size{ 32, 32 };
     Vector2 phash_data_size{ 16, 16 };
     Vector2 phash_data_stride;
-    Vector2 box_filter_stride{ 10, 10 };
+    Vector2 box_filter_stride{ 8, 6 };
     Vector2 chunk_size;
     Vector2 fov{ 1.309, 1.082 };
     Vector3 target_offset{ -1, 1, 0 };

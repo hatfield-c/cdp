@@ -63,7 +63,7 @@ struct IhmGenerator {
 
 	__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
 
-		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 16 && threadIdx.y == 1) {
+		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 15 && threadIdx.y == 1) {
 			printf("*");
 		}
 
