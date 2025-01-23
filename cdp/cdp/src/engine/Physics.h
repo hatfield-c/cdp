@@ -29,9 +29,6 @@ struct Physics {
 
         Vector3 current_position = start_position;
         Vector3 end_position = start_position + (ray_direction * max_distance);
-        // TODO: remove this clipping and replace end position checking with checking if each query position is outside the bounds
-        //          also have camera use 1 block for every 2 rows (32 threads) in renderer and IHM
-        //end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0 - 1);
 
         Vector3 start_voxel = start_position.Floor();
         Vector3 current_voxel = start_position.Floor();
@@ -65,7 +62,9 @@ struct Physics {
 
         //printf("[%.2f %.2f %.2f] [%.2f %.2f %.2f]\n", start_position.x, start_position.y, start_position.z, end_position.x, end_position.y, end_position.z);
 
-        while (current_voxel[driving_axis] != end_voxel[driving_axis]) {
+        int driving_distance = 0;
+        while (driving_distance <= voxel_distance[driving_axis]) {
+            driving_distance++;
             current_position[driving_axis] += difference_sign[driving_axis];
             current_position[second_axis] = (current_position[driving_axis] * second_slope) + second_bias;
             current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
@@ -75,7 +74,7 @@ struct Physics {
             }
 
             current_voxel = current_position.Floor();
-            Vector3 travel_distance = (end_voxel - current_voxel).Absolute();
+            Vector3 travel_distance = (current_voxel - start_voxel).Absolute();
 
             Vector3 query1 = (current_voxel / space_data.level_stride).Floor();
 
@@ -86,10 +85,24 @@ struct Physics {
                 int voxel_index = floor(current_voxel[driving_axis] / space_data.level_stride);
 
                 if (voxel_index != end_voxel1[driving_axis]) {
-                    int remaining_voxels = (space_data.level_stride - 1) - ((int)current_voxel[driving_axis] % (int)space_data.level_stride);
-                    current_position[driving_axis] += remaining_voxels;
+                    int remaining_voxels = ((int)current_voxel[driving_axis] % (int)space_data.level_stride);
 
-                    //printf("    warp: %.2f [%.2f %.2f %.2f] %d (%.2f %.2f) (%.2f %.2f)\n", current_position[driving_axis], query1.x, query1.y, query1.z, driving_axis, second_slope, second_bias, third_slope, third_bias);
+                    if (difference_sign[driving_axis] > 0) {
+                        remaining_voxels = (space_data.level_stride - 1) - remaining_voxels;
+                    }
+                    
+                    driving_distance += remaining_voxels;
+                    current_position[driving_axis] += difference_sign[driving_axis] * remaining_voxels;
+
+                    /*printf("    warp: %.2f %d %d %.2f [%.2f %.2f %.2f] [%.2f %.2f %.2f] %d (%.2f %.2f) (%.2f %.2f) %d\n",
+                        current_position[driving_axis], driving_distance, remaining_voxels, difference_sign[driving_axis], 
+                        query1.x, query1.y, query1.z, 
+                        current_voxel.x, current_voxel.y, current_voxel.z,
+                        driving_axis, 
+                        second_slope, second_bias, 
+                        third_slope, third_bias, 
+                        ((int)current_voxel[driving_axis] % (int)space_data.level_stride)
+                    );*/
 
                     continue;
                 }
@@ -101,7 +114,7 @@ struct Physics {
 
             hit_data.position = current_voxel;
             hit_data.voxel_data = voxel_data;
-            hit_data.distance = Transform::Norm3(voxel_distance) - Transform::Norm3(travel_distance);
+            hit_data.distance = Transform::Norm3(travel_distance);
 
             //printf("    %d [%.2f %.2f %.2f] [%.2f %.2f %.2f] %lld\n", voxel_data.entity_id, current_position.x, current_position.y, current_position.z, current_voxel.x, current_voxel.y, current_voxel.z, world_index0);
 

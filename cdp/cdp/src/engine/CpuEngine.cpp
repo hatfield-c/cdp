@@ -26,7 +26,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
 	this->drone_alpha.rigidbody.velocity.z = 1;
-	this->drone_alpha.rigidbody.angular_velocity.y = -0.1;
+	this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -111,6 +111,7 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 
 	// debug code
 	//std::cin.ignore();
+
 }
 
 void CpuEngine::GenerateIhm(GuiData gui_data) {
