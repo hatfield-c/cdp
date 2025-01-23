@@ -19,6 +19,7 @@ struct Camera {
     Vector2 phash_texture_size{ 32, 32 };
     Vector2 phash_data_size{ 16, 16 };
     Vector2 phash_data_stride;
+    Vector2 box_filter_stride{ 8, 6 };
     Vector2 chunk_size;
     Vector2 fov{ 1.309, 1.082 };
     Vector3 target_offset{ -1, 1, 0 };
@@ -74,8 +75,16 @@ struct Camera {
     }
 
     __device__ void Render(SpaceData space_data) {
-        Vector2 phash_position{ threadIdx.x, threadIdx.y };
+        Vector2 phash_position{ 
+            threadIdx.x, 
+            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+            //threadIdx.y 
+        };
         Vector2 pixel_position;
+
+        if (!phash_position.IsBounded(Vector::ZERO2(), this->phash_data_size - 1)) {
+            return;
+        }
 
         /// degug remove
         //if (phash_position.x != 3 || phash_position.y != 1) {
@@ -85,14 +94,14 @@ struct Camera {
         float avg_distance = 0;
         int avg_count = 0;
 
-        for (int i = 0; i < this->chunk_size.x; i++) {
+        for (int i = 0; i < this->chunk_size.x; i += this->box_filter_stride.x) {
             pixel_position.x = Indexer::FlatIndex2(i, phash_position.x, this->chunk_size.x);
 
             if (pixel_position.x >= this->camera_size.x) {
                 continue;
             }
 
-            for (int j = 0; j < this->chunk_size.y; j++) {
+            for (int j = 0; j < this->chunk_size.y; j+= this->box_filter_stride.y) {
                 pixel_position.y = Indexer::FlatIndex2(j, phash_position.y, this->chunk_size.y);
 
                 if (pixel_position.y >= this->camera_size.y) {
@@ -115,7 +124,13 @@ struct Camera {
                 byte depth_pixel_val = this->DepthToInversePixel(depth);
                 Vector4 depth_color{ depth_pixel_val, depth_pixel_val, depth_pixel_val, 255 };
 
-                this->WriteRGBA(this->depth_texture, pixel_position, this->camera_size, depth_color);
+                //this->WriteRGBA(this->depth_texture, pixel_position, this->camera_size, depth_color);
+
+                for (int w = 0; w < this->box_filter_stride.x; w++) {
+                    for (int h = 0; h < this->box_filter_stride.x; h++) {
+                        this->WriteRGBA(this->depth_texture, pixel_position + Vector2{ (float)w, (float)h }, this->camera_size, depth_color);
+                    }
+                }
 
                 avg_distance += depth;
                 avg_count++;

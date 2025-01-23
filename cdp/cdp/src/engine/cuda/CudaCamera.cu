@@ -10,9 +10,11 @@ void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
     
     Vector2 resolution = camera.camera_size;
     
-    dim3 threads_per_block(camera.phash_data_size.x, camera.phash_data_size.y, 1);
+    dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
 
-    dim3 blocks_per_grid(1, 1, 1);
+    int y_blocks = ceil(camera.phash_data_size.y / 2);
+
+    dim3 blocks_per_grid(1, y_blocks, 1);
     
     CudaCamera::RenderCamera_Kernel<<<blocks_per_grid, threads_per_block>>>(camera, space_data);
 
