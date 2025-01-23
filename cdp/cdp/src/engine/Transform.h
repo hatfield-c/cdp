@@ -378,6 +378,18 @@ struct Vector3 {
 
 		return result;
 	}
+
+	__host__ __device__ bool IsBounded(Vector3 lower, Vector3 upper) {
+		if (this->x < lower.x || this->y < lower.y || this->z < lower.z) {
+			return false;
+		}
+
+		if (this->x > upper.x || this->y > upper.y || this->z > upper.z) {
+			return false;
+		}
+
+		return true;
+	}
 };
 
 struct Vector4 {

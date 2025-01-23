@@ -29,7 +29,9 @@ struct Physics {
 
         Vector3 current_position = start_position;
         Vector3 end_position = start_position + (ray_direction * max_distance);
-        end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0 - 1);
+        // TODO: remove this clipping and replace end position checking with checking if each query position is outside the bounds
+        //          also have camera use 1 block for every 2 rows (32 threads) in renderer and IHM
+        //end_position = end_position.Clip(Vector::ZERO3(), space_data.world_size0 - 1);
 
         Vector3 start_voxel = start_position.Floor();
         Vector3 current_voxel = start_position.Floor();
@@ -67,6 +69,10 @@ struct Physics {
             current_position[driving_axis] += difference_sign[driving_axis];
             current_position[second_axis] = (current_position[driving_axis] * second_slope) + second_bias;
             current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
+
+            if (!current_position.IsBounded(Vector::ZERO3(), space_data.world_size0 - 1)) {
+                break;
+            }
 
             current_voxel = current_position.Floor();
             Vector3 travel_distance = (end_voxel - current_voxel).Absolute();

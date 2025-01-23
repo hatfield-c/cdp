@@ -4,7 +4,7 @@
 #include "VoxelData.h"
 
 struct RaycastHitData {
-	Vector3 position{};
-	VoxelData voxel_data{};
-	float distance;
+	Vector3 position{ 0, 0, 0 };
+	VoxelData voxel_data{ 0, 0 };
+	float distance = 0;
 };
