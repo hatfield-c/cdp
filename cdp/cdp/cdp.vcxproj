@@ -190,6 +190,7 @@
     <ClInclude Include="src\engine\ihm\IhmGenerator.h" />
     <ClInclude Include="src\engine\ihm\IhmRenderer.h" />
     <ClInclude Include="src\engine\ihm\IhmState.h" />
+    <ClInclude Include="src\engine\ImageBuilder.h" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Math.h" />
     <ClInclude Include="src\engine\Physics.h" />

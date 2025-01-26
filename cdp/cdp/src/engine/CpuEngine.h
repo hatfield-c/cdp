@@ -15,6 +15,7 @@
 #include "WorldSpace.h"
 #include "../entity/Camera.h"
 #include "../entity/DroneAlpha.h"
+#include "ImageBuilder.h"
 
 #include "ihm/IhmState.h"
 #include "ihm/IhmGenerator.h"

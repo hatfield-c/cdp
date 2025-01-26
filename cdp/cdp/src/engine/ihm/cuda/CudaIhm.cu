@@ -250,12 +250,10 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
 
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
-    Vector3 estimates[3] = {
-        Vector::ZERO3(),
-        Vector::ZERO3(),
-        Vector::ZERO3()
-    };
-    int nonzero_counts[3] = { 0, 0, 0 };
+    Vector3* estimates = new Vector3[3];
+    int* nonzero_counts = new int[3];
+    memset(estimates, 0, 3 * sizeof(Vector3));
+    memset(nonzero_counts, 0, 3 * sizeof(int));
 
     for (int i = 0; i < search_size.x; i++) {
         for (int j = 0; j < search_size.y; j++) {
@@ -278,6 +276,8 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
                 if (candidate_index1 != 0) {
                     IhmState ihm_state = ihm_generator.GetIhmState(candidate_index1, false);
 
+                    //printf("[c]: %lld <%.2f %.2f %.2f> (%.2f, %.2f, %.2f)\n", candidate_index0, ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, estimates[1].x, estimates[1].y, estimates[1].z);
+
                     estimates[1] += ihm_state.position;
                     nonzero_counts[1]++;
                 }
@@ -293,7 +293,7 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
         }
     }
 
-    //printf("\n<%.2f %.2f %.2f> %d\n", estimates[0].x, estimates[0].y, estimates[0].z, nonzero_counts[0]);
+    //printf("\n<%.2f %.2f %.2f> %d %.2f %.2f\n", estimates[1].x, estimates[1].y, estimates[1].z, nonzero_counts[1], estimates[1].x / nonzero_counts[1], (estimates[1] / nonzero_counts[1]).x);
     //printf("%d, %d, %d\n", nonzero_counts[0], nonzero_counts[1], nonzero_counts[2]);
 
     if (nonzero_counts[0] > 0) {
@@ -308,10 +308,10 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
         estimates[2] = estimates[2] / nonzero_counts[2];
     }
 
-    //printf("\n<%.2f %.2f %.2f>\n", estimates[0].x, estimates[0].y, estimates[0].z);
+    //printf("\n<%.2f %.2f %.2f>\n", estimates[1].x, estimates[1].y, estimates[1].z);
 
     if (is_verbose) {
-        printf("        Done!\n");
+        printf("\n        Done!\n");
         printf("            Nonzero Count 0: %d\n", nonzero_counts[0]);
         printf("            Nonzero Count 1: %d\n", nonzero_counts[1]);
         printf("            Nonzero Count 2: %d\n", nonzero_counts[2]);

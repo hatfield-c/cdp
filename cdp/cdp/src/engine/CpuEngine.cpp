@@ -23,10 +23,10 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	}
 
 	this->drone_alpha.Init();
-	this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
+	this->drone_alpha.rigidbody.position = Vector3{ 29.3, 4, 42.5 };
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
-	this->drone_alpha.rigidbody.velocity.z = 1;
-	this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
+	//this->drone_alpha.rigidbody.velocity.z = 1;
+	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -310,12 +310,11 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
 	printf("        Time Elapsed: %d s\n", time_lapsed);
-
 	printf("\nEstimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
 	printf("    Error: %.2f m\n", Transform::Norm3(estimates[0] - this->camera_list[0]->transform.position) / 10);
 	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
 	printf("    Error: %.2f m\n", Transform::Norm3(estimates[1] - this->camera_list[0]->transform.position) / 10);
-	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[2].x, estimates[2].y, estimates[2].z);
+	printf("Estimated Position2: {%.2f, %.2f, %.2f}\n", estimates[2].x, estimates[2].y, estimates[2].z);
 	printf("    Error: %.2f m\n\n", Transform::Norm3(estimates[2] - this->camera_list[0]->transform.position) / 10);
 
 	//free(estimates);
@@ -334,6 +333,9 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 	byte_count = this->world_space->space_data.voxel_count0 * sizeof(VoxelData);
 	memset(world_voxels, 0, byte_count);
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(world_voxels, this->world_space->space_data.space0, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	ImageBuilder image_builder{};
+	image_builder.Init();
 
 	int direction_index = 12;
 	for (int i = 0; i < this->node_count - 1; i++) {
@@ -396,36 +398,32 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 			Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 			anchor = anchor.Floor();
 
-			/*for (int i = 0; i < 16; i++) {
-				for (int j = 0; j < 16; j++) {
-					unsigned long long index = Indexer::FlatIndex2(j, i, 16);
-
-					printf("[%d]", phash_cpu[index]);
-				}
-				printf("\n");
-			}*/
-
 			Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
-			Vector3 estimate_voxel = (estimates[0]).Floor();
+			Vector3 estimate = estimates[0];
 
-			unsigned long long r_index = Indexer::FlatIndex3(0, current_voxel.x, current_voxel.z, 3, render_size.x);
-			unsigned long long g_index = Indexer::FlatIndex3(1, current_voxel.x, current_voxel.z, 3, render_size.x);
-			unsigned long long b_index = Indexer::FlatIndex3(2, current_voxel.x, current_voxel.z, 3, render_size.x);
+			if (Transform::Norm3(estimate) == 0) {
+				estimate = estimates[1];
 
-			img_cpu[r_index] = 0;
-			img_cpu[g_index] = 0;
-			img_cpu[b_index] = 255;
+				if (Transform::Norm3(estimate) == 0) {
+					estimate = estimates[2];
+				}
+			}
 
-			r_index = Indexer::FlatIndex3(0, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
-			g_index = Indexer::FlatIndex3(1, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
-			b_index = Indexer::FlatIndex3(2, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
+			Vector3 estimate_voxel = estimate.Floor();
 
-			img_cpu[r_index] = 255;
-			img_cpu[g_index] = 0;
-			img_cpu[b_index] = 0;
+			Vector2 current_pixel = Vector2{ current_voxel.x, current_voxel.z };
+			Vector2 estimate_pixel = Vector2{ estimate_voxel.x, estimate_voxel.z };
+
+			current_position.Print("", " ");
+			estimate_voxel.Print();
+
+			image_builder.DrawLine_Serial(img_cpu, render_size, Vector2{ current_voxel.x, current_voxel.z }, Vector2{ estimate_voxel.x, estimate_voxel.z }, Vector3{ 255, 0, 0 });
+			image_builder.WritePixel(img_cpu, render_size, estimate_pixel, Vector3{ 0, 255, 0 });
 
 			printf("*");
 		}
+
+		image_builder.DrawLine_Serial(img_cpu, render_size, Vector2{ end_voxel.x, end_voxel.z }, Vector2{ start_voxel.x, start_voxel.z }, Vector3{ 0, 0, 255 });
 
 		printf("\n");
 	}

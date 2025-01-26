@@ -111,6 +111,46 @@ struct Vector2 {
 		return result;
 	}
 
+	__host__ __device__ float operator [](const int& i) const
+	{
+		if (i == 0) {
+			return this->x;
+		}
+
+		return this->y;
+	}
+
+	__host__ __device__ float& operator [](const int& i)
+	{
+		if (i == 0) {
+			return this->x;
+		}
+
+		return this->y;
+	}
+
+	__host__ __device__ float Sum() {
+		float sum = this->x + this->y;
+
+		return sum;
+	}
+
+	__host__ __device__ float Mult() {
+		float mult = this->x * this->y;
+
+		return mult;
+	}
+
+	__host__ __device__ float Average() {
+		return this->Sum() / 2;
+	}
+
+	__host__ __device__ float Dot(Vector2 operand) {
+		Vector2 mult = (*this) * operand;
+
+		return mult.Sum();
+	}
+
 	__host__ __device__ Vector2 Floor() {
 		Vector2 result{
 			floor(this->x),
@@ -129,6 +169,49 @@ struct Vector2 {
 		return result;
 	}
 
+	__host__ __device__ Vector2 Absolute() {
+		Vector2 result{
+			abs(this->x),
+			abs(this->y)
+		};
+
+		return result;
+	}
+
+	__host__ __device__ Vector2 Sign() {
+		Vector2 result{ 0, 0 };
+
+		if (this->x > 0) {
+			result.x = 1;
+		}
+
+		if (this->x < 0) {
+			result.x = -1;
+		}
+
+		if (this->y > 0) {
+			result.y = 1;
+		}
+
+		if (this->y < 0) {
+			result.y = -1;
+		}
+
+		return result;
+	}
+
+	__host__ __device__ Vector2 Clip(Vector2 lower, Vector2 upper) {
+		Vector2 result{
+			this->x,
+			this->y
+		};
+
+		result.x = Math::Clip(result.x, lower.x, upper.x);
+		result.y = Math::Clip(result.y, lower.y, upper.y);
+
+		return result;
+	}
+
 	__host__ __device__ bool IsBounded(Vector2 lower, Vector2 upper) {
 		if (this->x < lower.x || this->y < lower.y) {
 			return false;
@@ -139,6 +222,12 @@ struct Vector2 {
 		}
 
 		return true;
+	}
+
+	__host__ __device__ void Print(const char* prior = "", const char* posterior = "\n") {
+		printf(prior);
+		printf("[%.2f %.2f]", this->x, this->y);
+		printf(posterior);
 	}
 };
 
