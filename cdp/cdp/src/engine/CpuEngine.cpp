@@ -196,83 +196,7 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	printf("        Time Elapsed: %d s\n", time_lapsed);
 }
 
-void CpuEngine::SaveSimilarityHeatMap(GuiData gui_data) {
-	Vector3 render_stride{ 1, 1, 1 };
-	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
-	std::string base_path = "./data/results/heat_";
-
-	Camera camera = *this->camera_list[0];
-	unsigned long long byte_count = render_size.x * render_size.y * 3;
-	byte* img_cpu = new byte[byte_count];
-	byte* img;
-
-	CudaError::CheckError((cudaError_enum)cudaMalloc(&img, byte_count), __FILE__, __LINE__);
-
-	for (int k = 40; k < this->world_space->space_data.world_size0.y - 10; k += 10) {
-		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-		std::string save_path = base_path + std::to_string(k) + ".jpg";
-
-		printf("\nCreating image: %s\n", save_path.c_str());
-		IhmGenerator heatmap_generator{};
-		heatmap_generator.Init(
-			3,
-			Vector3{ 0, (float)k, 0 },
-			Vector3{ render_size.x, 1, render_size.y},
-			this->world_space->space_data.world_size0,
-			render_stride,
-			Vector2{ 16, 16 }
-		);
-
-		IhmRenderer ihm_renderer{};
-		ihm_renderer.Init(
-			Vector2{ heatmap_generator.world_width.x, heatmap_generator.world_width.z },
-			Vector2{ render_stride.x, render_stride.z }
-		);
-
-		unsigned long long memory_size = heatmap_generator.bit_count * sizeof(byte);
-		byte* heatmap_ihm;
-		CudaError::CheckError((cudaError_enum)cudaMalloc(&heatmap_ihm, memory_size), __FILE__, __LINE__);
-
-		CudaIhm::GenerateIhm(this->world_space->space_data, camera, heatmap_generator, heatmap_ihm);
-		CudaIhm::RenderHeatmap(this->world_space->space_data, ihm_renderer, this->ihm_generator, heatmap_generator, this->ihm_cortex.ihm, heatmap_ihm, img, 12, k);
-
-		CudaError::CheckError((cudaError_enum)cudaMemcpy(img_cpu, img, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-
-		for (int i = 0; i < render_size.y; i++) {
-			for (int j = 0; j < render_size.x; j++) {
-				unsigned long long index = Indexer::FlatIndex3(j, k, i, this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.y);
-
-				Vector3 voxel_position{ j, k, i };
-				VoxelData voxel_data = CudaWorld::ReadVoxel(this->world_space->space_data, voxel_position);
-
-				if (voxel_data.entity_id > 0) {
-					unsigned long long r_index = Indexer::FlatIndex3(0, j, i, 3, render_size.x);
-					unsigned long long g_index = Indexer::FlatIndex3(1, j, i, 3, render_size.x);
-					unsigned long long b_index = Indexer::FlatIndex3(2, j, i, 3, render_size.x);
-					img_cpu[r_index] = 255;
-					img_cpu[g_index] = 255;
-					img_cpu[b_index] = 255;
-				}
-			}
-		}
-
-		int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, img_cpu, 100);
-		cudaFree(heatmap_ihm);
-
-		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-		int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
-		printf("    Done!\n", time_lapsed);
-		printf("        Time Elapsed: %d s\n", time_lapsed);
-	}
-
-	cudaFree(img);
-
-	printf("    Done!\n");
-}
-
 void CpuEngine::SaveConfusionMap(GuiData gui_data) {
-	
-
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
 	Vector3 chunk_size{ 100, 1, 100 };
@@ -280,28 +204,34 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 	Vector3 chunked_size = chunk_count * chunk_size;
 	std::string save_path = "./data/results/confusion_map.jpg";
 
+	//Vector2 chunks_lower{ 0, 0 };
+	//Vector2 chunks_upper{ chunk_count.x, chunk_count.z };
+	Vector2 chunks_lower{ 2, 3 };
+	Vector2 chunks_upper{ 3, 4 };
+
 	Camera camera = *this->camera_list[0];
 	unsigned long long byte_count = chunked_size.x * chunked_size.z * 3;
 	byte* img_cpu = new byte[byte_count];
 	memset(img_cpu, 0, byte_count);
 
+	VoxelData* world_voxels = new VoxelData[this->world_space->space_data.voxel_count0];
+	byte_count = this->world_space->space_data.voxel_count0 * sizeof(VoxelData);
+	memset(world_voxels, 0, byte_count);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(world_voxels, this->world_space->space_data.space0, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
 	int k = 40;
 
-	for (int w = 0; w < chunk_count.x; w++) {
-		for (int h = 0; h < chunk_count.z; h++) {
+	for (int w = chunks_lower.x; w < chunks_upper.x; w++) {
+		for (int h = chunks_lower.y; h < chunks_upper.y; h++) {
+			printf("(%d, %d)\n", w, h);
+			printf("    Progress: ");
 
 			std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 			for (int i = 0; i < chunk_size.x; i += 1) {
 				printf("*");
-				if (i >= render_size.y) {
-					continue;
-				}
 
 				for (int j = 0; j < chunk_size.z; j += 1) {
-					if (j >= render_size.x) {
-						continue;
-					}
 
 					unsigned long long x_index = Indexer::FlatIndex2(j, w, chunk_size.x);
 					unsigned long long y_index = Indexer::FlatIndex2(i, h, chunk_size.z);
@@ -311,7 +241,8 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 					unsigned long long b_index = Indexer::FlatIndex3(2, x_index, y_index, 3, render_size.x);
 
 					Vector3 voxel_position{ x_index, k, y_index };
-					VoxelData voxel_data = CudaWorld::ReadVoxel(this->world_space->space_data, voxel_position);
+					unsigned long long voxel_index = Indexer::FlatIndex3(voxel_position.x, voxel_position.y, voxel_position.z, this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.y);
+					VoxelData voxel_data = world_voxels[voxel_index];
 
 					if (voxel_data.entity_id > 0) {
 						img_cpu[r_index] = 255;
@@ -357,14 +288,14 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 
 			std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 			int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
-			printf("        Saving chunk...\n");
-			printf("            Chunk Time: %d s\n", time_lapsed);
+			printf("\n    Saving chunk...\n");
+			printf("          Chunk Time: %d s\n", time_lapsed);
 		}
 	}
 
 	free(img_cpu);
 
-	printf("    Done!\n");
+	printf("Done!\n");
 }
 
 void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
@@ -372,19 +303,156 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 
 	IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
 	Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
-	anchor.x += 2;
-	anchor.z += 3;
+	anchor.x += 0;
+	anchor.z += 0;
 	Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, ihm_state.direction_index);
-	
+
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
 	printf("        Time Elapsed: %d s\n", time_lapsed);
 
 	printf("\nEstimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
+	printf("    Error: %.2f m\n", Transform::Norm3(estimates[0] - this->camera_list[0]->transform.position) / 10);
 	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
-	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n\n", estimates[2].x, estimates[2].y, estimates[2].z);
+	printf("    Error: %.2f m\n", Transform::Norm3(estimates[1] - this->camera_list[0]->transform.position) / 10);
+	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[2].x, estimates[2].y, estimates[2].z);
+	printf("    Error: %.2f m\n\n", Transform::Norm3(estimates[2] - this->camera_list[0]->transform.position) / 10);
 
 	//free(estimates);
+}
+
+void CpuEngine::RenderPathConfusion(GuiData gui_data) {
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
+	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
+	std::string save_path = "./data/results/path_confusion.jpg";
+
+	unsigned long long byte_count = render_size_3d.x * render_size_3d.z * 3;
+	byte* img_cpu = new byte[byte_count];
+	memset(img_cpu, 0, byte_count);
+
+	VoxelData* world_voxels = new VoxelData[this->world_space->space_data.voxel_count0];
+	byte_count = this->world_space->space_data.voxel_count0 * sizeof(VoxelData);
+	memset(world_voxels, 0, byte_count);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(world_voxels, this->world_space->space_data.space0, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	int direction_index = 12;
+	for (int i = 0; i < this->node_count - 1; i++) {
+		Vector3 node0 = this->nodes[i];
+		Vector3 node1 = this->nodes[i + 1];
+
+		node0.Print("Nodes: ", " ");
+		node1.Print();
+		printf("    Progress: ");
+
+		Vector3 current_position = node0;
+
+		Vector3 start_voxel = node0.Floor();
+		Vector3 current_voxel = node0.Floor();
+		Vector3 end_voxel = node1.Floor();
+
+		Vector3 voxel_difference = end_voxel - start_voxel;
+		Vector3 voxel_distance = voxel_difference.Absolute();
+		Vector3 difference_sign = voxel_difference.Sign();
+
+		int driving_axis = 0;
+		int second_axis = 1;
+		int third_axis = 2;
+
+		if (voxel_distance.y >= voxel_distance.x && voxel_distance.y >= voxel_distance.z) {
+			driving_axis = 1;
+			second_axis = 0;
+			third_axis = 2;
+		}
+		else if (voxel_distance.z >= voxel_distance.x && voxel_distance.z >= voxel_distance.y) {
+			driving_axis = 2;
+			second_axis = 0;
+			third_axis = 1;
+		}
+
+		float second_slope = voxel_difference[second_axis] / voxel_difference[driving_axis];
+		float third_slope = voxel_difference[third_axis] / voxel_difference[driving_axis];
+
+		float second_bias = start_voxel[second_axis] - (start_voxel[driving_axis] * second_slope);
+		float third_bias = start_voxel[third_axis] - (start_voxel[driving_axis] * third_slope);
+
+		int driving_distance = 0;
+		while (driving_distance <= voxel_distance[driving_axis]) {
+			driving_distance++;
+			current_position[driving_axis] += difference_sign[driving_axis];
+			current_position[second_axis] = (current_position[driving_axis] * second_slope) + second_bias;
+			current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
+
+			if (!current_position.IsBounded(Vector::ZERO3(), this->world_space->space_data.world_size0 - 1)) {
+				break;
+			}
+
+			current_voxel = current_position.Floor();
+
+			this->camera_list[0]->transform.position = current_voxel;
+			this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[direction_index]);
+			this->RenderUpdate(gui_data);
+
+			byte* phash_cpu = this->camera_list[0]->GetPhash();
+			Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
+			anchor = anchor.Floor();
+
+			/*for (int i = 0; i < 16; i++) {
+				for (int j = 0; j < 16; j++) {
+					unsigned long long index = Indexer::FlatIndex2(j, i, 16);
+
+					printf("[%d]", phash_cpu[index]);
+				}
+				printf("\n");
+			}*/
+
+			Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
+			Vector3 estimate_voxel = (estimates[0]).Floor();
+
+			unsigned long long r_index = Indexer::FlatIndex3(0, current_voxel.x, current_voxel.z, 3, render_size.x);
+			unsigned long long g_index = Indexer::FlatIndex3(1, current_voxel.x, current_voxel.z, 3, render_size.x);
+			unsigned long long b_index = Indexer::FlatIndex3(2, current_voxel.x, current_voxel.z, 3, render_size.x);
+
+			img_cpu[r_index] = 0;
+			img_cpu[g_index] = 0;
+			img_cpu[b_index] = 255;
+
+			r_index = Indexer::FlatIndex3(0, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
+			g_index = Indexer::FlatIndex3(1, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
+			b_index = Indexer::FlatIndex3(2, estimate_voxel.x, estimate_voxel.z, 3, render_size.x);
+
+			img_cpu[r_index] = 255;
+			img_cpu[g_index] = 0;
+			img_cpu[b_index] = 0;
+
+			printf("*");
+		}
+
+		printf("\n");
+	}
+
+	int k = 40;
+	for (int w = 0; w < render_size.x; w++) {
+		for (int h = 0; h < render_size.y; h++) {
+			Vector3 voxel_position{ w, k, h };
+			unsigned long long voxel_index = Indexer::FlatIndex3(w, k, h, this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.y);
+			VoxelData voxel_data = world_voxels[voxel_index];
+
+			if (voxel_data.entity_id > 0) {
+				unsigned long long r_index = Indexer::FlatIndex3(0, w, h, 3, render_size.x);
+				unsigned long long g_index = Indexer::FlatIndex3(1, w, h, 3, render_size.x);
+				unsigned long long b_index = Indexer::FlatIndex3(2, w, h, 3, render_size.x);
+
+				img_cpu[r_index] = 255;
+				img_cpu[g_index] = 255;
+				img_cpu[b_index] = 255;
+			}
+
+		}
+	}
+
+	int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, img_cpu, 100);
+
+	printf("Done!\n");
 }
 
 void CpuEngine::Cleanup() {

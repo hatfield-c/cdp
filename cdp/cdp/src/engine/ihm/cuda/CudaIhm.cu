@@ -22,11 +22,6 @@ __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera,
     ihm_generator.Generate(space_data, &camera, ihm);
 }
 
-__global__ void CudaIhm::RenderHeatmap_Kernel(SpaceData space_data, IhmRenderer ihm_renderer, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, double* score_buffer, byte* img, int direction_index, int height) {
-    void(*func_ptr)() = &CudaIhm::SyncThreads;
-    ihm_renderer.RenderSimilarityHeatmap(space_data, ihm_generator, slice_generator, ihm, ihm_slice, score_buffer, img, direction_index, height, func_ptr);
-}
-
 __global__ void CudaIhm::FilterLocalOffsets_Kernel(IhmCortex ihm_cortex,IhmGenerator ihm_generator, byte* difference_vector, unsigned long long* index_matrix0, unsigned long long* index_matrix1, unsigned long long* index_matrix2, int direction_index, Vector3 anchor) {
     ihm_cortex.FilterLocalOffsets(ihm_generator, difference_vector, index_matrix0, index_matrix1, index_matrix2, direction_index, anchor);
 }
@@ -211,27 +206,6 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     printf("\n");
 }
 
-void CudaIhm::RenderHeatmap(SpaceData space_data, IhmRenderer ihm_renderer, IhmGenerator ihm_generator, IhmGenerator slice_generator, byte* ihm, byte* ihm_slice, byte* img, int direction_index, int height) {
-    
-    dim3 threads_per_block(32, 1, 1);
-    dim3 blocks_per_grid(slice_generator.voxel_count, 1, 1);
-
-    double* score_buffer;
-    unsigned long long buffer_size = threads_per_block.x * blocks_per_grid.x * sizeof(double);
-    CudaError::CheckError((cudaError_enum)cudaMalloc(&score_buffer, buffer_size), __FILE__, __LINE__);
-
-    printf("    Rendering Heatmap:\n");
-    printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
-    printf("        Progress (Max 20 *): ");
-    RenderHeatmap_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, ihm_renderer, ihm_generator, slice_generator, ihm, ihm_slice, score_buffer, img, direction_index, height);
-
-    cudaFree(score_buffer);
-
-    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-    printf("\n");
-}
-
 Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index, bool is_verbose) {
     Vector3 search_radius{ 16, 8, 16 };
     Vector3 search_size = search_radius * 2;
@@ -291,6 +265,8 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
                 unsigned long long candidate_index1 = candidate_matrix1[voxel_index];
                 unsigned long long candidate_index2 = candidate_matrix2[voxel_index];
 
+                //printf("[c]: <%d %d %d> (%lld, %lld, %lld)\n", i, j, k, candidate_index0, candidate_index1, candidate_index2);
+
                 if (candidate_index0 != 0) {
                     IhmState ihm_state = ihm_generator.GetIhmState(candidate_index0, false);
 
@@ -318,10 +294,19 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
     }
 
     //printf("\n<%.2f %.2f %.2f> %d\n", estimates[0].x, estimates[0].y, estimates[0].z, nonzero_counts[0]);
+    //printf("%d, %d, %d\n", nonzero_counts[0], nonzero_counts[1], nonzero_counts[2]);
 
-    estimates[0] = estimates[0] / nonzero_counts[0];
-    estimates[1] = estimates[1] / nonzero_counts[1];
-    estimates[2] = estimates[2] / nonzero_counts[2];
+    if (nonzero_counts[0] > 0) {
+        estimates[0] = estimates[0] / nonzero_counts[0];
+    }
+
+    if (nonzero_counts[1] > 0) {
+        estimates[1] = estimates[1] / nonzero_counts[1];
+    }
+
+    if (nonzero_counts[2] > 0) {
+        estimates[2] = estimates[2] / nonzero_counts[2];
+    }
 
     //printf("\n<%.2f %.2f %.2f>\n", estimates[0].x, estimates[0].y, estimates[0].z);
 

@@ -35,6 +35,12 @@ class CpuEngine {
 		IhmCortex ihm_cortex{};
 		DroneAlpha drone_alpha{};
 
+		int node_count = 2;
+		Vector3 nodes[2] = {
+			Vector3{ 244, 40, 342 },
+			Vector3{ 329, 40, 485 }
+		};
+
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData gui_data);
 		void Update(GuiData gui_data);
@@ -45,8 +51,8 @@ class CpuEngine {
 		void GenerateIhm(GuiData gui_data);
 		void LoadIhm(GuiData gui_data);
 		void VerifyIhm(GuiData gui_data);
-		void SaveSimilarityHeatMap(GuiData gui_data);
 		void SaveConfusionMap(GuiData gui_data);
 		void EstimatePositionIhm(GuiData gui_data);
+		void RenderPathConfusion(GuiData gui_data);
 		void Cleanup();
 };

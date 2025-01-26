@@ -45,16 +45,16 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->EstimatePositionIhm(gui_data);
     }
 
-    if (gui_data.is_save_heatmap) {
-        this->engine->SaveSimilarityHeatMap(gui_data);
-    }
-
     if (gui_data.is_save_confusion) {
         this->engine->SaveConfusionMap(gui_data);
     }
 
     if (gui_data.is_stochastic_subtraction) {
         this->engine->world_space->ActivateStochasticSubtraction();
+    }
+
+    if (gui_data.is_render_path_confusion) {
+        this->engine->RenderPathConfusion(gui_data);
     }
 
     if (is_state_changed && !this->engine->is_simulating) {

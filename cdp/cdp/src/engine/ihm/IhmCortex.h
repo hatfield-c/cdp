@@ -54,12 +54,6 @@ struct IhmCortex {
 		difference_vector[state_index] = difference_count;
 	}
 
-	// iterate through the query cube voxel positions directly (no reduction). check for optimal +/- offset. store the ihm index for each voxel position
-	//		that passes the phash_error_threshold (0 is stored otherwise) (only need to store into smaller offset matrix). manually search these resulting small lists 
-	//		to get the average positions from the IHM indexes
-	//
-	//		dont bother with optimal offset for now. too much uncertainty.
-
 	__device__ void FilterLocalOffsets(IhmGenerator ihm_generator, byte* difference_vector, unsigned long long* index_matrix0, unsigned long long* index_matrix1, unsigned long long* index_matrix2, int direction_index, Vector3 anchor) {
 		unsigned long long phash_error_threshold0 = 8;
 		unsigned long long phash_error_threshold1 = 78;

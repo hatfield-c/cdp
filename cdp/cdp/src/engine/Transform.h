@@ -402,6 +402,12 @@ struct Vector3 {
 
 		return true;
 	}
+
+	__host__ __device__ void Print(const char* prior = "", const char* posterior = "\n") {
+		printf(prior);
+		printf("[%.2f %.2f %.2f]", this->x, this->y, this->z);
+		printf(posterior);
+	}
 };
 
 struct Vector4 {

@@ -321,8 +321,8 @@ void MainGui::DrawInspector() {
     if (ImGui::CollapsingHeader("IHM Testing")) {
         this->gui_data.is_verify_ihm = ImGui::Button("Verify");
         this->gui_data.is_estimate_position = ImGui::Button("Estimate Position");
-        this->gui_data.is_save_heatmap = ImGui::Button("Save Heatmap");
         this->gui_data.is_save_confusion = ImGui::Button("Save Confusion Map");
+        this->gui_data.is_render_path_confusion = ImGui::Button("Render Path Confusion");
     }
 
     ImGui::End();
