@@ -22,9 +22,14 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 		this->camera_list.push_back(camera);
 	}
 
+	Vector3 node0{ 244, 40, 342 };
+	Vector3 node1{ 329, 40, 485 };
+	Vector3 direction = Transform::Unit3(node1 - node0);
+
 	this->drone_alpha.Init();
-	this->drone_alpha.rigidbody.position = Vector3{ 29.3, 4, 42.5 };
-	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[12]);
+	this->drone_alpha.rigidbody.position = Vector3{ 36.2, 4, 54.1 };
+	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
+	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = 1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
 }
@@ -310,7 +315,8 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
 	printf("        Time Elapsed: %d s\n", time_lapsed);
-	printf("\nEstimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
+	printf("\nTrue Position: {%.2f, %.2f, %.2f}\n", this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z);
+	printf("Estimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
 	printf("    Error: %.2f m\n", Transform::Norm3(estimates[0] - this->camera_list[0]->transform.position) / 10);
 	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
 	printf("    Error: %.2f m\n", Transform::Norm3(estimates[1] - this->camera_list[0]->transform.position) / 10);
@@ -337,10 +343,12 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 	ImageBuilder image_builder{};
 	image_builder.Init();
 
-	int direction_index = 12;
 	for (int i = 0; i < this->node_count - 1; i++) {
 		Vector3 node0 = this->nodes[i];
 		Vector3 node1 = this->nodes[i + 1];
+
+		Vector3 node_direction = Transform::Unit3(node1 - node0);
+		int direction_index = this->ihm_generator.GetClosestDirectionIndex(node_direction);// 12;
 
 		node0.Print("Nodes: ", " ");
 		node1.Print();
@@ -391,7 +399,7 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 			current_voxel = current_position.Floor();
 
 			this->camera_list[0]->transform.position = current_voxel;
-			this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[direction_index]);
+			this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(node_direction);
 			this->RenderUpdate(gui_data);
 
 			byte* phash_cpu = this->camera_list[0]->GetPhash();
@@ -413,9 +421,6 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 
 			Vector2 current_pixel = Vector2{ current_voxel.x, current_voxel.z };
 			Vector2 estimate_pixel = Vector2{ estimate_voxel.x, estimate_voxel.z };
-
-			current_position.Print("", " ");
-			estimate_voxel.Print();
 
 			image_builder.DrawLine_Serial(img_cpu, render_size, Vector2{ current_voxel.x, current_voxel.z }, Vector2{ estimate_voxel.x, estimate_voxel.z }, Vector3{ 255, 0, 0 });
 			image_builder.WritePixel(img_cpu, render_size, estimate_pixel, Vector3{ 0, 255, 0 });
