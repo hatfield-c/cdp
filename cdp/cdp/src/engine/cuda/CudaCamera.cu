@@ -31,8 +31,8 @@ void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
 }
 
 void CudaCamera::GenerateHmeans(Camera camera) {
-    dim3 threads_per_block(1, 32, 1);
-    dim3 blocks_per_grid(1, (int)(256.0 / 32.0), 1);
+    dim3 threads_per_block(1, 8, 1);
+    dim3 blocks_per_grid(1, 1, 1);
 
     CudaCamera::GenerateHmeans_Kernel<<<blocks_per_grid, threads_per_block>>>(camera);
 

@@ -25,13 +25,16 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	Vector3 node0{ 244, 40, 342 };
 	Vector3 node1{ 329, 40, 485 };
 	Vector3 direction = Transform::Unit3(node1 - node0);
+	direction = Vector3{ 0, 0, 1 };
 
 	this->drone_alpha.Init();
-	this->drone_alpha.rigidbody.position = Vector3{ 36.2, 4, 54.1 };
+	//this->drone_alpha.rigidbody.position = Vector3{ 36.2, 4, 54.1 };
+	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
 	//this->drone_alpha.rigidbody.velocity = direction;
-	//this->drone_alpha.rigidbody.velocity.z = 1;
+	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
+	this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
 }
 
 void CpuEngine::Start(GuiData gui_data) {

@@ -53,7 +53,7 @@ struct Camera {
         this->chunk_size = (this->camera_size / this->phash_data_size).Ceil();
 
         int phash_memory_size = this->phash_data_count * sizeof(byte);
-        int centroid_memory_size = 256 * sizeof(Vector2);
+        int centroid_memory_size = 8 * sizeof(Vector2);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->centroids, centroid_memory_size), __FILE__, __LINE__);
@@ -159,6 +159,7 @@ struct Camera {
                 texture_position.y = (2 * phash_position.y) + j;
 
                 Camera::WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
+                Camera::WriteRGBA(this->centroid_texture, texture_position, this->phash_texture_size, phash_color);
             }
         }
     }
@@ -168,14 +169,16 @@ struct Camera {
 
         float threshold_count = 0;
         Vector2 centroid{};
+        Vector2 base{ 7.5, 7.5 };
 
         for (int i = 0; i < this->phash_data_size.x; i++) {
             for (int j = 0; j < this->phash_data_size.y; j++) {
                 int phash_index = Indexer::FlatIndex2(i, j, this->phash_data_size.x);
 
                 byte phash_value = this->phash_data[phash_index];
+                byte bucket_index = floor(phash_value / 32.0);
 
-                if (phash_value == h_value) {
+                if (bucket_index == h_value) {
                     Vector2 position{ i, j };
 
                     if (centroid == Vector::ZERO2()) {
@@ -193,6 +196,9 @@ struct Camera {
         if (threshold_count > 0) {
             centroid = centroid / threshold_count;
         }
+        else {
+            centroid = base;
+        }
 
         this->centroids[h_value] = centroid;
 
@@ -202,7 +208,7 @@ struct Camera {
             return;
         }
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < 8; i++) {
             centroid = this->centroids[i].Floor();
 
             for (int j = 0; j < 2; j++) {
@@ -212,10 +218,12 @@ struct Camera {
                         (2 * centroid.y) + k
                     };
 
+                    int index_value = i * 32;
+
                     Vector4 color{
-                        255 - i,
-                        i,
-                        i,
+                        255 - index_value,
+                        index_value,
+                        index_value,
                         255
                     };
 
