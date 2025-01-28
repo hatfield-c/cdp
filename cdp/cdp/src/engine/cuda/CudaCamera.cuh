@@ -8,6 +8,9 @@
 #include "../../entity/Camera.h"
 
 namespace CudaCamera {
+	__device__ void SyncThreads();
 	__global__ void RenderCamera_Kernel(Camera camera, SpaceData space_data);
+	__global__ void GenerateHmeans_Kernel(Camera camera);
 	void RenderCamera(Camera camera, SpaceData space_data);
+	void GenerateHmeans(Camera camera);
 };

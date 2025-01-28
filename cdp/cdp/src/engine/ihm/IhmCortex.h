@@ -54,6 +54,10 @@ struct IhmCortex {
 		difference_vector[state_index] = difference_count;
 	}
 
+	__device__ void GenerateHmeans(IhmGenerator ihm_generator, Vector2* centroids) {
+
+	}
+
 	__device__ void FilterLocalOffsets(IhmGenerator ihm_generator, byte* difference_vector, unsigned long long* index_matrix0, unsigned long long* index_matrix1, unsigned long long* index_matrix2, int direction_index, Vector3 anchor) {
 		unsigned long long phash_error_threshold0 = 8;
 		unsigned long long phash_error_threshold1 = 78;

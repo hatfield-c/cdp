@@ -178,7 +178,7 @@ void MainGui::DrawViewport() {
             image_texture = (ImTextureID)this->vulkan_pipeline->phash_textures[this->camera_index]->instance_descriptor;
         }
         else if (this->render_texture == 2) {
-            image_texture = (ImTextureID)this->vulkan_pipeline->shaded_textures[this->camera_index]->instance_descriptor;
+            image_texture = (ImTextureID)this->vulkan_pipeline->centroid_textures[this->camera_index]->instance_descriptor;
         }
     }
     
@@ -207,7 +207,7 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Render Texture");
         ImGui::SameLine();
-        ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Shaded\0\0");
+        ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Centroid\0\0");
     }
 
     if (!ImGui::CollapsingHeader("Camera")) {

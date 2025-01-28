@@ -22,19 +22,19 @@ VulkanPipeline::VulkanPipeline(int camera_count) {
     for (int i = 0; i < camera_count; i++) {
         VulkanTexture* depth_texture = new VulkanTexture(this->vulkan_core);
         VulkanTexture* phash_texture = new VulkanTexture(this->vulkan_core);
-        VulkanTexture* shaded_texture = new VulkanTexture(this->vulkan_core);
+        VulkanTexture* centroid_texture = new VulkanTexture(this->vulkan_core);
 
         result = depth_texture->LoadImage("data/media/viewport_default.jpg");
         result = phash_texture->LoadImage("data/media/phash_default.jpg");
-        result = shaded_texture->LoadImage("data/media/viewport_default.jpg");
+        result = centroid_texture->LoadImage("data/media/phash_default.jpg");
 
         this->depth_textures.push_back(depth_texture);
         this->phash_textures.push_back(phash_texture);
-        this->shaded_textures.push_back(shaded_texture);
+        this->centroid_textures.push_back(centroid_texture);
 
         this->texture_list.push_back(depth_texture);
         this->texture_list.push_back(phash_texture);
-        this->texture_list.push_back(shaded_texture);
+        this->texture_list.push_back(centroid_texture);
     }
 }
 
@@ -53,7 +53,7 @@ void VulkanPipeline::Cleanup() {
 std::vector<CUdeviceptr> VulkanPipeline::GetDepthTextures() {
     std::vector<CUdeviceptr> textures{};
 
-    for (int i = 0; i < this->shaded_textures.size(); i++) {
+    for (int i = 0; i < this->depth_textures.size(); i++) {
         CUdeviceptr gpu_texture = this->depth_textures[i]->ExportAsCuda();
 
         textures.push_back(gpu_texture);
@@ -65,7 +65,7 @@ std::vector<CUdeviceptr> VulkanPipeline::GetDepthTextures() {
 std::vector<CUdeviceptr> VulkanPipeline::GetPhashTextures() {
     std::vector<CUdeviceptr> textures{};
 
-    for (int i = 0; i < this->shaded_textures.size(); i++) {
+    for (int i = 0; i < this->depth_textures.size(); i++) {
         CUdeviceptr gpu_texture = this->phash_textures[i]->ExportAsCuda();
 
         textures.push_back(gpu_texture);
@@ -74,11 +74,11 @@ std::vector<CUdeviceptr> VulkanPipeline::GetPhashTextures() {
     return textures;
 }
 
-std::vector<CUdeviceptr> VulkanPipeline::GetShadedTextures() {
+std::vector<CUdeviceptr> VulkanPipeline::GetCentroidTextures() {
     std::vector<CUdeviceptr> textures{};
 
-    for (int i = 0; i < this->shaded_textures.size(); i++) {
-        CUdeviceptr gpu_texture = this->shaded_textures[i]->ExportAsCuda();
+    for (int i = 0; i < this->centroid_textures.size(); i++) {
+        CUdeviceptr gpu_texture = this->centroid_textures[i]->ExportAsCuda();
 
         textures.push_back(gpu_texture);
     }

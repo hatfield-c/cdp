@@ -111,7 +111,10 @@ void CpuEngine::PhysicsUpdate(GuiData gui_data) {
 void CpuEngine::RenderUpdate(GuiData gui_data) {
 	int camera_index = gui_data.camera_index;
 
+	this->camera_list[camera_index]->ResetCentroids();
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
+	cudaDeviceSynchronize();
+	CudaCamera::GenerateHmeans(*this->camera_list[camera_index]);
 	cudaDeviceSynchronize();
 
 	// debug code

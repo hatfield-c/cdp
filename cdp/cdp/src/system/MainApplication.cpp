@@ -5,9 +5,9 @@ MainApplication::MainApplication() {
 
     std::vector<CUdeviceptr> depth_textures = this->main_gui->vulkan_pipeline->GetDepthTextures();
     std::vector<CUdeviceptr> phash_textures = this->main_gui->vulkan_pipeline->GetPhashTextures();
-    std::vector<CUdeviceptr> shaded_textures = this->main_gui->vulkan_pipeline->GetShadedTextures();
+    std::vector<CUdeviceptr> centroid_textures = this->main_gui->vulkan_pipeline->GetCentroidTextures();
 
-    this->engine = new CpuEngine(depth_textures, phash_textures, shaded_textures);
+    this->engine = new CpuEngine(depth_textures, phash_textures, centroid_textures);
 }
 
 void MainApplication::Run() {

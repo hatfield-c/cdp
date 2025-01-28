@@ -32,11 +32,12 @@ struct Camera {
 
     byte* depth_texture;
     byte* phash_texture;
-    byte* shaded_texture;
+    byte* centroid_texture;
     RaycastHitData* depth_data;
     byte* phash_data;
+    Vector2* centroids;
 	
-	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr shaded_texture) {
+	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr centroid_texture) {
         float pi = 3.141592654f;
 
 		this->name = name;
@@ -44,23 +45,24 @@ struct Camera {
 		this->fov.y = pi / 2;
 		this->depth_texture = (byte*)depth_texture;
         this->phash_texture = (byte*)phash_texture;
-        this->shaded_texture = (byte*)shaded_texture;
+        this->centroid_texture = (byte*)centroid_texture;
         this->camera_pixel_count = this->camera_size.x * this->camera_size.y;
         this->phash_pixel_count = this->phash_texture_size.x * this->phash_texture_size.y;
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
         this->phash_data_stride = (this->camera_size / this->phash_data_size).Ceil();
         this->chunk_size = (this->camera_size / this->phash_data_size).Ceil();
 
-        //RaycastHitData* depth_data = new RaycastHitData[this->camera_pixel_count];
-        byte* phash_data = new byte[this->camera_pixel_count];
-
-        int depth_memory_size = this->camera_pixel_count * sizeof(RaycastHitData);
         int phash_memory_size = this->phash_data_count * sizeof(byte);
+        int centroid_memory_size = 256 * sizeof(Vector2);
 
-        //CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_data, depth_memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, depth_memory_size), __FILE__, __LINE__);
-        //CudaError::CheckError((cudaError_enum)cudaMemcpy(this->depth_data, depth_data, depth_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMemcpy(this->phash_data, phash_data, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->centroids, centroid_memory_size), __FILE__, __LINE__);
+        cudaMemset(this->phash_data, 0, phash_memory_size);
+        cudaMemset(this->centroids, 0, centroid_memory_size);
+
+        this->ResetCentroids();
+
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 	}
 
     byte* GetPhash() {
@@ -72,6 +74,10 @@ struct Camera {
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
         return phash_cpu;
+    }
+
+    void ResetCentroids() {
+        cudaMemset(this->centroid_texture, 255, 4 * phash_pixel_count * sizeof(byte));
     }
 
     __device__ void Render(SpaceData space_data) {
@@ -157,6 +163,67 @@ struct Camera {
         }
     }
 
+    __device__ void GenerateHmeans(void(*SyncThreads)()) {
+        int h_value = Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y);
+
+        float threshold_count = 0;
+        Vector2 centroid{};
+
+        for (int i = 0; i < this->phash_data_size.x; i++) {
+            for (int j = 0; j < this->phash_data_size.y; j++) {
+                int phash_index = Indexer::FlatIndex2(i, j, this->phash_data_size.x);
+
+                byte phash_value = this->phash_data[phash_index];
+
+                if (phash_value == h_value) {
+                    Vector2 position{ i, j };
+
+                    if (centroid == Vector::ZERO2()) {
+                        centroid = position;
+                    }
+                    else {
+                        centroid += position;
+                    }
+
+                    threshold_count++;
+                }
+            }
+        }
+
+        if (threshold_count > 0) {
+            centroid = centroid / threshold_count;
+        }
+
+        this->centroids[h_value] = centroid;
+
+        SyncThreads();
+
+        if (threadIdx.y != 0 || blockIdx.y != 0) {
+            return;
+        }
+
+        for (int i = 0; i < 256; i++) {
+            centroid = this->centroids[i].Floor();
+
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k < 2; k++) {
+                    Vector2 texture_position{
+                        (2 * centroid.x) + j,
+                        (2 * centroid.y) + k
+                    };
+
+                    Vector4 color{
+                        255 - i,
+                        i,
+                        i,
+                        255
+                    };
+
+                    Camera::WriteRGBA(this->centroid_texture, texture_position, this->phash_texture_size, color);
+                }
+            }
+        }
+    }
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
         Vector2 fov_offset{
