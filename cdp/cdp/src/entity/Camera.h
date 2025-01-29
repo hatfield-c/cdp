@@ -167,7 +167,7 @@ struct Camera {
     __device__ void GenerateHmeans(void(*SyncThreads)()) {
         int h_value = Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y);
 
-        float threshold_count = 0;
+        float weight_sum = 0;
         Vector2 centroid{};
         Vector2 base{ 7.5, 7.5 };
 
@@ -177,10 +177,9 @@ struct Camera {
 
                 byte phash_value = this->phash_data[phash_index];
                 byte bucket_index = floor(phash_value / 32.0);
+                Vector2 position{ i, j };
 
                 if (bucket_index == h_value) {
-                    Vector2 position{ i, j };
-
                     if (centroid == Vector::ZERO2()) {
                         centroid = position;
                     }
@@ -188,13 +187,31 @@ struct Camera {
                         centroid += position;
                     }
 
-                    threshold_count++;
+                    weight_sum++;
+                }
+                else {
+                    int boundary = (32 * (h_value + 1)) - 1;
+                    int difference = (int)phash_value - boundary;
+
+                    if (bucket_index < h_value) {
+                        boundary = 32 * h_value;
+                        difference = boundary - (int)phash_value;
+                    }
+
+                    if (difference > 32) {
+                        continue;
+                    }
+
+                    float weight = expf(-difference * 0.1);
+
+                    centroid += position * weight;
+                    weight_sum += weight;
                 }
             }
         }
 
-        if (threshold_count > 0) {
-            centroid = centroid / threshold_count;
+        if (weight_sum > 0) {
+            centroid = centroid / weight_sum;
         }
         else {
             centroid = base;
