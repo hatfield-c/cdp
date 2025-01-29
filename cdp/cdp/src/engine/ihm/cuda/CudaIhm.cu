@@ -4,11 +4,6 @@ __device__ void CudaIhm::SyncThreads() {
     __syncthreads();
 }
 
-__global__ void CudaIhm::GetSimilarityScore_Kernel(IhmCortex ihm_cortex, int iteration, byte difference_threshold, byte* difference_vector, double* score_buffer) {
-    void(*func_ptr)() = &CudaIhm::SyncThreads;
-    ihm_cortex.GetSimilarityScore(iteration, difference_threshold, difference_vector, score_buffer, func_ptr);
-}
-
 __global__ void CudaIhm::SmallestIndexReduction_Kernel(IhmCortex ihm_cortex, int iteration, byte* difference_vector, unsigned long long* index_buffer) {
     void(*func_ptr)() = &CudaIhm::SyncThreads;
     ihm_cortex.IndexReduction(iteration, difference_vector, index_buffer, func_ptr);
@@ -20,73 +15,6 @@ __global__ void CudaIhm::GetDifferenceVector_Kernel (IhmCortex ihm_cortex, byte*
 
 __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
     ihm_generator.Generate(space_data, &camera, ihm);
-}
-
-__global__ void CudaIhm::FilterLocalOffsets_Kernel(IhmCortex ihm_cortex,IhmGenerator ihm_generator, byte* difference_vector, unsigned long long* index_matrix0, unsigned long long* index_matrix1, unsigned long long* index_matrix2, int direction_index, Vector3 anchor) {
-    ihm_cortex.FilterLocalOffsets(ihm_generator, difference_vector, index_matrix0, index_matrix1, index_matrix2, direction_index, anchor);
-}
-
-double CudaIhm::GetSimilarityScore(IhmCortex ihm_cortex, byte* phash, bool is_verbose) {
-    if (is_verbose) {
-        printf("Finding similarity score...\n");
-        printf("    Pre-processing...\n");
-    }
-
-    double score;
-
-    byte* difference_vector = CudaIhm::GetDifferenceVector(ihm_cortex, phash, is_verbose);
-    unsigned long long smallest_index = CudaIhm::SmallestIndexReduction(ihm_cortex, difference_vector, is_verbose);
-    byte smallest_value;
-
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaMemcpy(&smallest_value, difference_vector, sizeof(byte), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-
-    cudaFree(difference_vector);
-    difference_vector = CudaIhm::GetDifferenceVector(ihm_cortex, phash, is_verbose);
-    dim3 threads_per_block(32, 1, 1);
-    unsigned long long units_per_block = threads_per_block.x * ihm_cortex.thread_units;
-    unsigned long long block_count = ceil(ihm_cortex.state_count / units_per_block);
-    int iterations_max = ceil(log2(ihm_cortex.state_count) / log2(units_per_block));
-
-    dim3 blocks_per_grid(block_count, 1, 1);
-
-    if (is_verbose) {
-        printf("    Calculating score...\n");
-        printf("        Units Per Block: %lld\n", units_per_block);
-        printf("        Max Iterations: %lld\n", iterations_max);
-    }
-
-    double* score_buffer;
-    int buffer_size = threads_per_block.x * blocks_per_grid.x * sizeof(double);
-    CudaError::CheckError((cudaError_enum)cudaMalloc(&score_buffer, buffer_size), __FILE__, __LINE__);
-
-    for (int i = 0; i < iterations_max; i++) {
-        if (is_verbose) {
-            printf("        Iteration: %d\n", i);
-            printf("            Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
-        }
-
-        GetSimilarityScore_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, i, smallest_value, difference_vector, score_buffer);
-
-        block_count = ceil(((float)block_count) / ((float)units_per_block));
-        blocks_per_grid = dim3(block_count, 1, 1);
-
-        CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-    }
-
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaMemcpy(&score, score_buffer, sizeof(unsigned long long), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-
-    cudaFree(difference_vector);
-    cudaFree(score_buffer);
-
-    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
-    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
-
-    return score;
 }
 
 unsigned long long CudaIhm::FindIhmIndex(IhmCortex ihm_cortex, byte* phash, bool is_verbose) {
@@ -234,7 +162,7 @@ Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_genera
         printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
         printf("        Progress (Max 20 *): ");
     }
-    FilterLocalOffsets_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, ihm_generator, difference, index_matrix0, index_matrix1, index_matrix2, direction_index, anchor);
+    //FilterLocalOffsets_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, ihm_generator, difference, index_matrix0, index_matrix1, index_matrix2, direction_index, anchor);
     
     unsigned long long* candidate_matrix0 = new unsigned long long[voxel_count];
     unsigned long long* candidate_matrix1 = new unsigned long long[voxel_count];

@@ -114,10 +114,9 @@ void CpuEngine::PhysicsUpdate(GuiData gui_data) {
 void CpuEngine::RenderUpdate(GuiData gui_data) {
 	int camera_index = gui_data.camera_index;
 
-	this->camera_list[camera_index]->ResetCentroids();
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 	cudaDeviceSynchronize();
-	CudaCamera::GenerateHmeans(*this->camera_list[camera_index]);
+	CudaCamera::BuildCloud(*this->camera_list[camera_index]);
 	cudaDeviceSynchronize();
 
 	// debug code
@@ -195,16 +194,19 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 
 void CpuEngine::VerifyIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	Vector3* render_cloud = this->camera_list[0]->GetCloud();
 
-	unsigned long long smallest_index = CudaIhm::FindIhmIndex(this->ihm_cortex, this->camera_list[0]->phash_data, true);
-	printf("\nSmallest Index: %lld\n\n", smallest_index);
-
-	double score = CudaIhm::GetSimilarityScore(this->ihm_cortex, this->camera_list[0]->phash_data, true);
-	printf("\nSimilarity Score: %f\n", score);
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 16; j++) {
+			unsigned long long cloud_index = Indexer::FlatIndex2(j, i, 16);
+			render_cloud[cloud_index].Print("", "");
+		}
+		printf("\n");
+	}
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
-	printf("        Time Elapsed: %d s\n", time_lapsed);
+	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+	printf("        Time Elapsed: %d ms\n", time_lapsed);
 }
 
 void CpuEngine::SaveConfusionMap(GuiData gui_data) {

@@ -26,6 +26,7 @@ struct Camera {
 
     float min_render_distance = 0.05f;
     float max_render_distance = 200.0f;
+    float max_distance = 20.0f;
     unsigned long long camera_pixel_count = 0;
     unsigned long long phash_pixel_count = 0;
     unsigned long long phash_data_count = 0;
@@ -35,7 +36,7 @@ struct Camera {
     byte* centroid_texture;
     RaycastHitData* depth_data;
     byte* phash_data;
-    Vector2* centroids;
+    Vector3* render_cloud;
 	
 	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr centroid_texture) {
         float pi = 3.141592654f;
@@ -53,14 +54,12 @@ struct Camera {
         this->chunk_size = (this->camera_size / this->phash_data_size).Ceil();
 
         int phash_memory_size = this->phash_data_count * sizeof(byte);
-        int centroid_memory_size = 8 * sizeof(Vector2);
+        int cloud_memory_size = this->phash_data_count * sizeof(Vector3);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->centroids, centroid_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->render_cloud, cloud_memory_size), __FILE__, __LINE__);
         cudaMemset(this->phash_data, 0, phash_memory_size);
-        cudaMemset(this->centroids, 0, centroid_memory_size);
-
-        this->ResetCentroids();
+        cudaMemset(this->render_cloud, 0, cloud_memory_size);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 	}
@@ -76,8 +75,15 @@ struct Camera {
         return phash_cpu;
     }
 
-    void ResetCentroids() {
-        cudaMemset(this->centroid_texture, 255, 4 * phash_pixel_count * sizeof(byte));
+    Vector3* GetCloud() {
+        Vector3* render_cloud = new Vector3[this->phash_data_count];
+        int phash_memory_size = this->phash_data_count * sizeof(Vector3);
+
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(render_cloud, this->render_cloud, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+        return render_cloud;
     }
 
     __device__ void Render(SpaceData space_data) {
@@ -164,90 +170,18 @@ struct Camera {
         }
     }
 
-    __device__ void GenerateHmeans(void(*SyncThreads)()) {
-        int h_value = Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y);
+    __device__ void BuildCloud() {
+        Vector2 phash_position{
+            threadIdx.x,
+            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+        };
 
-        float weight_sum = 0;
-        Vector2 centroid{};
-        Vector2 base{ 7.5, 7.5 };
+        byte phash_val = this->ReadByte(this->phash_data, phash_position, this->phash_data_size);
+        
+        Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, this->transform.rotation);
+        float depth = (phash_val / 256.0) * this->max_distance;
 
-        for (int i = 0; i < this->phash_data_size.x; i++) {
-            for (int j = 0; j < this->phash_data_size.y; j++) {
-                int phash_index = Indexer::FlatIndex2(i, j, this->phash_data_size.x);
-
-                byte phash_value = this->phash_data[phash_index];
-                byte bucket_index = floor(phash_value / 32.0);
-                Vector2 position{ i, j };
-
-                if (bucket_index == h_value) {
-                    if (centroid == Vector::ZERO2()) {
-                        centroid = position;
-                    }
-                    else {
-                        centroid += position;
-                    }
-
-                    weight_sum++;
-                }
-                else {
-                    int boundary = (32 * (h_value + 1)) - 1;
-                    int difference = (int)phash_value - boundary;
-
-                    if (bucket_index < h_value) {
-                        boundary = 32 * h_value;
-                        difference = boundary - (int)phash_value;
-                    }
-
-                    if (difference > 32) {
-                        continue;
-                    }
-
-                    float weight = expf(-difference * 0.1);
-
-                    centroid += position * weight;
-                    weight_sum += weight;
-                }
-            }
-        }
-
-        if (weight_sum > 0) {
-            centroid = centroid / weight_sum;
-        }
-        else {
-            centroid = base;
-        }
-
-        this->centroids[h_value] = centroid;
-
-        SyncThreads();
-
-        if (threadIdx.y != 0 || blockIdx.y != 0) {
-            return;
-        }
-
-        for (int i = 0; i < 8; i++) {
-            centroid = this->centroids[i].Floor();
-
-            for (int j = 0; j < 2; j++) {
-                for (int k = 0; k < 2; k++) {
-                    Vector2 texture_position{
-                        (2 * centroid.x) + j,
-                        (2 * centroid.y) + k
-                    };
-
-                    int index_value = i * 32;
-
-                    Vector4 color{
-                        255 - index_value,
-                        index_value,
-                        index_value,
-                        255
-                    };
-
-                    Camera::WriteRGBA(this->centroid_texture, texture_position, this->phash_texture_size, color);
-                }
-            }
-        }
+        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * depth);
     }
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
@@ -308,16 +242,16 @@ struct Camera {
         texture[gpu_index_a] = rgba.w;
     }
 
-    static __device__ RaycastHitData ReadDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size) {
+    static __device__ byte ReadByte(byte* data_array, Vector2 pixel_position, Vector2 texture_size) {
         unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
         return data_array[gpu_index];
     }
 
-    static __device__ void WriteDepth(RaycastHitData* data_array, Vector2 pixel_position, Vector2 texture_size, RaycastHitData depth_data) {
+    static __device__ void WriteByte(byte* data_array, Vector2 pixel_position, Vector2 texture_size, byte value) {
         unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
-        data_array[gpu_index] = depth_data;
+        data_array[gpu_index] = value;
     }
 
     static __device__ void WriteFloat(float* data_array, Vector2 pixel_position, Vector2 texture_size, float value) {
@@ -326,7 +260,7 @@ struct Camera {
         data_array[gpu_index] = value;
     }
 
-    static __device__ void WriteByte(byte* data_array, Vector2 pixel_position, Vector2 texture_size, byte value) {
+    static __device__ void WriteVector3(Vector3* data_array, Vector2 pixel_position, Vector2 texture_size, Vector3 value) {
         unsigned long long gpu_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, texture_size.x);
 
         data_array[gpu_index] = value;
