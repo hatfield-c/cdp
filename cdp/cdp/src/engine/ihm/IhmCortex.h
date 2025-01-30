@@ -22,12 +22,14 @@ struct IhmCortex {
 	unsigned long long state_count;
 
 	Vector2 phash_size{ 16, 16 };
+	int phash_count;
 
 	void Init(byte* ihm, byte* ihm_cpu, Vector3* ihm_clouds, unsigned long long state_count) {
 		this->ihm = ihm;
 		this->ihm_cpu = ihm_cpu;
 		this->ihm_clouds = ihm_clouds;
 		this->state_count = state_count;
+		this->phash_count = this->phash_size.x * this->phash_size.y;
 	}
 
 	__device__ void GetDifferenceVector(byte* phash, byte* difference_vector, unsigned long long difference_threshold = 0) {
@@ -54,6 +56,57 @@ struct IhmCortex {
 
 		difference_count = Math::Clip(difference_count, 0, 255);
 		difference_vector[state_index] = difference_count;
+	}
+
+	__device__ void GetChamferDistances(Vector3* cloud, float* distances) {
+		unsigned long long state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+
+		float distance0 = 0;
+		for (int i = 0; i < this->phash_count; i++) {
+			Vector3 cloud_point = cloud[i];
+
+			float shortest_distance = 1000000000000;
+			for (int j = 0; j < this->phash_size.x; j++) {
+				for (int k = 0; k < this->phash_size.y; k++) {
+					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, state_index, this->phash_size.x, this->phash_size.y);
+					Vector3 ihm_point = this->ihm_clouds[ihm_data_index];
+
+					float query = Transform::Norm3(cloud_point - ihm_point);
+
+					if (query < shortest_distance) {
+						shortest_distance = query;
+					}
+				}
+			}
+
+			distance0 += shortest_distance;
+		}
+
+		float distance1 = 0;
+		for (int j = 0; j < this->phash_size.x; j++) {
+			for (int k = 0; k < this->phash_size.y; k++) {
+				unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, state_index, this->phash_size.x, this->phash_size.y);
+				Vector3 ihm_point = this->ihm_clouds[ihm_data_index];
+				
+				float shortest_distance = 1000000000000;
+				for (int i = 0; i < this->phash_count; i++) {
+					Vector3 cloud_point = cloud[i];
+					float query = Transform::Norm3(cloud_point - ihm_point);
+
+					if (query < shortest_distance) {
+						shortest_distance = query;
+					}
+				}
+
+				distance1 += shortest_distance;
+			}
+		}
+
+		distances[state_index] = (distance0 + distance1) / (2 * this->phash_count);
+
+		if (state_index == 1018764) {
+			printf("<%.2f>\n", distances[state_index]);
+		}
 	}
 
 	__device__ void IndexReduction(int iteration, byte* difference_vector, unsigned long long* index_buffer, void(*SyncThreads)()) {

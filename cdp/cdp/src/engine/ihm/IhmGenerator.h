@@ -156,11 +156,6 @@ struct IhmGenerator {
 		Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_size, camera->fov, ray_rotation);
 		float depth = (depth_val / 256.0) * camera->max_distance;
 
-		if (blockIdx.x == 1018754) {
-			Vector3 t = (ray_direction * depth);
-			printf("{%.1f %.1f} [%.2f %.2f %.2f]\n", phash_position.x, phash_position.y, t.x, t.y, t.z);
-		}
-
 		ihm_clouds[data_index] = ray_direction * depth;
 	}
 

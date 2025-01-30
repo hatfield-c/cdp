@@ -13,6 +13,10 @@ __global__ void CudaIhm::GetDifferenceVector_Kernel (IhmCortex ihm_cortex, byte*
     ihm_cortex.GetDifferenceVector(phash, difference_vector, difference_threshold);
 }
 
+__global__ void CudaIhm::GetChamferDistances_Kernel(IhmCortex ihm_cortex, Vector3* cloud, float* distances) {
+    ihm_cortex.GetChamferDistances(cloud, distances);
+}
+
 __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
     ihm_generator.Generate(space_data, &camera, ihm);
 }
@@ -118,6 +122,33 @@ byte* CudaIhm::GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_ve
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
     return difference_vector;
+}
+
+float* CudaIhm::GetChamferDistances(IhmCortex ihm_cortex, Vector3* cloud) {
+    unsigned long long memory_size = ihm_cortex.state_count * sizeof(float);
+
+    float* distances;
+    float* distances_cpu;
+    CudaError::CheckError((cudaError_enum)cudaMalloc(&distances, memory_size), __FILE__, __LINE__);
+    cudaMemset(distances, 0, memory_size);
+
+    dim3 threads_per_block(32, 1, 1);
+
+    unsigned long long block_count = ceil(ihm_cortex.state_count / threads_per_block.x);
+
+    dim3 blocks_per_grid(block_count, 1, 1);
+
+    printf("    Getting Chamfer Distances:\n");
+    printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
+
+    GetChamferDistances_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, cloud, distances);
+
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+    printf("        Done!");
+
+    return distances;
 }
 
 void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {

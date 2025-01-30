@@ -30,13 +30,15 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->drone_alpha.Init();
 	//this->drone_alpha.rigidbody.position = Vector3{ 36.2, 4, 54.1 };
-	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
+	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
+	this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
+
 	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 2);
-	Vector4 quat = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
-	quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
+	Vector4 quat = x_rot;// Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
+	//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
-	//this->drone_alpha.rigidbody.rotation = quat;
+	this->drone_alpha.rigidbody.rotation = quat;
 	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
@@ -208,15 +210,8 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 
 void CpuEngine::VerifyIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	Vector3* render_cloud = this->camera_list[0]->GetCloud();
 
-	for (int i = 0; i < 16; i++) {
-		for (int j = 0; j < 16; j++) {
-			unsigned long long cloud_index = Indexer::FlatIndex2(j, i, 16);
-			render_cloud[cloud_index].Print("", "");
-		}
-		printf("\n");
-	}
+	CudaIhm::GetChamferDistances(this->ihm_cortex, this->camera_list[0]->render_cloud);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
