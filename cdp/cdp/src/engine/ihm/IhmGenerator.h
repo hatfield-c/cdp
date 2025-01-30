@@ -128,60 +128,40 @@ struct IhmGenerator {
 		ihm[data_index] = phash_pixel_value;
 	}
 
-	__device__ void Generate_old(SpaceData space_data, Camera* camera, byte* ihm) {
+	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* ihm, Vector3* ihm_clouds) {
+		
+		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 15 && threadIdx.y == 1) {
+			printf("*");
+		}
+
+		Vector2 phash_position{
+			threadIdx.x,
+			Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+		};
+
+		if (!phash_position.IsBounded(Vector::ZERO2(), camera->phash_data_size - 1)) {
+			return;
+		}
+
+		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
+		byte depth_val = ihm[data_index];
+
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 
-		Vector2 chunk_size = (camera->camera_size / this->phash_size).Ceil();
-		Vector2 pixel_position;
+		Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), ihm_state.rotation);
+		Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
+		Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
-		for (int w = 0; w < this->phash_size.x; w++) {
-			for (int h = 0; h < this->phash_size.y; h++) {
+		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, ihm_state.rotation, false);
+		Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_size, camera->fov, ray_rotation);
+		float depth = (depth_val / 256.0) * camera->max_distance;
 
-				float avg_distance = 0;
-				int avg_count = 0;
-
-				for (int i = 0; i < chunk_size.x; i++) {
-					pixel_position.x = Indexer::FlatIndex2(i, w, chunk_size.x);
-
-					if (pixel_position.x >= camera->camera_size.x) {
-						continue;
-					}
-
-					for (int j = 0; j < chunk_size.y; j++) {
-						pixel_position.y = Indexer::FlatIndex2(j, h, chunk_size.y);
-
-						if (pixel_position.y >= camera->camera_size.y) {
-							continue;
-						}
-
-						Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
-						RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, camera->max_render_distance);
-						float depth = hit_data.distance;
-
-						if (depth >= camera->max_render_distance) {
-							continue;
-						}
-
-						avg_distance += depth;
-						avg_count++;
-					}
-				}
-
-				if (avg_count < 1) {
-					avg_distance = camera->max_render_distance;
-					avg_count = 1;
-				}
-
-				avg_distance = avg_distance / avg_count;
-
-				float distance = avg_distance / 10;
-				distance = Math::Clip(distance, 0.0, 20.0);
-				byte value = (byte)(int)(255 * distance / 20.0);
-
-				unsigned long long data_index = Indexer::FlatIndex3(w, h, blockIdx.x, 16, 16);
-				ihm[data_index] = value;
-			}
+		if (blockIdx.x == 1018754) {
+			Vector3 t = (ray_direction * depth);
+			printf("{%.1f %.1f} [%.2f %.2f %.2f]\n", phash_position.x, phash_position.y, t.x, t.y, t.z);
 		}
+
+		ihm_clouds[data_index] = ray_direction * depth;
 	}
 
 	__host__ __device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {

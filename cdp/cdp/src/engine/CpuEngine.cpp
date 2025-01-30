@@ -169,20 +169,20 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("Loading IHM at path: %s\n", gui_data.load_ihm_path.c_str());
 
-	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
+	unsigned long long phash_memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
-	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
-	byte* ihm_cpu = new byte[memory_size];
+	printf("        Size: %.2f MB\n", phash_memory_size / 1000000.0);
+	byte* ihm_cpu = new byte[phash_memory_size];
 
 	printf("    Allocating IHM GPU memory...\n");
 	byte* ihm;
-	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, phash_memory_size), __FILE__, __LINE__);
 
-	memory_size = this->ihm_generator.bit_count * sizeof(Vector3);
+	unsigned long long cloud_memory_size = this->ihm_generator.bit_count * sizeof(Vector3);
 	printf("    Allocating point cloud GPU memory...\n");
-	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
+	printf("        Size: %.2f MB\n", cloud_memory_size / 1000000.0);
 	Vector3* ihm_clouds;
-	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm_clouds, memory_size), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm_clouds, cloud_memory_size), __FILE__, __LINE__);
 
 	printf("    Loading IHM from disk...\n");
 
@@ -192,13 +192,15 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 		printf("\n\nWarning: File did not open when loading IHM:\n    %s!\n", gui_data.load_ihm_path.c_str());
 		exit(1);
 	}
-	int result = fread(ihm_cpu, sizeof(byte), memory_size, in_file);
+	int result = fread(ihm_cpu, sizeof(byte), phash_memory_size, in_file);
 	fclose(in_file);
 
 	printf("    Copying IHM to GPU...\n");
-	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	printf("    Initializing IHM Cortex...\n");
+	printf("    Extracting point cloud from IHM...\n");
+	CudaIhm::ExtractRenderClouds(this->world_space->space_data, *this->camera_list[0], this->ihm_generator, ihm, ihm_clouds);
+
 	this->ihm_cortex.Init(ihm, ihm_cpu, ihm_clouds, this->ihm_generator.state_count);
 
 	printf("    Done!\n\n");

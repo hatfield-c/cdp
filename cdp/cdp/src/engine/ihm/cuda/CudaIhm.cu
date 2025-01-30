@@ -17,6 +17,10 @@ __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera,
     ihm_generator.Generate(space_data, &camera, ihm);
 }
 
+__global__ void CudaIhm::ExtractRenderClouds_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm, Vector3* ihm_clouds) {
+    ihm_generator.ExtractRenderClouds(space_data, &camera, ihm, ihm_clouds);
+}
+
 unsigned long long CudaIhm::FindIhmIndex(IhmCortex ihm_cortex, byte* phash, bool is_verbose) {
     if (is_verbose) {
         printf("\n");
@@ -132,6 +136,22 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
     printf("\n");
+}
+
+void CudaIhm::ExtractRenderClouds(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm, Vector3* ihm_clouds) {
+    dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
+    unsigned long long x_blocks = ihm_generator.state_count;
+    int y_blocks = ceil(camera.phash_data_size.y / 2);
+    dim3 blocks_per_grid(x_blocks, y_blocks, 1);
+
+    printf("    Extracing IHM point clouds:\n");
+    printf("        Block Count: (%lld, %lld, %lld)\n", x_blocks, y_blocks, 1);
+    printf("        Progress (Max 20 *): ");
+    CudaIhm::ExtractRenderClouds_Kernel<<<blocks_per_grid, threads_per_block>>>(space_data, camera, ihm_generator, ihm, ihm_clouds);
+    
+    CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
+    CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+    printf("");
 }
 
 Vector3* CudaIhm::EstimatePosition(IhmCortex ihm_cortex, IhmGenerator ihm_generator, byte* sensor_phash, Vector3 anchor, int direction_index, bool is_verbose) {
