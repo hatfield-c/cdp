@@ -18,13 +18,15 @@ struct IhmCortex {
 	int thread_units = 256;
 	byte* ihm;
 	byte* ihm_cpu;
+	Vector3* ihm_clouds;
 	unsigned long long state_count;
 
 	Vector2 phash_size{ 16, 16 };
 
-	void Init(byte* ihm, byte* ihm_cpu, unsigned long long state_count) {
+	void Init(byte* ihm, byte* ihm_cpu, Vector3* ihm_clouds, unsigned long long state_count) {
 		this->ihm = ihm;
 		this->ihm_cpu = ihm_cpu;
+		this->ihm_clouds = ihm_clouds;
 		this->state_count = state_count;
 	}
 

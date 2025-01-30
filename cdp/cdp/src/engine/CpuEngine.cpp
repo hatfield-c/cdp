@@ -2,6 +2,7 @@
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
 	this->world_space = new WorldSpace();
+	
 	this->ihm_generator.Init(
 		3,
 		Vector::ZERO3(),
@@ -30,11 +31,16 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	this->drone_alpha.Init();
 	//this->drone_alpha.rigidbody.position = Vector3{ 36.2, 4, 54.1 };
 	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
+	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 2);
+	Vector4 quat = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
+	quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
+
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
+	//this->drone_alpha.rigidbody.rotation = quat;
 	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
-	this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
+	//this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -121,7 +127,6 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 
 	// debug code
 	//std::cin.ignore();
-
 }
 
 void CpuEngine::GenerateIhm(GuiData gui_data) {
@@ -173,6 +178,12 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	byte* ihm;
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm, memory_size), __FILE__, __LINE__);
 
+	memory_size = this->ihm_generator.bit_count * sizeof(Vector3);
+	printf("    Allocating point cloud GPU memory...\n");
+	printf("        Size: %.2f MB\n", memory_size / 1000000.0);
+	Vector3* ihm_clouds;
+	CudaError::CheckError((cudaError_enum)cudaMalloc(&ihm_clouds, memory_size), __FILE__, __LINE__);
+
 	printf("    Loading IHM from disk...\n");
 
 	FILE* in_file;
@@ -187,7 +198,8 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Copying IHM to GPU...\n");
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm, ihm_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 
-	this->ihm_cortex.Init(ihm, ihm_cpu, this->ihm_generator.state_count);
+	printf("    Initializing IHM Cortex...\n");
+	this->ihm_cortex.Init(ihm, ihm_cpu, ihm_clouds, this->ihm_generator.state_count);
 
 	printf("    Done!\n\n");
 }
