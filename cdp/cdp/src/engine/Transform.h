@@ -225,9 +225,7 @@ struct Vector2 {
 	}
 
 	__host__ __device__ void Print(const char* prior = "", const char* posterior = "\n") {
-		printf(prior);
-		printf("[%.2f %.2f]", this->x, this->y);
-		printf(posterior);
+		printf("%s[%.2f %.2f]%s", prior, this->x, this->y, posterior);
 	}
 };
 
@@ -493,9 +491,7 @@ struct Vector3 {
 	}
 
 	__host__ __device__ void Print(const char* prior = "", const char* posterior = "\n") {
-		printf(prior);
-		printf("[%.2f %.2f %.2f]", this->x, this->y, this->z);
-		printf(posterior);
+		printf("%s[%.2f %.2f %.2f]%s", prior, this->x, this->y, this->z, posterior);
 	}
 };
 

@@ -178,7 +178,12 @@ struct Camera {
 
         byte phash_val = this->ReadByte(this->phash_data, phash_position, this->phash_data_size);
         
-        Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, this->transform.rotation);
+        Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), this->transform.rotation);
+        Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
+        angles.y = 0;
+        Vector4 ray_rotation = Quaternion::QuaternionFromEulerAngles(angles);
+
+        Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, ray_rotation);
         float depth = (phash_val / 256.0) * this->max_distance;
 
         this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * depth);
