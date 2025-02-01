@@ -58,54 +58,76 @@ struct IhmCortex {
 		difference_vector[state_index] = difference_count;
 	}
 
-	__device__ void GetChamferDistances(Vector3* cloud, float* distances) {
-		unsigned long long state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+	__device__ void GetChamferDistances(IhmGenerator ihm_generator, Vector3* cloud, float* distances, float* buffer, Vector3 lower, Vector3 upper, unsigned long long thread_units, void(*SyncThreads)()) {
+		unsigned long long state_index = blockIdx.x;
 
-		float distance0 = 0;
-		for (int i = 0; i < this->phash_count; i++) {
-			Vector3 cloud_point = cloud[i];
+		if (state_index >= ihm_generator.state_count) {
+			return;
+		}
 
-			float shortest_distance = 1000000000000;
-			for (int j = 0; j < this->phash_size.x; j++) {
-				for (int k = 0; k < this->phash_size.y; k++) {
-					unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, state_index, this->phash_size.x, this->phash_size.y);
-					Vector3 ihm_point = this->ihm_clouds[ihm_data_index];
+		Vector3 width = upper - lower;
+		Vector4 state_data = Indexer::InverseFlatIndex4(state_index, ihm_generator.direction_count, width.x, width.y);
+		int direction_index = state_data.x;
+		Vector3 local_position{ state_data.y, state_data.z, state_data.w };
 
-					float query = Transform::Norm3(cloud_point - ihm_point);
+		Vector3 voxel_position = lower + local_position;
+		unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, ihm_generator.world_size_strided.x, ihm_generator.world_width_strided.y);
 
-					if (query < shortest_distance) {
-						shortest_distance = query;
-					}
+		if (!voxel_position.IsBounded(Vector::ZERO3(), ihm_generator.world_width_strided - 1)) {
+			return;
+		}
+
+		float distance = 0;
+		for (int i = 0; i < thread_units; i++) {
+			unsigned long long index_a0 = Indexer::FlatIndex2(i, threadIdx.x, thread_units);
+			unsigned long long index_b0 = index_a0 + Indexer::FlatIndex3(0, 0, ihm_state_index, this->phash_size.x, this->phash_size.y);
+
+			Vector3 a0 = cloud[index_a0];
+			Vector3 b0 = this->ihm_clouds[index_b0];
+
+			float shortest_a = 1000000000000;
+			float shortest_b = 1000000000000;
+			for (int j = 0; j < ihm_generator.phash_count; j++) {
+				unsigned long long index_a1 = j + Indexer::FlatIndex3(0, 0, ihm_state_index, this->phash_size.x, this->phash_size.y);
+				unsigned long long index_b1 = j;
+
+				Vector3 a1 = this->ihm_clouds[index_a1];
+				Vector3 b1 = cloud[index_b1];
+
+				float a_distance = Transform::Norm3(a1 - a0);
+				float b_distance = Transform::Norm3(b1 - b0);
+
+				if (a_distance < shortest_a) {
+					shortest_a = a_distance;
+				}
+
+				if (b_distance < shortest_b) {
+					shortest_b = b_distance;
 				}
 			}
 
-			distance0 += shortest_distance;
+			distance += shortest_a + shortest_b;
 		}
 
-		float distance1 = 0;
-		for (int j = 0; j < this->phash_size.x; j++) {
-			for (int k = 0; k < this->phash_size.y; k++) {
-				unsigned long long ihm_data_index = Indexer::FlatIndex3(k, j, state_index, this->phash_size.x, this->phash_size.y);
-				Vector3 ihm_point = this->ihm_clouds[ihm_data_index];
-				
-				float shortest_distance = 1000000000000;
-				for (int i = 0; i < this->phash_count; i++) {
-					Vector3 cloud_point = cloud[i];
-					float query = Transform::Norm3(cloud_point - ihm_point);
+		unsigned long long thread_buffer_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		buffer[thread_buffer_index] = distance;
 
-					if (query < shortest_distance) {
-						shortest_distance = query;
-					}
-				}
+		SyncThreads();
 
-				distance1 += shortest_distance;
-			}
+		if (threadIdx.x > 0) {
+			return;
 		}
 
-		distances[state_index] = (distance0 + distance1) / (2 * this->phash_count);
+		float chamfer_distance = 0;
+		for (int i = 0; i < blockDim.x; i++) {
+			unsigned long long buffer_index = Indexer::FlatIndex2(i, blockIdx.x, blockDim.x);
+			chamfer_distance += buffer[buffer_index];
+		}
 
-		if (state_index == 1018764) {
-			printf("<%.2f>\n", distances[state_index]);
+		distances[ihm_state_index] = chamfer_distance / (2 * this->phash_count);
+
+		if (ihm_state_index == 1018764) {
+			printf("%.2f <%lld %lld> [%.2f %.2f %.2f] {%.2f %.2f %.2f}\n", distances[ihm_state_index], state_index, ihm_state_index, local_position.x, local_position.y, local_position.z, voxel_position.x, voxel_position.y, voxel_position.z);
 		}
 	}
 

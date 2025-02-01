@@ -13,8 +13,9 @@ __global__ void CudaIhm::GetDifferenceVector_Kernel (IhmCortex ihm_cortex, byte*
     ihm_cortex.GetDifferenceVector(phash, difference_vector, difference_threshold);
 }
 
-__global__ void CudaIhm::GetChamferDistances_Kernel(IhmCortex ihm_cortex, Vector3* cloud, float* distances) {
-    ihm_cortex.GetChamferDistances(cloud, distances);
+__global__ void CudaIhm::GetChamferDistances_Kernel(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* cloud, float* distances, float* buffer, Vector3 lower, Vector3 upper, unsigned long long thread_units) {
+    void(*func_ptr)() = &CudaIhm::SyncThreads;
+    ihm_cortex.GetChamferDistances(ihm_generator, cloud, distances, buffer, lower, upper, thread_units, func_ptr);
 }
 
 __global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
@@ -124,24 +125,31 @@ byte* CudaIhm::GetDifferenceVector(IhmCortex ihm_cortex, byte* phash, bool is_ve
     return difference_vector;
 }
 
-float* CudaIhm::GetChamferDistances(IhmCortex ihm_cortex, Vector3* cloud) {
-    unsigned long long memory_size = ihm_cortex.state_count * sizeof(float);
-
+float* CudaIhm::GetChamferDistances(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* cloud, Vector3 lower, Vector3 upper) {
+    Vector3 width = upper - lower;
+    int state_count = width.x * width.y * width.z * ihm_generator.direction_count;
+    
     float* distances;
-    float* distances_cpu;
-    CudaError::CheckError((cudaError_enum)cudaMalloc(&distances, memory_size), __FILE__, __LINE__);
-    cudaMemset(distances, 0, memory_size);
+    unsigned long long distance_memory_size = state_count * sizeof(float);
+    CudaError::CheckError((cudaError_enum)cudaMalloc(&distances, distance_memory_size), __FILE__, __LINE__);
+    cudaMemset(distances, 0, distance_memory_size);
 
     dim3 threads_per_block(32, 1, 1);
 
-    unsigned long long block_count = ceil(ihm_cortex.state_count / threads_per_block.x);
+    unsigned long long thread_units = ceil(ihm_generator.phash_count / threads_per_block.x);
+    unsigned long long block_count = state_count;
 
     dim3 blocks_per_grid(block_count, 1, 1);
+
+    float* buffer;
+    unsigned long long buffer_memory_size = threads_per_block.x * blocks_per_grid.x * sizeof(float);
+    CudaError::CheckError((cudaError_enum)cudaMalloc(&buffer, buffer_memory_size), __FILE__, __LINE__);
+    cudaMemset(buffer, 0, buffer_memory_size);
 
     printf("    Getting Chamfer Distances:\n");
     printf("        Block Count: (%lld, %lld, %lld)\n", blocks_per_grid.x, blocks_per_grid.y, blocks_per_grid.z);
 
-    GetChamferDistances_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, cloud, distances);
+    GetChamferDistances_Kernel<<<blocks_per_grid, threads_per_block>>>(ihm_cortex, ihm_generator, cloud, distances, buffer, lower, upper, thread_units);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);

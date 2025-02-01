@@ -211,7 +211,13 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 void CpuEngine::VerifyIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	CudaIhm::GetChamferDistances(this->ihm_cortex, this->camera_list[0]->render_cloud);
+	Vector3 search_size{ 5, 5, 5 };
+	Vector3 anchor = (this->camera_list[0]->transform.position / this->ihm_generator.world_stride).Floor();
+
+	Vector3 lower = anchor - search_size;
+	Vector3 upper = anchor + search_size;
+
+	CudaIhm::GetChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, lower, upper);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
