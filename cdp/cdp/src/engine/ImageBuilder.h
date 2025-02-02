@@ -16,9 +16,9 @@ struct ImageBuilder {
 	}
 
 	__host__ __device__ void WritePixel(byte* img, Vector2 img_size, Vector2 position, Vector3 rgb) {
-		unsigned long long r_index = Indexer::FlatIndex3(0, position.x, position.y, 3, img_size.x);
-		unsigned long long g_index = Indexer::FlatIndex3(1, position.x, position.y, 3, img_size.x);
-		unsigned long long b_index = Indexer::FlatIndex3(2, position.x, position.y, 3, img_size.x);
+		unsigned long long r_index = Indexer::FlatIndex3(0, position.x, img_size.y - position.y - 1, 3, img_size.x);
+		unsigned long long g_index = Indexer::FlatIndex3(1, position.x, img_size.y - position.y - 1, 3, img_size.x);
+		unsigned long long b_index = Indexer::FlatIndex3(2, position.x, img_size.y - position.y - 1, 3, img_size.x);
 
 		img[r_index] = rgb.x;
 		img[g_index] = rgb.y;

@@ -40,7 +40,7 @@ class CpuEngine {
 		int node_count = 2;
 		Vector3 nodes[2] = {
 			Vector3{ 244, 40, 342 },
-			Vector3{ 329, 40, 485 }
+			Vector3{ 429, 40, 565 }
 		};
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
