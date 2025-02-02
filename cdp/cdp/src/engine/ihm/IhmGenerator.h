@@ -56,7 +56,7 @@ struct IhmGenerator {
 		this->bit_count = this->state_count * this->phash_count;
 		
 		int memory_size = this->direction_count * sizeof(Vector3);
-
+		
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->directions, memory_size), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->directions, this->directions_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}

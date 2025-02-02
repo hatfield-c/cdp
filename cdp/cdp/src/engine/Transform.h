@@ -573,6 +573,10 @@ struct Vector4 {
 
 		return result;
 	}
+
+	__host__ __device__ void Print(const char* prior = "", const char* posterior = "\n") {
+		printf("%s[%.2f %.2f %.2f %.2f]%s", prior, this->x, this->y, this->z, this->w, posterior);
+	}
 };
 
 struct Vector {

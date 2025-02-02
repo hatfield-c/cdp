@@ -203,7 +203,7 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Extracting point cloud from IHM...\n");
 	CudaIhm::ExtractRenderClouds(this->world_space->space_data, *this->camera_list[0], this->ihm_generator, ihm, ihm_clouds);
 
-	this->ihm_cortex.Init(ihm, ihm_cpu, ihm_clouds, this->ihm_generator.state_count);
+	this->ihm_cortex.Init(ihm, ihm_cpu, ihm_clouds, this->ihm_generator.direction_count);
 
 	printf("    Done!\n\n");
 }
@@ -211,13 +211,12 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 void CpuEngine::VerifyIhm(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-	Vector3 search_size{ 5, 5, 5 };
 	Vector3 anchor = (this->camera_list[0]->transform.position / this->ihm_generator.world_stride).Floor();
 
-	Vector3 lower = anchor - search_size;
-	Vector3 upper = anchor + search_size;
+	this->ihm_cortex.ResetDistanceBuffers();
 
-	CudaIhm::GetChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, lower, upper);
+	//CudaIhm::UpdateNearestDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
+	CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
