@@ -37,8 +37,8 @@ void MainApplication::GuiAction(GuiData gui_data) {
         this->engine->GenerateIhm(gui_data);
     }
 
-    if (gui_data.is_verify_ihm) {
-        this->engine->VerifyIhm(gui_data);
+    if (gui_data.is_playground) {
+        this->engine->Playground(gui_data);
     }
 
     if (gui_data.is_estimate_position) {

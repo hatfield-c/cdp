@@ -24,6 +24,7 @@
 
 #include "cuda/CudaCamera.cuh"
 #include "ihm/cuda/CudaIhm.cuh"
+#include "ihm/IhmEstimate.h"
 
 class CpuEngine {
 	public:
@@ -51,7 +52,7 @@ class CpuEngine {
 		void RenderUpdate(GuiData gui_data);
 		void GenerateIhm(GuiData gui_data);
 		void LoadIhm(GuiData gui_data);
-		void VerifyIhm(GuiData gui_data);
+		void Playground(GuiData gui_data);
 		void SaveConfusionMap(GuiData gui_data);
 		void EstimatePositionIhm(GuiData gui_data);
 		void RenderPathConfusion(GuiData gui_data);

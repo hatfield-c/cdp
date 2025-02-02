@@ -38,11 +38,11 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
-	this->drone_alpha.rigidbody.rotation = quat;
+	//this->drone_alpha.rigidbody.rotation = quat;
 	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
-	//this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
+	this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
 }
 
 void CpuEngine::Start(GuiData gui_data) {
@@ -208,7 +208,7 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Done!\n\n");
 }
 
-void CpuEngine::VerifyIhm(GuiData gui_data) {
+void CpuEngine::Playground(GuiData gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	Vector3 anchor = (this->camera_list[0]->transform.position / this->ihm_generator.world_stride).Floor();
@@ -219,11 +219,21 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	//for (int i = 0; i < 100; i++) {
 	CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
 	this->ihm_cortex.seed = ihm_cortex.NextSample(ihm_cortex.seed);
+
+	IhmEstimate estimate = this->ihm_cortex.EstimateIhmState();
+	Vector3 offset = estimate.position - this->ihm_cortex.search_radius;
+	Vector3 position = anchor + offset;
 	//}
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 	printf("        Time Elapsed: %d ms\n", time_lapsed);
+
+	printf("Ihm Estimate:\n");
+	printf("    Score: %.2f\n", estimate.chamfer_score);
+	printf("    Direction: %d\n", estimate.direction_index);
+	offset.Print("    Offset: ");
+	position.Print("    Position: ");
 }
 
 void CpuEngine::SaveConfusionMap(GuiData gui_data) {
@@ -291,14 +301,14 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 						anchor.x += 0;
 						anchor.z += 0;
 
-						Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
-						Vector3 estimate = estimates[0];
+						Vector3* estimates;// = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
+						Vector3 estimate;// = estimates[0];
 
 						if (Transform::Norm3(estimate) == 0) {
-							estimate = estimates[1];
+							//estimate = estimates[1];
 
 							if (Transform::Norm3(estimate) == 0) {
-								estimate = estimates[2];
+								//estimate = estimates[2];
 							}
 						}
 
@@ -335,19 +345,15 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 	anchor.x += 0;
 	anchor.z += 0;
-	Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, ihm_state.direction_index);
+	Vector3* estimates;// = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, ihm_state.direction_index);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
 	printf("        Time Elapsed: %d s\n", time_lapsed);
 	printf("\nTrue Position: {%.2f, %.2f, %.2f}\n", this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z);
-	printf("Estimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
-	printf("    Error: %.2f m\n", Transform::Norm3(estimates[0] - this->camera_list[0]->transform.position) / 10);
-	printf("Estimated Position1: {%.2f, %.2f, %.2f}\n", estimates[1].x, estimates[1].y, estimates[1].z);
-	printf("    Error: %.2f m\n", Transform::Norm3(estimates[1] - this->camera_list[0]->transform.position) / 10);
-	printf("Estimated Position2: {%.2f, %.2f, %.2f}\n", estimates[2].x, estimates[2].y, estimates[2].z);
-	printf("    Error: %.2f m\n\n", Transform::Norm3(estimates[2] - this->camera_list[0]->transform.position) / 10);
-
+	//printf("Estimated Position0: {%.2f, %.2f, %.2f}\n", estimates[0].x, estimates[0].y, estimates[0].z);
+	//printf("    Error: %.2f m\n", Transform::Norm3(estimates[0] - this->camera_list[0]->transform.position) / 10);
+	
 	//free(estimates);
 }
 
@@ -431,14 +437,14 @@ void CpuEngine::RenderPathConfusion(GuiData gui_data) {
 			Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 			anchor = anchor.Floor();
 
-			Vector3* estimates = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
-			Vector3 estimate = estimates[0];
+			Vector3* estimates;// = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
+			Vector3 estimate;// = estimates[0];
 
 			if (Transform::Norm3(estimate) == 0) {
-				estimate = estimates[1];
+				//estimate = estimates[1];
 
 				if (Transform::Norm3(estimate) == 0) {
-					estimate = estimates[2];
+					//estimate = estimates[2];
 				}
 			}
 

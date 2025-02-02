@@ -11,6 +11,7 @@
 #include "../Transform.h"
 #include "../Quaternion.h"
 #include "../Indexer.h"
+#include "IhmEstimate.h"
 
 typedef unsigned char byte;
 
@@ -54,7 +55,40 @@ struct IhmCortex {
 		this->chamfer_memory_size = state_count * sizeof(float);
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->chamfer_distances, this->chamfer_memory_size), __FILE__, __LINE__);
 
+		this->ResetDistanceBuffers();
+
 		this->seed = 5525;
+	}
+
+	IhmEstimate EstimateIhmState() {
+		float* chamfer_distances = new float[this->state_count];
+		int memory_size = this->state_count * sizeof(float);
+
+		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+		CudaError::CheckError((cudaError_enum)cudaMemcpy(chamfer_distances, this->chamfer_distances, memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+		IhmEstimate estimate{};
+
+		for (unsigned long long i = 0; i < this->state_count; i++) {
+			Vector4 index_data = Indexer::InverseFlatIndex4(i, this->direction_count, this->search_width.x, this->search_width.y);
+
+			float score = chamfer_distances[i];
+
+			if (i == 14652) {
+				//printf("[%d] %.2f ", i, score);
+				//index_data.Print();
+			}
+
+			if (score < estimate.chamfer_score) {
+				estimate.local_index = i;
+				estimate.chamfer_score = score;
+				estimate.direction_index = index_data.x;
+				estimate.position = Vector3{ index_data.y, index_data.z, index_data.w };
+			}
+		}
+
+		return estimate;
 	}
 
 	void ResetDistanceBuffers() {
@@ -77,6 +111,7 @@ struct IhmCortex {
 
 	__device__ void UpdateNearestDistances(IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor) {
 		unsigned long long region_pixel_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		this->pixel_distances[region_pixel_index] = 1000000000;
 		
 		Vector3 index_data = Indexer::InverseFlatIndex3(region_pixel_index, this->phash_size.x / 2, this->phash_size.y / 2);
 		Vector2 offset{};
@@ -90,9 +125,10 @@ struct IhmCortex {
 		offset.y = round(dice_roll);
 
 		Vector2 pixel_position = (Vector2{ index_data.x, index_data.y } * 2) + offset;
+		
 		unsigned long long region_state_index = index_data.z;
 		
-		Vector4 region_state_data = Indexer::InverseFlatIndex4(region_state_index, ihm_generator.direction_count, this->search_width.x, this->search_width.y);
+		Vector4 region_state_data = Indexer::InverseFlatIndex4(region_state_index, this->direction_count, this->search_width.x, this->search_width.y);
 		int direction_index = region_state_data.x;
 		Vector3 local_position{ region_state_data.y, region_state_data.z, region_state_data.w };
 		Vector3 voxel_position = anchor - this->search_radius + local_position;
@@ -134,14 +170,18 @@ struct IhmCortex {
 
 		//if (ihm_state_index == 1018764){//&& region_state_index == 15972) {
 		//if (local_position == Vector3{ 5, 5, 5 }){
-		if (ihm_state_index == 1018764 && index_data.x == 0 && index_data.y == 0) {
-			printf("%.2f <%lld %lld> (%.2f %.2f)-(%.2f %.2f)-(%.2f %.2f) [%.2f %.2f %.2f] {%.2f %.2f %.2f} %ld\n", this->pixel_distances[ihm_state_index], region_state_index, ihm_state_index, pixel_position.x, pixel_position.y, offset.x, offset.y, index_data.x, index_data.y, local_position.x, local_position.y, local_position.z, voxel_position.x, voxel_position.y, voxel_position.z, this->seed);
-		}
+		//if (ihm_state_index == 1018764 && index_data.x == 0 && index_data.y == 0) {
+			//printf("%.2f <%lld %lld> (%.2f %.2f)-(%.2f %.2f)-(%.2f %.2f) [%.2f %.2f %.2f] {%.2f %.2f %.2f} %ld\n", this->pixel_distances[ihm_state_index], region_state_index, ihm_state_index, pixel_position.x, pixel_position.y, offset.x, offset.y, index_data.x, index_data.y, local_position.x, local_position.y, local_position.z, voxel_position.x, voxel_position.y, voxel_position.z, this->seed);
+		//}
 	}
 
 	__device__ void UpdateChamferDistances(IhmGenerator ihm_generator) {
 		unsigned long long region_state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
-		
+
+		Vector4 index_data = Indexer::InverseFlatIndex4(region_state_index, this->direction_count, this->search_width.x, this->search_width.y);
+		int direction_index = index_data.x;
+		Vector3 local{ index_data.y, index_data.z, index_data.w };
+
 		if (region_state_index >= this->state_count) {
 			return;
 		}
@@ -155,113 +195,10 @@ struct IhmCortex {
 
 		this->chamfer_distances[region_state_index] = chamfer_distance / (2 * (this->phash_count / 4));
 
-		Vector4 index_data = Indexer::InverseFlatIndex4(region_state_index, this->direction_count, this->search_width.x, this->search_width.y);
-		int direction_index = index_data.x;
-		Vector3 local{ index_data.y, index_data.z, index_data.w };
-
-		if (local == Vector3{ 5, 5, 5 }){//&& index_data.x == 12) {
-			printf("%.2f <%lld> [%.2f %.2f %.2f] %d\n", this->chamfer_distances[region_state_index], region_state_index, local.x, local.y, local.z, direction_index);
+		if (local == Vector3{ 10, 10, 10 }){//&& index_data.x == 12) {
+		//if(this->chamfer_distances[region_state_index] < 0.2){
+			//printf("%.2f <%lld> [%.2f %.2f %.2f] %d\n", this->chamfer_distances[region_state_index], region_state_index, local.x, local.y, local.z, direction_index);
 		}
 	}
 
-	/*
-	__device__ void GetDifferenceVector(byte* phash, byte* difference_vector, unsigned long long difference_threshold = 0) {
-		unsigned long long state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
-
-		byte* ihm = this->ihm_cpu;
-
-		unsigned long long difference_count = 0;
-		for (int i = 0; i < this->phash_size.x; i++) {
-			for (int j = 0; j < this->phash_size.y; j++) {
-				unsigned long long ihm_index = Indexer::FlatIndex3(j, i, state_index, this->phash_size.x, this->phash_size.y);
-				int phash_index = Indexer::FlatIndex2(j, i, this->phash_size.x);
-
-				int phash_value = phash[phash_index];
-				int ihm_value = this->ihm[ihm_index];
-				int value_diff = phash_value - ihm_value;
-				value_diff = abs(value_diff);
-
-				if (value_diff > difference_threshold) {
-					difference_count++;
-				}
-			}
-		}
-
-		difference_count = Math::Clip(difference_count, 0, 255);
-		difference_vector[state_index] = difference_count;
-	}
-
-	__device__ void IndexReduction(int iteration, byte* difference_vector, unsigned long long* index_buffer, void(*SyncThreads)()) {
-		int units_per_block = this->thread_units * blockDim.x;
-		unsigned long long value_stride = pow(units_per_block, iteration);
-		
-		unsigned long long base_index = Indexer::FlatIndex3(0, threadIdx.x, blockIdx.x, this->thread_units, blockDim.x);
-		base_index = base_index * value_stride;
-
-		unsigned long long base_index_buffer = floor(((double)base_index) / ((double)this->thread_units));
-
-		if (base_index >= this->state_count) {
-			return;
-		}
-
-		byte lowest_value = 255;
-		unsigned long long lowest_unit;
-		unsigned long long unit_index_buffer;
-		for (int i = 0; i < this->thread_units; i++) {
-			unsigned long long unit_index = Indexer::FlatIndex3(i, threadIdx.x, blockIdx.x, this->thread_units, blockDim.x);
-			unit_index = unit_index * value_stride;
-
-			if (unit_index >= this->state_count) {
-				break;
-			}
-
-			byte difference_value = difference_vector[unit_index];
-
-			if (difference_value <= lowest_value) {
-				lowest_value = difference_value;
-
-				if (iteration == 0) {
-					lowest_unit = unit_index;
-				}
-				else {
-					unit_index_buffer = floor(((double)unit_index) / ((double)this->thread_units));
-					lowest_unit = index_buffer[unit_index_buffer];
-				}
-			}
-		}
-
-		difference_vector[base_index] = lowest_value;
-		index_buffer[base_index_buffer] = lowest_unit;
-
-		SyncThreads();
-
-		if (threadIdx.x > 0) {
-			return;
-		}
-
-		lowest_value = 255;
-		lowest_unit = 0;
-		for (int i = 0; i < blockDim.x; i++) {
-			unsigned long long unit_index = Indexer::FlatIndex3(0, i, blockIdx.x, this->thread_units, blockDim.x);
-
-			unit_index = unit_index * value_stride;
-
-			if (unit_index >= this->state_count) {
-				break;
-			}
-
-			byte difference_value = difference_vector[unit_index];
-
-			if (difference_value < lowest_value) {
-				lowest_value = difference_value;
-
-				unit_index_buffer = floor(((double)unit_index) / ((double)this->thread_units));
-				lowest_unit = index_buffer[unit_index_buffer];
-			}
-		}
-
-		difference_vector[base_index] = lowest_value;
-		index_buffer[base_index_buffer] = lowest_unit;
-	}
-	*/
 };
