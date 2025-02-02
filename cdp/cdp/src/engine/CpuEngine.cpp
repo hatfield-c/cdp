@@ -216,7 +216,10 @@ void CpuEngine::VerifyIhm(GuiData gui_data) {
 	this->ihm_cortex.ResetDistanceBuffers();
 
 	//CudaIhm::UpdateNearestDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
+	//for (int i = 0; i < 100; i++) {
 	CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
+	this->ihm_cortex.seed = ihm_cortex.NextSample(ihm_cortex.seed);
+	//}
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();

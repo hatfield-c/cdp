@@ -32,7 +32,7 @@ __global__ void CudaIhm::ExtractRenderClouds_Kernel(SpaceData space_data, Camera
 
 void CudaIhm::UpdateNearestDistances(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor) {
     dim3 threads_per_block(32, 1, 1);
-    unsigned long long block_count = ceil(ihm_cortex.pixel_count / (threads_per_block.x));
+    unsigned long long block_count = ceil(ihm_cortex.pixel_count / threads_per_block.x);
     dim3 blocks_per_grid(block_count, 1, 1);
 
     //printf("    Updating Nearest Pixel Distances:\n");
