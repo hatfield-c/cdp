@@ -10,11 +10,23 @@ struct GuiData {
 	std::string save_env_path = "";
 	std::string load_ihm_path = "";
 	std::string save_ihm_path = "";
+
+	// Camera
 	unsigned long long ihm_index = 0;//Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
 	Vector3 camera_position{ 48, 4, 42 };
 	int camera_rotation_index = 12;
 	int camera_index = 0;
 	int control_index = 0;
+
+	// Drone
+	Vector3 drone_voxel{};
+	Vector3 drone_position{};
+	Vector3 drone_forward{};
+	Vector4 drone_quaternion{};
+	Vector3 drone_velocity{};
+	Vector3 drone_angular_velocity{};
+
+	// Buttons
 	bool is_playground = false;
 	bool is_estimate_position = false;
 	bool is_save_confusion = false;

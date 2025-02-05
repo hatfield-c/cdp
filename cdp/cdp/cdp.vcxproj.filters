@@ -66,9 +66,6 @@
     <ClCompile Include="src\engine\CpuEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\entity\DroneAlpha.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\system\MainApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

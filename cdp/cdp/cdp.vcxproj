@@ -157,7 +157,6 @@
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\engine\CpuEngine.cpp" />
     <ClCompile Include="src\engine\WorldSpace.cpp" />
-    <ClCompile Include="src\entity\DroneAlpha.cpp" />
     <ClCompile Include="src\main.cpp">
       <FileType>Document</FileType>
     </ClCompile>

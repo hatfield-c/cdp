@@ -15,5 +15,5 @@ public:
 
 	MainApplication();
 	void Run();
-	void GuiAction(GuiData gui_data);
+	void GuiAction(GuiData* gui_data);
 };

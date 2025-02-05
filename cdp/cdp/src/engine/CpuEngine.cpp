@@ -45,14 +45,14 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	//this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
 }
 
-void CpuEngine::Start(GuiData gui_data) {
+void CpuEngine::Start(GuiData* gui_data) {
 	this->cycle_count = 0;
 
 	this->camera_list[0]->transform.position = Vector3{ 780, 40, 300 };
 	this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 1.35, 0 });
 }
 
-void CpuEngine::Update(GuiData gui_data) {
+void CpuEngine::Update(GuiData* gui_data) {
 	this->ScenarioUpdate(gui_data);
 	this->PhysicsUpdate(gui_data);
 	this->RenderUpdate(gui_data);
@@ -69,27 +69,14 @@ void CpuEngine::Update(GuiData gui_data) {
 	this->frame_begin_time = std::chrono::steady_clock::now();
 }
 
-void CpuEngine::End(GuiData gui_data) {
+void CpuEngine::End(GuiData* gui_data) {
 	
 }
 
-void CpuEngine::ScenarioUpdate(GuiData gui_data) {
-	/*Vector3 target_location{480, 40, 420};
+void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 
-	Vector3 offset = this->camera_list[0]->transform.position - target_location;
-	Vector4 rotation_amount = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 0.003, 0 });
-	Vector3 new_position = Quaternion::RotatePoint(offset, rotation_amount) + target_location;
-
-	this->camera_list[0]->transform.position = new_position;
-
-	Vector4 camera_rotation = Quaternion::MultiplyQuaternions(rotation_amount, this->camera_list[0]->transform.rotation, false);
-
-	this->camera_list[0]->transform.rotation = camera_rotation;
-	this->camera_list[0]->vote_threshold = gui_data.vote_threshold;
-	*/
-
-	if (gui_data.control_index != 0) {
-		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data.ihm_index, false);
+	if (gui_data->control_index != 0) {
+		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);
 
 		this->camera_list[0]->transform.position = ihm_state.position;
 		this->camera_list[0]->transform.rotation = ihm_state.rotation;
@@ -98,12 +85,19 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
 		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.rotation;
 
-		gui_data.camera_position = this->drone_alpha.rigidbody.position;
+		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 	}
+
+	gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride).Floor();
+	gui_data->drone_position = this->drone_alpha.rigidbody.position;
+	gui_data->drone_forward = Quaternion::RotatePoint(Vector::FORWARD(), this->drone_alpha.rigidbody.rotation);
+	gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
+	gui_data->drone_velocity = this->drone_alpha.rigidbody.velocity;
+	gui_data->drone_angular_velocity = this->drone_alpha.rigidbody.angular_velocity;
 
 	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
-		gui_data.ihm_index,
+		gui_data->ihm_index,
 		this->camera_list[0]->transform.position.x, this->camera_list[0]->transform.position.y, this->camera_list[0]->transform.position.z,
 		this->camera_list[0]->transform.rotation.x, this->camera_list[0]->transform.rotation.y, this->camera_list[0]->transform.rotation.z, this->camera_list[0]->transform.rotation.w,
 		this->drone_alpha.rigidbody.velocity.x, this->drone_alpha.rigidbody.velocity.y, this->drone_alpha.rigidbody.velocity.z,
@@ -111,7 +105,7 @@ void CpuEngine::ScenarioUpdate(GuiData gui_data) {
 	);*/
 }
 
-void CpuEngine::PhysicsUpdate(GuiData gui_data) {
+void CpuEngine::PhysicsUpdate(GuiData* gui_data) {
 	Vector3 wind = Vector::ZERO3();
 
 	//this->drone_alpha.rigidbody.Accelerate(Physics::Gravity());
@@ -119,8 +113,8 @@ void CpuEngine::PhysicsUpdate(GuiData gui_data) {
 	this->drone_alpha.rigidbody.Update();
 }
 
-void CpuEngine::RenderUpdate(GuiData gui_data) {
-	int camera_index = gui_data.camera_index;
+void CpuEngine::RenderUpdate(GuiData* gui_data) {
+	int camera_index = gui_data->camera_index;
 
 	CudaCamera::RenderCamera(*this->camera_list[camera_index], this->world_space->space_data);
 	cudaDeviceSynchronize();
@@ -131,10 +125,10 @@ void CpuEngine::RenderUpdate(GuiData gui_data) {
 	//std::cin.ignore();
 }
 
-void CpuEngine::GenerateIhm(GuiData gui_data) {
+void CpuEngine::GenerateIhm(GuiData* gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	
-	printf("Saving IHM at path: %s\n", gui_data.save_ihm_path.c_str());
+	printf("Saving IHM at path: %s\n", gui_data->save_ihm_path.c_str());
 
 	Camera camera = *this->camera_list[0];
 	unsigned long long memory_size = this->ihm_generator.bit_count * sizeof(byte);
@@ -153,9 +147,9 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 
 	printf("    Saving IHM to disk...\n");
 	FILE* out_file;
-	fopen_s(&out_file, gui_data.save_ihm_path.c_str(), "wb");
+	fopen_s(&out_file, gui_data->save_ihm_path.c_str(), "wb");
 	if (out_file == NULL) {
-		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", gui_data.save_ihm_path.c_str());
+		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", gui_data->save_ihm_path.c_str());
 		exit(1);
 	}
 	int result = fwrite(ihm_cpu, sizeof(byte), memory_size, out_file);
@@ -168,8 +162,8 @@ void CpuEngine::GenerateIhm(GuiData gui_data) {
 	printf("        Time Elapsed: %d s\n", time_lapsed);
 }
 
-void CpuEngine::LoadIhm(GuiData gui_data) {
-	printf("Loading IHM at path: %s\n", gui_data.load_ihm_path.c_str());
+void CpuEngine::LoadIhm(GuiData* gui_data) {
+	printf("Loading IHM at path: %s\n", gui_data->load_ihm_path.c_str());
 
 	unsigned long long phash_memory_size = this->ihm_generator.bit_count * sizeof(byte);
 	printf("    Allocating IHM CPU memory...\n");
@@ -189,9 +183,9 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Loading IHM from disk...\n");
 
 	FILE* in_file;
-	fopen_s(&in_file, gui_data.load_ihm_path.c_str(), "rb");
+	fopen_s(&in_file, gui_data->load_ihm_path.c_str(), "rb");
 	if (in_file == NULL) {
-		printf("\n\nWarning: File did not open when loading IHM:\n    %s!\n", gui_data.load_ihm_path.c_str());
+		printf("\n\nWarning: File did not open when loading IHM:\n    %s!\n", gui_data->load_ihm_path.c_str());
 		exit(1);
 	}
 	int result = fread(ihm_cpu, sizeof(byte), phash_memory_size, in_file);
@@ -208,11 +202,11 @@ void CpuEngine::LoadIhm(GuiData gui_data) {
 	printf("    Done!\n\n");
 }
 
-void CpuEngine::Playground(GuiData gui_data) {
+void CpuEngine::Playground(GuiData* gui_data) {
 	
 }
 
-void CpuEngine::SaveConfusionMap(GuiData gui_data) {
+void CpuEngine::SaveConfusionMap(GuiData* gui_data) {
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
 	Vector3 chunk_size{ 100, 1, 100 };
@@ -222,8 +216,8 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 
 	//Vector2 chunks_lower{ 0, 0 };
 	//Vector2 chunks_upper{ chunk_count.x, chunk_count.z };
-	Vector2 chunks_lower{ 2, 3 };
-	Vector2 chunks_upper{ 3, 4 };
+	Vector2 chunks_lower{ 8, 7 };
+	Vector2 chunks_upper{ 9, 8 };
 
 	Camera camera = *this->camera_list[0];
 	unsigned long long byte_count = chunked_size.x * chunked_size.z * 3;
@@ -250,7 +244,7 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 				for (int j = 0; j < chunk_size.z; j += 1) {
 
 					unsigned long long x_index = Indexer::FlatIndex2(j, w, chunk_size.x);
-					unsigned long long y_index = chunk_size.z - Indexer::FlatIndex2(i, h, chunk_size.z) - 1;
+					unsigned long long y_index = Indexer::FlatIndex2(i, h, chunk_size.z);
 
 					unsigned long long r_index = Indexer::FlatIndex3(0, x_index, y_index, 3, render_size.x);
 					unsigned long long g_index = Indexer::FlatIndex3(1, x_index, y_index, 3, render_size.x);
@@ -272,23 +266,21 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 						this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[direction_index]);
 						this->RenderUpdate(gui_data);
 
+						byte* phash_cpu = this->camera_list[0]->GetPhash();
 						Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 						anchor = anchor.Floor();
-						anchor.x += 0;
-						anchor.z += 0;
 
-						Vector3* estimates;// = CudaIhm::EstimatePosition(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->phash_data, anchor, direction_index, false);
-						Vector3 estimate;// = estimates[0];
+						this->ihm_cortex.ResetDistanceBuffers();
+						CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
+						this->ihm_cortex.seed = ihm_cortex.NextSample(ihm_cortex.seed);
 
-						if (Transform::Norm3(estimate) == 0) {
-							//estimate = estimates[1];
+						IhmEstimate estimate = this->ihm_cortex.EstimateIhmState();
+						Vector3 offset = estimate.position - this->ihm_cortex.search_radius;
+						Vector3 position = anchor + offset;
 
-							if (Transform::Norm3(estimate) == 0) {
-								//estimate = estimates[2];
-							}
-						}
+						Vector3 estimate_voxel = position * this->ihm_generator.world_stride;
 
-						float score = Transform::Norm3(this->camera_list[0]->transform.position - estimate);
+						float score = Transform::Norm3(this->camera_list[0]->transform.position - estimate_voxel);
 						score = (255.0 / 100.0) * score;
 						score = Math::Clip(score, 0.0, 255.0);
 
@@ -314,7 +306,7 @@ void CpuEngine::SaveConfusionMap(GuiData gui_data) {
 	printf("Done!\n");
 }
 
-void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
+void CpuEngine::EstimatePositionIhm(GuiData* gui_data) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	Vector3 anchor = (this->camera_list[0]->transform.position / this->ihm_generator.world_stride).Floor();
@@ -339,7 +331,7 @@ void CpuEngine::EstimatePositionIhm(GuiData gui_data) {
 	position.Print("    Position: ");
 }
 
-void CpuEngine::RenderPathConfusion(GuiData gui_data) {
+void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
 	std::string save_path = "./data/results/path_confusion.jpg";

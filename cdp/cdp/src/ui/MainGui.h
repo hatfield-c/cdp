@@ -26,7 +26,7 @@ class MainGui {
 
 		std::vector<std::string> camera_labels{};
 
-		GuiData gui_data{};
+		GuiData* gui_data = new GuiData{};
 
 		ImGui::FileBrowser load_env_dialog;
 		ImGui::FileBrowser save_env_dialog;

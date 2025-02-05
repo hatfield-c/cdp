@@ -28,11 +28,11 @@ MainGui::MainGui(int camera_count) {
         Vector3{ 10, 10, 10 },
         Vector2{ 16, 16 }
     );
-    this->gui_data.ihm_index = Indexer::FlatIndex4(
-        this->gui_data.camera_rotation_index, 
-        this->gui_data.camera_position.x, 
-        this->gui_data.camera_position.y,
-        this->gui_data.camera_position.z,
+    this->gui_data->ihm_index = Indexer::FlatIndex4(
+        this->gui_data->camera_rotation_index, 
+        this->gui_data->camera_position.x, 
+        this->gui_data->camera_position.y,
+        this->gui_data->camera_position.z,
         this->ihm_generator.direction_count, 
         this->ihm_generator.world_width_strided.x, 
         this->ihm_generator.world_width_strided.y
@@ -63,38 +63,38 @@ void MainGui::Update() {
 }
 
 void MainGui::RefreshGuiData() {
-    this->gui_data.is_window_open = !this->IsWindowClosed();
+    this->gui_data->is_window_open = !this->IsWindowClosed();
 
-    this->gui_data.camera_index = this->camera_index;
+    this->gui_data->camera_index = this->camera_index;
 
     if (this->load_env_dialog.HasSelected()) {
-        this->gui_data.load_env_path = this->load_env_dialog.GetSelected().string();
+        this->gui_data->load_env_path = this->load_env_dialog.GetSelected().string();
         this->load_env_dialog.ClearSelected();
     } else {
-        this->gui_data.load_env_path = "";
+        this->gui_data->load_env_path = "";
     }
 
     if (this->save_env_dialog.HasSelected()) {
-        this->gui_data.save_env_path = this->save_env_dialog.GetSelected().string();
+        this->gui_data->save_env_path = this->save_env_dialog.GetSelected().string();
         this->save_env_dialog.ClearSelected();
     } else {
-        this->gui_data.save_env_path = "";
+        this->gui_data->save_env_path = "";
     }
 
     if (this->load_ihm_dialog.HasSelected()) {
-        this->gui_data.load_ihm_path = this->load_ihm_dialog.GetSelected().string();
+        this->gui_data->load_ihm_path = this->load_ihm_dialog.GetSelected().string();
         this->load_ihm_dialog.ClearSelected();
     }
     else {
-        this->gui_data.load_ihm_path = "";
+        this->gui_data->load_ihm_path = "";
     }
 
     if (this->save_ihm_dialog.HasSelected()) {
-        this->gui_data.save_ihm_path = this->save_ihm_dialog.GetSelected().string();
+        this->gui_data->save_ihm_path = this->save_ihm_dialog.GetSelected().string();
         this->save_ihm_dialog.ClearSelected();
     }
     else {
-        this->gui_data.save_ihm_path = "";
+        this->gui_data->save_ihm_path = "";
     }
 }
 
@@ -170,7 +170,7 @@ void MainGui::DrawViewport() {
     ImVec2 img_size = ImGui::GetContentRegionAvail();
     ImTextureID image_texture = (ImTextureID)this->vulkan_pipeline->texture_list[1]->instance_descriptor;
 
-    if(this->gui_data.is_simulating and this->camera_count > 0) {
+    if(this->gui_data->is_simulating and this->camera_count > 0) {
         if (this->render_texture == 0) {
             image_texture = (ImTextureID)this->vulkan_pipeline->depth_textures[this->camera_index]->instance_descriptor;
         }
@@ -189,8 +189,8 @@ void MainGui::DrawViewport() {
 }
 
 void MainGui::DrawInspector() {
-    ImGui::SetNextWindowSize(ImVec2(300, 660), ImGuiCond_Once);
-    ImGui::SetNextWindowPos(ImVec2(940, 30), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(340, 660), ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(900, 30), ImGuiCond_Once);
 
     ImGui::Begin("Inspector");
 
@@ -201,7 +201,7 @@ void MainGui::DrawInspector() {
     }
 
     if (!ImGui::CollapsingHeader("Simulation")) {
-        this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data.is_simulating);
+        this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data->is_simulating);
         this->DrawCameraSelector();
 
         ImGui::AlignTextToFramePadding();
@@ -218,22 +218,22 @@ void MainGui::DrawInspector() {
         ImGui::Text("Control Method");
         ImGui::SameLine();
         const char* selector_options[] = { "None", "IHM Index", "Camera State", "Keyboard" };
-        ImGui::Combo("##control_selector", &this->gui_data.control_index, selector_options, IM_ARRAYSIZE(selector_options));
+        ImGui::Combo("##control_selector", &this->gui_data->control_index, selector_options, IM_ARRAYSIZE(selector_options));
 
         ImGui::Separator();
 
-        unsigned long long ihm_index = this->gui_data.ihm_index;
+        unsigned long long ihm_index = this->gui_data->ihm_index;
 
-        float camera_position[3] = { this->gui_data.camera_position.x, this->gui_data.camera_position.y, this->gui_data.camera_position.z };
-        int direction_index = this->gui_data.camera_rotation_index;
+        float camera_position[3] = { this->gui_data->camera_position.x, this->gui_data->camera_position.y, this->gui_data->camera_position.z };
+        int direction_index = this->gui_data->camera_rotation_index;
         ImGuiInputTextFlags_ ihm_index_flag = ImGuiInputTextFlags_None;
         ImGuiInputTextFlags_ camera_state_flag = ImGuiInputTextFlags_None;
         
-        if (this->gui_data.control_index == 0) {
+        if (this->gui_data->control_index == 0) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
             camera_state_flag = ImGuiInputTextFlags_ReadOnly;
         }
-        else if (this->gui_data.control_index == 1) {
+        else if (this->gui_data->control_index == 1) {
             camera_state_flag = ImGuiInputTextFlags_ReadOnly;
             IhmState ihm_state = this->ihm_generator.GetIhmState(ihm_index, false);
 
@@ -242,11 +242,11 @@ void MainGui::DrawInspector() {
             camera_position[2] = ihm_state.position_strided.z;
             direction_index = ihm_state.direction_index;
         }
-        else if (this->gui_data.control_index == 2) {
+        else if (this->gui_data->control_index == 2) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
             ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }
-        else if (this->gui_data.control_index == 3) {
+        else if (this->gui_data->control_index == 3) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
             camera_state_flag = ImGuiInputTextFlags_ReadOnly;
 
@@ -307,22 +307,61 @@ void MainGui::DrawInspector() {
         ImGui::SameLine();
         ImGui::InputInt("##direction_index", &direction_index, 1, 100, camera_state_flag);
 
-        this->gui_data.ihm_index = ihm_index;
-        this->gui_data.camera_position.x = camera_position[0];
-        this->gui_data.camera_position.y = camera_position[1];
-        this->gui_data.camera_position.z = camera_position[2];
-        this->gui_data.camera_rotation_index = direction_index;
+        this->gui_data->ihm_index = ihm_index;
+        this->gui_data->camera_position.x = camera_position[0];
+        this->gui_data->camera_position.y = camera_position[1];
+        this->gui_data->camera_position.z = camera_position[2];
+        this->gui_data->camera_rotation_index = direction_index;
+    }
+
+    if (!ImGui::CollapsingHeader("Drone Alpha")) {
+        float drone_voxel[3] = { this->gui_data->drone_voxel.x, this->gui_data->drone_voxel.y, this->gui_data->drone_voxel.z };
+        float drone_position[3] = { this->gui_data->drone_position.x, this->gui_data->drone_position.y, this->gui_data->drone_position.z };
+        float drone_forward[3] = { this->gui_data->drone_forward.x, this->gui_data->drone_forward.y, this->gui_data->drone_forward.z };
+        float drone_quaternion[4] = { this->gui_data->drone_quaternion.x, this->gui_data->drone_quaternion.y, this->gui_data->drone_quaternion.z, this->gui_data->drone_quaternion.w };
+        float drone_velocity[3] = { this->gui_data->drone_velocity.x, this->gui_data->drone_velocity.y, this->gui_data->drone_velocity.z };
+        float drone_angular_velocity[3] = { this->gui_data->drone_angular_velocity.x, this->gui_data->drone_angular_velocity.y, this->gui_data->drone_angular_velocity.z };
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Voxel");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##drone_voxel", drone_voxel, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Position");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##drone_position", drone_position, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Forward");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##drone_forward", drone_forward, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Quaternion");
+        ImGui::SameLine();
+        ImGui::InputFloat4("##drone_quaternion", drone_quaternion, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Velocity");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##drone_velocity", drone_velocity, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Angular Velocity");
+        ImGui::SameLine();
+        ImGui::InputFloat3("##drone_angular_velocity", drone_angular_velocity, NULL, ImGuiInputTextFlags_ReadOnly);
     }
 
     if (ImGui::CollapsingHeader("World Building")) {
-        this->gui_data.is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
+        this->gui_data->is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
     }
 
     if (ImGui::CollapsingHeader("IHM Testing")) {
-        this->gui_data.is_playground = ImGui::Button("Playground");
-        this->gui_data.is_estimate_position = ImGui::Button("Estimate Position");
-        this->gui_data.is_save_confusion = ImGui::Button("Save Confusion Map");
-        this->gui_data.is_render_path_confusion = ImGui::Button("Render Path Confusion");
+        this->gui_data->is_playground = ImGui::Button("Playground");
+        this->gui_data->is_estimate_position = ImGui::Button("Estimate Position");
+        this->gui_data->is_save_confusion = ImGui::Button("Save Confusion Map");
+        this->gui_data->is_render_path_confusion = ImGui::Button("Render Path Confusion");
     }
 
     ImGui::End();
