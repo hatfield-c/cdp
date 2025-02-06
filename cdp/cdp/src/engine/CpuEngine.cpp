@@ -33,7 +33,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
-	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 2);
+	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, -Math::Pi() / 4);
 	Vector4 quat = x_rot;// Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
 	//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
@@ -84,13 +84,13 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 
 	if (gui_data->control_index == 0) {
 		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
-		this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->drone_alpha.rigidbody.Forward());
+		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 	}
 	else if (gui_data->control_index == 4) {
 		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
-		this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->drone_alpha.rigidbody.Forward());
+		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
 		this->drone_alpha.Command(gui_data->keyboard);
 	}
@@ -100,7 +100,6 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 		this->camera_list[0]->transform.position = ihm_state.position;
 		this->camera_list[0]->transform.rotation = ihm_state.rotation;
 	}
-
 
 	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
@@ -118,6 +117,8 @@ void CpuEngine::PhysicsUpdate(GuiData* gui_data) {
 	//this->drone_alpha.rigidbody.Accelerate(Physics::Gravity());
 	this->drone_alpha.rigidbody.AirResistance(wind);
 	this->drone_alpha.rigidbody.Update();
+
+	this->drone_alpha.rigidbody.position = this->drone_alpha.rigidbody.position.Clip(Vector::ZERO3(), this->ihm_generator.world_size_strided - 0.1);
 }
 
 void CpuEngine::RenderUpdate(GuiData* gui_data) {

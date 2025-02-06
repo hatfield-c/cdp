@@ -285,22 +285,22 @@ void MainGui::DrawInspector() {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
             camera_state_flag = ImGuiInputTextFlags_ReadOnly;
 
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_W))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_W))) {
                 this->gui_data->keyboard.z = 1;
             }
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_S))) {
                 this->gui_data->keyboard.z = -1;
             }
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_A))) {
                 this->gui_data->keyboard.x = -1;
             }
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_D))) {
                 this->gui_data->keyboard.x = 1;
             }
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Q))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_Q))) {
                 this->gui_data->keyboard.y = -1;
             }
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_E))) {
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_E))) {
                 this->gui_data->keyboard.y = 1;
             }
         }

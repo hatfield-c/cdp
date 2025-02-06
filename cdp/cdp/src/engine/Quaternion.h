@@ -14,6 +14,7 @@ struct Quaternion {
         return conjugate;
     }
 
+    // q0 is delta q1 is orig. need to change
     static __host__ __device__ Vector4 MultiplyQuaternions(Vector4 q0, Vector4 q1, bool is_normalized) {
         Vector4 result{
             (q0.w * q1.x) + (q0.x * q1.w) + (q0.y * q1.z) - (q0.z * q1.y),
@@ -69,11 +70,13 @@ struct Quaternion {
         float sin_val = sin(angle / 2);
 
         Vector4 quaternion{
-            sin_val * axis.x,
+            -sin_val * axis.x,
             -sin_val * axis.y,
-            sin_val * axis.z,
+            -sin_val * axis.z,
             cos(angle / 2),
         };
+
+        quaternion = Transform::Unit4(quaternion);
 
         return quaternion;
     }

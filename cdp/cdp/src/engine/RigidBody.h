@@ -56,4 +56,11 @@ struct Rigidbody {
 		return Quaternion::RotatePoint(Vector::FORWARD(), this->rotation);
 	}
 
+	Vector4 ForwardQuaternion() {
+		Vector3 up = this->Up();
+		Vector4 delta = Quaternion::QuaternionFromEulerParams(up, Math::Pi() / 2);
+
+		return Quaternion::MultiplyQuaternions(delta, this->rotation, true);
+	}
+
 };

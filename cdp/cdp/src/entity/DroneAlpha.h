@@ -11,16 +11,18 @@ struct DroneAlpha {
 	float yaw_speed = 0.5;
 	float yaw_max = 1;
 
-	float roll_target = 45.0;
+	float roll_speed = 0.03;
+	float roll_max = Math::Pi() / 6;
 
 	float climb_speed = 0.3;
-	float climb_max = 0.5;
+	float climb_max = 2;
 
 	void Init() {
 		this->rigidbody.Init();
 	}
 
 	void Command(Vector3 command) {
+
 		float yaw_delta = -command.x * this->yaw_speed;
 		this->rigidbody.angular_velocity.y += yaw_delta;
 		this->rigidbody.angular_velocity.y = Math::Clip(this->rigidbody.angular_velocity.y, -this->yaw_max, this->yaw_max);
@@ -30,9 +32,9 @@ struct DroneAlpha {
 		Vector3 acceleration = body_forward * this->forward_speed * command.z;
 		
 		acceleration.y += command.y * this->climb_speed;
-		acceleration.y = Math::Clip(acceleration.y, -this->climb_max, this->climb_max);
 
 		this->rigidbody.velocity += acceleration;
+		this->rigidbody.velocity.y = Math::Clip(this->rigidbody.velocity.y, -this->climb_max, this->climb_max);
 
 		Vector3 planar_velocity{ this->rigidbody.velocity.x, 0, this->rigidbody.velocity.z };
 		float speed = Transform::Norm3(planar_velocity);
@@ -42,6 +44,33 @@ struct DroneAlpha {
 
 			this->rigidbody.velocity.x = planar_velocity.x;
 			this->rigidbody.velocity.z = planar_velocity.z;
+		}
+
+		float roll_amount = this->roll_speed * -command.x;
+		Vector4 roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
+		this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
+
+		Vector3 right = this->rigidbody.Right();
+		float xy_distance = Transform::Norm2(Vector2{right.x, right.z});
+		float theta = Quaternion::Atan2(xy_distance, right.y);
+		float theta_val = abs(theta);
+		
+		float roll_target = this->roll_max;
+		float roll_sign = 1;
+
+		if (theta < 0) {
+			roll_sign = -1;
+		}
+
+		if (command.x == 0) {
+			roll_target = theta_val * 0.95;
+		}
+		
+		if (theta_val > roll_target) {
+			roll_amount = (theta_val - roll_target) * roll_sign;
+			roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
+
+			this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
 		}
 
 		if (command.x == 0) {
