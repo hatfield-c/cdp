@@ -211,13 +211,12 @@ void MainGui::DrawInspector() {
     }
 
     if (!ImGui::CollapsingHeader("Camera")) {
-        int min_val = 0;
-        int max_val = 8;
+        this->gui_data->keyboard = Vector::ZERO3();
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Control Method");
         ImGui::SameLine();
-        const char* selector_options[] = { "None", "IHM Index", "Camera State", "Keyboard" };
+        const char* selector_options[] = { "None", "IHM Index", "Camera State", "IHM Keyboard", "Drone Keyboard"};
         ImGui::Combo("##control_selector", &this->gui_data->control_index, selector_options, IM_ARRAYSIZE(selector_options));
 
         ImGui::Separator();
@@ -282,6 +281,29 @@ void MainGui::DrawInspector() {
 
             ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }
+        else if (this->gui_data->control_index == 4) {
+            ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
+            camera_state_flag = ImGuiInputTextFlags_ReadOnly;
+
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_W))) {
+                this->gui_data->keyboard.z = 1;
+            }
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S))) {
+                this->gui_data->keyboard.z = -1;
+            }
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A))) {
+                this->gui_data->keyboard.x = -1;
+            }
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D))) {
+                this->gui_data->keyboard.x = 1;
+            }
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Q))) {
+                this->gui_data->keyboard.y = -1;
+            }
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_E))) {
+                this->gui_data->keyboard.y = 1;
+            }
+        }
 
         Vector3 direction = this->ihm_generator.directions_cpu[direction_index];
         float camera_direction[3] = { direction.x, direction.y, direction.z };
@@ -319,6 +341,7 @@ void MainGui::DrawInspector() {
         float drone_position[3] = { this->gui_data->drone_position.x, this->gui_data->drone_position.y, this->gui_data->drone_position.z };
         float drone_forward[3] = { this->gui_data->drone_forward.x, this->gui_data->drone_forward.y, this->gui_data->drone_forward.z };
         float drone_quaternion[4] = { this->gui_data->drone_quaternion.x, this->gui_data->drone_quaternion.y, this->gui_data->drone_quaternion.z, this->gui_data->drone_quaternion.w };
+        float drone_speed[1] = { Transform::Norm3(this->gui_data->drone_velocity) };
         float drone_velocity[3] = { this->gui_data->drone_velocity.x, this->gui_data->drone_velocity.y, this->gui_data->drone_velocity.z };
         float drone_angular_velocity[3] = { this->gui_data->drone_angular_velocity.x, this->gui_data->drone_angular_velocity.y, this->gui_data->drone_angular_velocity.z };
 
@@ -346,6 +369,11 @@ void MainGui::DrawInspector() {
         ImGui::Text("Velocity");
         ImGui::SameLine();
         ImGui::InputFloat3("##drone_velocity", drone_velocity, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Speed");
+        ImGui::SameLine();
+        ImGui::InputFloat("##drone_speed", drone_speed, NULL, ImGuiInputTextFlags_ReadOnly);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Angular Velocity");

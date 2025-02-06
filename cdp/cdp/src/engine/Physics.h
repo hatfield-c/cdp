@@ -12,7 +12,7 @@
 
 struct Physics {
     static __host__ __device__ float DeltaTime() {
-        return 1.0f / 60.0f;
+        return 1.0f / 20.0f;
     }
 
     static __host__ __device__ float DeltaTimeMilli() {

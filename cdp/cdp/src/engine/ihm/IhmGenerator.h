@@ -152,7 +152,7 @@ struct IhmGenerator {
 		Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
 		Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
-		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, ihm_state.rotation, false);
+		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, ihm_state.rotation, true);
 		Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_size, camera->fov, ray_rotation);
 		float depth = (depth_val / 256.0) * camera->max_distance;
 

@@ -182,7 +182,7 @@ struct Camera {
         Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
         Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
-        Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, this->transform.rotation, false);
+        Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, this->transform.rotation, true);
         Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, ray_rotation);
         float depth = (phash_val / 256.0) * this->max_distance;
 

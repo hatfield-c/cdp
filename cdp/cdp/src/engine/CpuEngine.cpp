@@ -26,11 +26,11 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	Vector3 node0 = this->nodes[0];
 	Vector3 node1 = this->nodes[1];
 	Vector3 direction = Transform::Unit3(node1 - node0);
-	//direction = Vector3{ 0, 0, 1 };
+	direction = Vector3{ 1, 0, 0 };
 
 	this->drone_alpha.Init();
 	this->drone_alpha.rigidbody.position = node0 / 10;
-	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
+	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
 	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 2);
@@ -39,7 +39,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
 	//this->drone_alpha.rigidbody.rotation = quat;
-	this->drone_alpha.rigidbody.velocity = direction;
+	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
 	//this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
@@ -75,25 +75,32 @@ void CpuEngine::End(GuiData* gui_data) {
 
 void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 
-	if (gui_data->control_index != 0) {
-		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);
-
-		this->camera_list[0]->transform.position = ihm_state.position;
-		this->camera_list[0]->transform.rotation = ihm_state.rotation;
-	}
-	else {
-		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
-		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.rotation;
-
-		gui_data->camera_position = this->drone_alpha.rigidbody.position;
-	}
-
 	gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride).Floor();
 	gui_data->drone_position = this->drone_alpha.rigidbody.position;
 	gui_data->drone_forward = Quaternion::RotatePoint(Vector::FORWARD(), this->drone_alpha.rigidbody.rotation);
 	gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
 	gui_data->drone_velocity = this->drone_alpha.rigidbody.velocity;
 	gui_data->drone_angular_velocity = this->drone_alpha.rigidbody.angular_velocity;
+
+	if (gui_data->control_index == 0) {
+		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+		this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->drone_alpha.rigidbody.Forward());
+
+		gui_data->camera_position = this->drone_alpha.rigidbody.position;
+	}
+	else if (gui_data->control_index == 4) {
+		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+		this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->drone_alpha.rigidbody.Forward());
+
+		this->drone_alpha.Command(gui_data->keyboard);
+	}
+	else  {
+		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);
+
+		this->camera_list[0]->transform.position = ihm_state.position;
+		this->camera_list[0]->transform.rotation = ihm_state.rotation;
+	}
+
 
 	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",

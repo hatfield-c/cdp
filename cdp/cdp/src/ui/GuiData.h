@@ -26,6 +26,8 @@ struct GuiData {
 	Vector3 drone_velocity{};
 	Vector3 drone_angular_velocity{};
 
+	Vector3 keyboard{};
+
 	// Buttons
 	bool is_playground = false;
 	bool is_estimate_position = false;
