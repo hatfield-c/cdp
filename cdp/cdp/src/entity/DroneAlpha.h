@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../engine/RigidBody.h"
+#include "ai/Wallrider.h"
 
 struct DroneAlpha {
 	Rigidbody rigidbody;
+	Wallrider wallrider;
 
 	float forward_speed = 0.5;
 	float forward_max = 1.5;
@@ -19,6 +21,12 @@ struct DroneAlpha {
 
 	void Init() {
 		this->rigidbody.Init();
+		this->wallrider.Init();
+	}
+
+	void Update(Vector3* camera_cloud) {
+		Vector3 command = this->wallrider.GetCommand(camera_cloud);
+		this->Command(command);
 	}
 
 	void Command(Vector3 command) {

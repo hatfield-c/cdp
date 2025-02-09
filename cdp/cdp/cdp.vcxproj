@@ -201,6 +201,7 @@
     <ClInclude Include="src\engine\SpaceData.h" />
     <ClInclude Include="src\engine\VoxelData.h" />
     <ClInclude Include="src\engine\WorldSpace.h" />
+    <ClInclude Include="src\entity\ai\Wallrider.h" />
     <ClInclude Include="src\entity\Camera.h" />
     <ClInclude Include="src\entity\DroneAlpha.h" />
     <ClInclude Include="src\engine\Transform.h" />

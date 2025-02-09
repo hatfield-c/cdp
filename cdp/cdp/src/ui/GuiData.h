@@ -5,11 +5,15 @@
 
 struct GuiData {
 	bool is_window_open = false;
-	bool is_simulating = false;
 	std::string load_env_path = "";
 	std::string save_env_path = "";
 	std::string load_ihm_path = "";
 	std::string save_ihm_path = "";
+
+	// Simulation
+	bool is_simulating = false;
+	bool is_paused = false;
+	bool is_step_simulation = false;
 
 	// Camera
 	unsigned long long ihm_index = 0;//Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
@@ -27,6 +31,9 @@ struct GuiData {
 	Vector3 drone_angular_velocity{};
 
 	Vector3 keyboard{};
+
+	// Wallride
+	float wallride_forward;
 
 	// Buttons
 	bool is_playground = false;

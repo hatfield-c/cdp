@@ -202,6 +202,9 @@ void MainGui::DrawInspector() {
 
     if (!ImGui::CollapsingHeader("Simulation")) {
         this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data->is_simulating);
+        this->ToggleButton("is_paused", "Pause ||", &this->gui_data->is_paused);
+        this->gui_data->is_step_simulation = ImGui::Button("  Step ||>  ");
+
         this->DrawCameraSelector();
 
         ImGui::AlignTextToFramePadding();
@@ -216,7 +219,7 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Control Method");
         ImGui::SameLine();
-        const char* selector_options[] = { "None", "IHM Index", "Camera State", "IHM Keyboard", "Drone Keyboard"};
+        const char* selector_options[] = { "None", "IHM Index", "Camera State", "IHM Keyboard", "Drone Keyboard", "Wallrider"};
         ImGui::Combo("##control_selector", &this->gui_data->control_index, selector_options, IM_ARRAYSIZE(selector_options));
 
         ImGui::Separator();
@@ -344,6 +347,7 @@ void MainGui::DrawInspector() {
         float drone_speed[1] = { Transform::Norm3(this->gui_data->drone_velocity) };
         float drone_velocity[3] = { this->gui_data->drone_velocity.x, this->gui_data->drone_velocity.y, this->gui_data->drone_velocity.z };
         float drone_angular_velocity[3] = { this->gui_data->drone_angular_velocity.x, this->gui_data->drone_angular_velocity.y, this->gui_data->drone_angular_velocity.z };
+        float wallride_forward[1] = { this->gui_data->wallride_forward };
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Voxel");
@@ -379,6 +383,13 @@ void MainGui::DrawInspector() {
         ImGui::Text("Angular Velocity");
         ImGui::SameLine();
         ImGui::InputFloat3("##drone_angular_velocity", drone_angular_velocity, NULL, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::Separator();
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Wallride Forward");
+        ImGui::SameLine();
+        ImGui::InputFloat("##wallride_forward", wallride_forward, NULL, ImGuiInputTextFlags_ReadOnly);
     }
 
     if (ImGui::CollapsingHeader("World Building")) {

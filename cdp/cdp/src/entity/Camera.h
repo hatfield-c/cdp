@@ -97,8 +97,7 @@ struct Camera {
             return;
         }
 
-        float avg_distance = 0;
-        int avg_count = 0;
+        float min_distance = 9999999999;
 
         /// debug
         //if (phash_position.x != 7 || phash_position.y != 7) {
@@ -140,20 +139,13 @@ struct Camera {
                         this->WriteRGBA(this->depth_texture, pixel_position + Vector2{ (float)w, (float)h }, this->camera_size, depth_color);
                     }
                 }
-
-                avg_distance += depth;
-                avg_count++;
+                if (depth < min_distance) {
+                    min_distance = depth;
+                }
             }
         }
 
-        if (avg_count < 1) {
-            avg_distance = this->max_render_distance;
-            avg_count = 1;
-        }
-
-        avg_distance = avg_distance / avg_count;
-
-        byte phash_pixel_value = this->DepthToPixel(avg_distance);
+        byte phash_pixel_value = this->DepthToPixel(min_distance);
         Vector4 phash_color{ phash_pixel_value, phash_pixel_value, phash_pixel_value, 255 };
 
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);

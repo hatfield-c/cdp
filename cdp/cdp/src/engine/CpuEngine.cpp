@@ -30,7 +30,8 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->drone_alpha.Init();
 	this->drone_alpha.rigidbody.position = node0 / 10;
-	this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
+	this->drone_alpha.rigidbody.position = Vector3{ 87, 2, 5 };
+	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
 	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, -Math::Pi() / 4);
@@ -47,15 +48,18 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 void CpuEngine::Start(GuiData* gui_data) {
 	this->cycle_count = 0;
-
-	this->camera_list[0]->transform.position = Vector3{ 780, 40, 300 };
-	this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, 1.35, 0 });
 }
 
 void CpuEngine::Update(GuiData* gui_data) {
-	this->ScenarioUpdate(gui_data);
-	this->PhysicsUpdate(gui_data);
-	this->RenderUpdate(gui_data);
+
+	if (gui_data->is_simulating) {
+		if (!gui_data->is_paused || gui_data->is_step_simulation) {
+			this->ScenarioUpdate(gui_data);
+			this->PhysicsUpdate(gui_data);
+		}
+
+		this->RenderUpdate(gui_data);
+	}
 
 	std::chrono::steady_clock::duration frame_time_passed = std::chrono::steady_clock::now() - this->frame_begin_time;
 	unsigned long long time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time_passed).count();
@@ -81,18 +85,28 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
 	gui_data->drone_velocity = this->drone_alpha.rigidbody.velocity;
 	gui_data->drone_angular_velocity = this->drone_alpha.rigidbody.angular_velocity;
+	gui_data->wallride_forward = this->drone_alpha.wallrider.current_forward;
+
+	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+	this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
 	if (gui_data->control_index == 0) {
-		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
-		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
-
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 	}
 	else if (gui_data->control_index == 4) {
-		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
-		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
+		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 
 		this->drone_alpha.Command(gui_data->keyboard);
+
+		// debug: remove
+		Vector3* camera_cloud = this->camera_list[0]->GetCloud();
+		this->drone_alpha.Update(camera_cloud);
+	}
+	else if (gui_data->control_index == 5) {
+		gui_data->camera_position = this->drone_alpha.rigidbody.position;
+
+		Vector3* camera_cloud = this->camera_list[0]->GetCloud();
+		this->drone_alpha.Update(camera_cloud);
 	}
 	else  {
 		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);
@@ -330,13 +344,13 @@ void CpuEngine::EstimatePositionIhm(GuiData* gui_data) {
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	int time_lapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-	printf("        Time Elapsed: %d ms\n", time_lapsed);
-
+	
 	printf("Ihm Estimate:\n");
 	printf("    Score: %.2f\n", estimate.chamfer_score);
 	printf("    Direction: %d\n", estimate.direction_index);
 	offset.Print("    Offset: ");
 	position.Print("    Position: ");
+	printf("    Time Elapsed: %d ms\n", time_lapsed);
 }
 
 void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
@@ -355,6 +369,9 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 
 	ImageBuilder image_builder{};
 	image_builder.Init();
+
+	Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
+	anchor = anchor.Floor();
 
 	for (int i = 0; i < this->node_count - 1; i++) {
 		Vector3 node0 = this->nodes[i];
@@ -415,10 +432,11 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 			this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(node_direction);
 			this->RenderUpdate(gui_data);
 
-			byte* phash_cpu = this->camera_list[0]->GetPhash();
-			Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
-			anchor = anchor.Floor();
+			//anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
+			//anchor = anchor.Floor();
 
+			byte* phash_cpu = this->camera_list[0]->GetPhash();
+			
 			this->ihm_cortex.ResetDistanceBuffers();
 			CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);
 			this->ihm_cortex.seed = ihm_cortex.NextSample(ihm_cortex.seed);
@@ -428,6 +446,7 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 			Vector3 position = anchor + offset;
 
 			Vector3 estimate_voxel = position * this->ihm_generator.world_stride;
+			anchor = (position * (1.0 / 3.0)) + (anchor * (2.0 / 3.0));
 
 			Vector2 current_pixel = Vector2{ current_voxel.x, current_voxel.z };
 			Vector2 estimate_pixel = Vector2{ estimate_voxel.x, estimate_voxel.z };

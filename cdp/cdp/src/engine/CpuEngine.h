@@ -28,19 +28,21 @@
 
 class CpuEngine {
 	public:
+		bool is_simulating = false;
 		int cycle_count = 0;
 		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
-		bool is_simulating = false;
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		IhmGenerator ihm_generator{};
 		IhmCortex ihm_cortex{};
 		DroneAlpha drone_alpha{};
 
-		int node_count = 2;
-		Vector3 nodes[2] = {
-			Vector3{ 244, 40, 342 },
-			Vector3{ 429, 40, 565 }
+		int node_count = 4;
+		Vector3 nodes[4] = {
+			Vector3{ 933, 40, 83 },
+			Vector3{ 625, 40, 204 },
+			Vector3{ 551, 40, 308 },
+			Vector3{ 670, 40, 553 }
 		};
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
