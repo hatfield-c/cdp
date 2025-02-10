@@ -33,17 +33,11 @@ class CpuEngine {
 		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
+		ImageBuilder* image_builder;
 		IhmGenerator ihm_generator{};
 		IhmCortex ihm_cortex{};
 		DroneAlpha drone_alpha{};
-
-		int node_count = 4;
-		Vector3 nodes[4] = {
-			Vector3{ 933, 40, 83 },
-			Vector3{ 625, 40, 204 },
-			Vector3{ 551, 40, 308 },
-			Vector3{ 670, 40, 553 }
-		};
+		byte* simulation_image;
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
 		void Start(GuiData* gui_data);
@@ -52,6 +46,8 @@ class CpuEngine {
 		void ScenarioUpdate(GuiData* gui_data);
 		void PhysicsUpdate(GuiData* gui_data);
 		void RenderUpdate(GuiData* gui_data);
+		void SaveSimulationImage(GuiData* gui_data);
+		void DrawDronePosition();
 		void GenerateIhm(GuiData* gui_data);
 		void LoadIhm(GuiData* gui_data);
 		void Playground(GuiData* gui_data);

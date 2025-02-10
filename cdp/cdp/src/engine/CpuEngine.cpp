@@ -2,7 +2,8 @@
 
 CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
 	this->world_space = new WorldSpace();
-	
+	this->image_builder->Init();
+
 	this->ihm_generator.Init(
 		3,
 		Vector::ZERO3(),
@@ -23,13 +24,9 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 		this->camera_list.push_back(camera);
 	}
 
-	Vector3 node0 = this->nodes[0];
-	Vector3 node1 = this->nodes[1];
-	Vector3 direction = Transform::Unit3(node1 - node0);
-	direction = Vector3{ 1, 0, 0 };
+	Vector3 direction = Vector3{ 1, 0, 0 };
 
 	this->drone_alpha.Init();
-	this->drone_alpha.rigidbody.position = node0 / 10;
 	this->drone_alpha.rigidbody.position = Vector3{ 87, 2, 5 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
@@ -44,6 +41,13 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
 	//this->drone_alpha.rigidbody.angular_velocity.z = -0.2;
+
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
+	std::string save_path = "./data/results/path_confusion.jpg";
+
+	unsigned long long byte_count = render_size.x * render_size.y * 3;
+	this->simulation_image = new byte[byte_count];
+	memset(this->simulation_image, 0, byte_count);
 }
 
 void CpuEngine::Start(GuiData* gui_data) {
@@ -85,7 +89,11 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
 	gui_data->drone_velocity = this->drone_alpha.rigidbody.velocity;
 	gui_data->drone_angular_velocity = this->drone_alpha.rigidbody.angular_velocity;
-	gui_data->wallride_forward = this->drone_alpha.wallrider.current_forward;
+	gui_data->wallride_sensor = Vector3{
+		this->drone_alpha.wallrider.forward_distance,
+		(float)this->drone_alpha.wallrider.left_score,
+		(float)this->drone_alpha.wallrider.right_score
+	};
 
 	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
 	this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
@@ -114,6 +122,8 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 		this->camera_list[0]->transform.position = ihm_state.position;
 		this->camera_list[0]->transform.rotation = ihm_state.rotation;
 	}
+
+	this->DrawDronePosition();
 
 	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
@@ -145,6 +155,42 @@ void CpuEngine::RenderUpdate(GuiData* gui_data) {
 
 	// debug code
 	//std::cin.ignore();
+}
+
+void CpuEngine::SaveSimulationImage(GuiData* gui_data) {
+	std::string save_path = "./data/results/simulation.jpg";
+
+	VoxelData* world_voxels = new VoxelData[this->world_space->space_data.voxel_count0];
+	unsigned long long byte_count = this->world_space->space_data.voxel_count0 * sizeof(VoxelData);
+	memset(world_voxels, 0, byte_count);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(world_voxels, this->world_space->space_data.space0, byte_count, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
+
+	int k = 20;
+	for (int w = 0; w < render_size.x; w++) {
+		for (int h = 0; h < render_size.y; h++) {
+			Vector3 voxel_position{ w, k, h };
+			unsigned long long voxel_index = Indexer::FlatIndex3(w, k, h, this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.y);
+			VoxelData voxel_data = world_voxels[voxel_index];
+
+			if (voxel_data.entity_id > 0) {
+				this->image_builder->WritePixel(this->simulation_image, render_size, Vector2{ (float)w, (float)h }, Vector3{ 255, 255, 255 }, true);
+			}
+		}
+	}
+
+	int result = stbi_write_jpg(save_path.c_str(), render_size.x, render_size.y, 3, this->simulation_image, 100);
+
+	printf("Saved simulation image at: %s\n", save_path.c_str());
+}
+
+void CpuEngine::DrawDronePosition() {
+	Vector3 position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+	Vector2 render_position{ position.x, position.z };
+	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
+
+	this->image_builder->WritePixel(this->simulation_image, render_size, render_position, Vector3{ 0, 0, 255 }, true);
 }
 
 void CpuEngine::GenerateIhm(GuiData* gui_data) {
@@ -372,7 +418,7 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 
 	Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 	anchor = anchor.Floor();
-
+	/*
 	for (int i = 0; i < this->node_count - 1; i++) {
 		Vector3 node0 = this->nodes[i];
 		Vector3 node1 = this->nodes[i + 1];
@@ -461,7 +507,7 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 
 		printf("\n");
 	}
-
+	*/
 	int k = 40;
 	for (int w = 0; w < render_size.x; w++) {
 		for (int h = 0; h < render_size.y; h++) {

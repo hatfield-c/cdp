@@ -49,6 +49,10 @@ void MainApplication::GuiAction(GuiData* gui_data) {
         this->engine->SaveConfusionMap(gui_data);
     }
 
+    if (gui_data->is_save_simulation_image) {
+        this->engine->SaveSimulationImage(gui_data);
+    }
+
     if (gui_data->is_stochastic_subtraction) {
         this->engine->world_space->ActivateStochasticSubtraction();
     }

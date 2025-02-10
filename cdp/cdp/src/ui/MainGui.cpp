@@ -3,11 +3,9 @@
 
 MainGui::MainGui(int camera_count) {
     this->load_env_dialog.SetTitle("Load Environment");
-    this->save_env_dialog.SetTitle("Save Environment");
     this->load_ihm_dialog.SetTitle("Load IHM File");
     this->save_ihm_dialog.SetTitle("IHM Save Location");
     this->load_env_dialog.SetTypeFilters({ ".ply" });
-    this->save_env_dialog.SetTypeFilters({ ".ply" });
     this->load_ihm_dialog.SetTypeFilters({ ".ihm" });
     this->save_ihm_dialog.SetTypeFilters({ ".ihm" });
 
@@ -53,7 +51,6 @@ void MainGui::Update() {
     //ImGui::ShowDemoWindow(&show_demo_window);
     
     this->load_env_dialog.Display();
-    this->save_env_dialog.Display();
     this->load_ihm_dialog.Display();
     this->save_ihm_dialog.Display();
 
@@ -72,13 +69,6 @@ void MainGui::RefreshGuiData() {
         this->load_env_dialog.ClearSelected();
     } else {
         this->gui_data->load_env_path = "";
-    }
-
-    if (this->save_env_dialog.HasSelected()) {
-        this->gui_data->save_env_path = this->save_env_dialog.GetSelected().string();
-        this->save_env_dialog.ClearSelected();
-    } else {
-        this->gui_data->save_env_path = "";
     }
 
     if (this->load_ihm_dialog.HasSelected()) {
@@ -145,10 +135,6 @@ void MainGui::DrawViewport() {
                 this->load_env_dialog.Open();
             }
 
-            if (ImGui::MenuItem("Save Environment")) {
-                this->save_env_dialog.Open();
-            }
-
             ImGui::Separator();
 
             if (ImGui::MenuItem("Generate IHM")) {
@@ -202,6 +188,8 @@ void MainGui::DrawInspector() {
 
     if (!ImGui::CollapsingHeader("Simulation")) {
         this->ToggleButton("is_simulating", "Run Simulation", &this->gui_data->is_simulating);
+        ImGui::SameLine();
+        this->gui_data->is_save_simulation_image = ImGui::Button("Save Sim Image");
         this->ToggleButton("is_paused", "Pause ||", &this->gui_data->is_paused);
         this->gui_data->is_step_simulation = ImGui::Button("  Step ||>  ");
 
@@ -347,7 +335,7 @@ void MainGui::DrawInspector() {
         float drone_speed[1] = { Transform::Norm3(this->gui_data->drone_velocity) };
         float drone_velocity[3] = { this->gui_data->drone_velocity.x, this->gui_data->drone_velocity.y, this->gui_data->drone_velocity.z };
         float drone_angular_velocity[3] = { this->gui_data->drone_angular_velocity.x, this->gui_data->drone_angular_velocity.y, this->gui_data->drone_angular_velocity.z };
-        float wallride_forward[1] = { this->gui_data->wallride_forward };
+        float wallride_sensor[3] = { this->gui_data->wallride_sensor.x, this->gui_data->wallride_sensor.y, this->gui_data->wallride_sensor.z };
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Voxel");
@@ -389,7 +377,7 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Wallride Forward");
         ImGui::SameLine();
-        ImGui::InputFloat("##wallride_forward", wallride_forward, NULL, ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("##wallride_forward", wallride_sensor, NULL, ImGuiInputTextFlags_ReadOnly);
     }
 
     if (ImGui::CollapsingHeader("World Building")) {

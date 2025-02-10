@@ -25,6 +25,8 @@ struct DroneAlpha {
 	}
 
 	void Update(Vector3* camera_cloud) {
+		this->wallrider.Update(camera_cloud);
+
 		Vector3 command = this->wallrider.GetCommand(camera_cloud);
 		this->Command(command);
 	}

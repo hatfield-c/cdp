@@ -29,7 +29,6 @@ class MainGui {
 		GuiData* gui_data = new GuiData{};
 
 		ImGui::FileBrowser load_env_dialog;
-		ImGui::FileBrowser save_env_dialog;
 		ImGui::FileBrowser load_ihm_dialog;
 		ImGui::FileBrowser save_ihm_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);
 
