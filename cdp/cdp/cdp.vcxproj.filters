@@ -206,6 +206,9 @@
     <ClInclude Include="src\entity\ai\Wallrider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\entity\ai\PlanStep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />

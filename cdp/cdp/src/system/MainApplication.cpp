@@ -26,7 +26,7 @@ void MainApplication::GuiAction(GuiData* gui_data) {
     bool is_state_changed = (this->engine->is_simulating != gui_data->is_simulating);
 
     if (!gui_data->save_phash_path.empty()) {
-        this->engine->SavePhash(gui_data);
+        this->engine->SaveDepthPhash(gui_data);
     }
 
     if (!gui_data->load_env_path.empty()) {

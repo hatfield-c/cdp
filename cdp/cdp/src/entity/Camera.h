@@ -37,6 +37,7 @@ struct Camera {
     RaycastHitData* depth_data;
     byte* phash_data;
     byte* phash_derotated_data;
+    float* depth_phash;
     Vector3* render_cloud;
 	
     long seed = 12345;
@@ -58,12 +59,15 @@ struct Camera {
 
         int phash_memory_size = this->phash_data_count * sizeof(byte);
         int cloud_memory_size = this->phash_data_count * sizeof(Vector3);
+        int depth_memroy_size = this->phash_data_count * sizeof(float);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_derotated_data, phash_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_phash, depth_memroy_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->render_cloud, cloud_memory_size), __FILE__, __LINE__);
         cudaMemset(this->phash_data, 0, phash_memory_size);
-        cudaMemset(this->phash_data, 0, phash_memory_size);
+        cudaMemset(this->phash_derotated_data, 0, phash_memory_size);
+        cudaMemset(this->depth_phash, 0, depth_memroy_size);
         cudaMemset(this->render_cloud, 0, cloud_memory_size);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
@@ -74,6 +78,17 @@ struct Camera {
         next = (unsigned)(next / 65536) % 32768;
 
         return next;
+    }
+
+    float* GetPhashAsFloat() {
+        float* phash_cpu = new float[this->phash_data_count];
+        int phash_memory_size = this->phash_data_count * sizeof(float);
+
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMemcpy(phash_cpu, this->depth_phash, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
+        return phash_cpu;
     }
 
     byte* GetPhashAsByte() {
@@ -111,8 +126,8 @@ struct Camera {
 
         float min_distance = 9999999999;
 
-        Vector4 rotation = this->GetNoisyRotation();
-        //Vector4 rotation = this->transform.rotation;
+        //Vector4 rotation = this->GetNoisyRotation();
+        Vector4 rotation = this->transform.rotation;
 
         /// debug
         //if (phash_position.x != 7 || phash_position.y != 7) {
@@ -163,6 +178,7 @@ struct Camera {
         byte phash_pixel_value = this->DepthToPixel(min_distance);
         Vector4 phash_color{ phash_pixel_value, phash_pixel_value, phash_pixel_value, 255 };
 
+        Camera::WriteFloat(this->depth_phash, phash_position, this->phash_data_size, min_distance / space_data.indices_per_meter);
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);
 
         Vector2 texture_position{};
@@ -183,7 +199,7 @@ struct Camera {
         Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, rotation, true);
         Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, ray_rotation);
 
-        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * min_distance);
+        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * (min_distance / space_data.indices_per_meter));
     }
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {

@@ -51,7 +51,7 @@ class CpuEngine {
 		void GenerateIhm(GuiData* gui_data);
 		void LoadIhm(GuiData* gui_data);
 		void Playground(GuiData* gui_data);
-		void SavePhash(GuiData* gui_data);
+		void SaveDepthPhash(GuiData* gui_data);
 		void SaveConfusionMap(GuiData* gui_data);
 		void EstimatePositionIhm(GuiData* gui_data);
 		void RenderPathConfusion(GuiData* gui_data);

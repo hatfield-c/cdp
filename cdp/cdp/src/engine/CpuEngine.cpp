@@ -275,8 +275,27 @@ void CpuEngine::Playground(GuiData* gui_data) {
 	
 }
 
-void CpuEngine::SavePhash(GuiData* gui_data) {
+void CpuEngine::SaveDepthPhash(GuiData* gui_data) {
+	std::string save_path = gui_data->save_phash_path;
+	printf("Saving Depth P-Hash at path: %s\n", save_path.c_str());
 
+	Camera camera = *this->camera_list[0];
+	
+	float* depth_phash = camera.GetPhashAsFloat();
+	byte* byte_phash = camera.GetPhashAsByte();
+
+	FILE* out_file;
+	fopen_s(&out_file, save_path.c_str(), "wb+");
+	if (out_file == NULL) {
+		printf("\n\nWarning: File did not open when saving Depth P-Hash:\n    %s!\n", save_path.c_str());
+		exit(1);
+	}
+	int result = fwrite(depth_phash, sizeof(float), camera.phash_data_count, out_file);
+	fclose(out_file);
+
+	result = stbi_write_jpg((save_path + ".jpg").c_str(), camera.phash_data_size.x, camera.phash_data_size.y, 1, byte_phash, 100);
+
+	printf("    Done!\n\n");
 }
 
 void CpuEngine::SaveConfusionMap(GuiData* gui_data) {

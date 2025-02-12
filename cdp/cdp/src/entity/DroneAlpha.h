@@ -58,7 +58,7 @@ struct DroneAlpha {
 
 		float roll_amount = this->roll_speed * command.x;
 		Vector4 roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
-		this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
+		//this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
 
 		Vector3 right = this->rigidbody.Right();
 		float xy_distance = Transform::Norm2(Vector2{right.x, right.z});
@@ -80,7 +80,7 @@ struct DroneAlpha {
 			roll_amount = (theta_val - roll_target) * roll_sign;
 			roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
 
-			this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
+			//this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
 		}
 
 		if (command.x == 0) {
