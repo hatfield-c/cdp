@@ -6,9 +6,9 @@ struct PlanStep {
 	const char* end_phash_path;
 
 	float* start_phash_gpu;
-	float* start_phash_cpu;
+	float* start_phash_cpu = new float[16 * 16];
 	float* end_phash_gpu;
-	float* end_phash_cpu;
+	float* end_phash_cpu = new float[16 * 16];
 
 	Vector2 phash_size{ 16, 16 };
 	int phash_count = 16 * 16;
@@ -17,7 +17,6 @@ struct PlanStep {
 		int phash_memory_size = this->phash_count * sizeof(float);
 		
 		if (this->IsStartValid()) {
-			this->start_phash_cpu = new float[this->phash_count];
 			memset(this->start_phash_cpu, 0, phash_memory_size);
 
 			FILE* in_file;

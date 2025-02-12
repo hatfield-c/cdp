@@ -113,8 +113,9 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	else if (gui_data->control_index == 5) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 
+		float* depth_phash = this->camera_list[0]->GetPhashAsFloat();
 		Vector3* camera_cloud = this->camera_list[0]->GetCloud();
-		this->drone_alpha.Update(camera_cloud);
+		this->drone_alpha.Update(depth_phash, camera_cloud);
 	}
 	else  {
 		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);

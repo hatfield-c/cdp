@@ -206,7 +206,6 @@
     <ClInclude Include="src\entity\Camera.h" />
     <ClInclude Include="src\entity\DroneAlpha.h" />
     <ClInclude Include="src\engine\Transform.h" />
-    <ClInclude Include="src\entity\EntityInterface.h" />
     <ClInclude Include="src\engine\cuda\CudaCamera.cuh" />
     <ClInclude Include="src\system\CudaError.h" />
     <ClInclude Include="src\system\MainApplication.h" />
