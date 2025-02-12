@@ -11,7 +11,7 @@ __global__ void CudaCamera::RenderCamera_Kernel(Camera camera, SpaceData space_d
 
 __global__ void CudaCamera::BuildCloud_Kernel(Camera camera)
 {
-    camera.BuildCloud();
+    //camera.BuildCloud();
 }
 
 void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {

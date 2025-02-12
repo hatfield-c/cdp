@@ -5,6 +5,7 @@
 
 struct GuiData {
 	bool is_window_open = false;
+	std::string save_phash_path = "";
 	std::string load_env_path = "";
 	std::string load_ihm_path = "";
 	std::string save_ihm_path = "";

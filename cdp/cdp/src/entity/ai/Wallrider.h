@@ -23,6 +23,15 @@ struct Wallrider {
 
 	}
 
+	// todo: change condition to use saved point cloud chamfer distance rather than naive distance geoemtry
+	//		when getting chamfer distance, *only* compare points greater than a minimum distance. this will
+	//		reduce the impact of noise or if the drone is slightly too close to the obstacle
+	//		also add proximity turning during transition
+	//		when transiting and aligning take a weighted average of filtered points above 1 unit and at least 5 meters out, where taller points have greater weight
+	//			need a better transition system. if wall on the right is 5 meters close but very tall, will skew
+	//			
+	//			use optical flow for target alignment
+
 	void Update(Vector3* camera_cloud) {
 		Vector3 plan_step = this->plan[this->plan_index];
 
@@ -41,7 +50,6 @@ struct Wallrider {
 		float closest_ray_distance = 999999999;
 		this->left_score = 0;
 		this->right_score = 0;
-		this->bottom_score = 0;
 		for (int i = 0; i < 256; i++) {
 			Vector3 point = camera_cloud[i];
 

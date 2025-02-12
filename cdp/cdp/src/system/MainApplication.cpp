@@ -5,7 +5,7 @@ MainApplication::MainApplication() {
 
     std::vector<CUdeviceptr> depth_textures = this->main_gui->vulkan_pipeline->GetDepthTextures();
     std::vector<CUdeviceptr> phash_textures = this->main_gui->vulkan_pipeline->GetPhashTextures();
-    std::vector<CUdeviceptr> centroid_textures = this->main_gui->vulkan_pipeline->GetCentroidTextures();
+    std::vector<CUdeviceptr> centroid_textures = this->main_gui->vulkan_pipeline->GetUnrotatedTextures();
 
     this->engine = new CpuEngine(depth_textures, phash_textures, centroid_textures);
 }
@@ -24,6 +24,10 @@ void MainApplication::Run() {
 
 void MainApplication::GuiAction(GuiData* gui_data) {
     bool is_state_changed = (this->engine->is_simulating != gui_data->is_simulating);
+
+    if (!gui_data->save_phash_path.empty()) {
+        this->engine->SavePhash(gui_data);
+    }
 
     if (!gui_data->load_env_path.empty()) {
         this->engine->world_space->LoadWorld(gui_data->load_env_path);

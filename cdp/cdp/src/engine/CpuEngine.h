@@ -39,7 +39,7 @@ class CpuEngine {
 		DroneAlpha drone_alpha{};
 		byte* simulation_image;
 
-		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures);
+		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> derotated_textures);
 		void Start(GuiData* gui_data);
 		void Update(GuiData* gui_data);
 		void End(GuiData* gui_data);
@@ -51,6 +51,7 @@ class CpuEngine {
 		void GenerateIhm(GuiData* gui_data);
 		void LoadIhm(GuiData* gui_data);
 		void Playground(GuiData* gui_data);
+		void SavePhash(GuiData* gui_data);
 		void SaveConfusionMap(GuiData* gui_data);
 		void EstimatePositionIhm(GuiData* gui_data);
 		void RenderPathConfusion(GuiData* gui_data);

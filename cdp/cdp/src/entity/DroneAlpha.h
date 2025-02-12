@@ -28,10 +28,10 @@ struct DroneAlpha {
 		this->wallrider.Update(camera_cloud);
 
 		Vector3 command = this->wallrider.GetCommand(camera_cloud);
-		this->Command(command);
+		this->FollowCommand(command);
 	}
 
-	void Command(Vector3 command) {
+	void FollowCommand(Vector3 command) {
 
 		float yaw_delta = -command.x * this->yaw_speed;
 		this->rigidbody.angular_velocity.y += yaw_delta;
@@ -56,7 +56,7 @@ struct DroneAlpha {
 			this->rigidbody.velocity.z = planar_velocity.z;
 		}
 
-		float roll_amount = this->roll_speed * -command.x;
+		float roll_amount = this->roll_speed * command.x;
 		Vector4 roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
 		this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
 

@@ -1,6 +1,6 @@
 #include "CpuEngine.h"
 
-CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> shaded_textures) {
+CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> phash_derotated_textures) {
 	this->world_space = new WorldSpace();
 	this->image_builder->Init();
 
@@ -16,10 +16,10 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	for (int i = 0; i < depth_textures.size(); i++) {
 		CUdeviceptr depth_texture = depth_textures[i];
 		CUdeviceptr phash_texture = phash_textures[i];
-		CUdeviceptr shaded_texture = shaded_textures[i];
+		CUdeviceptr phash_derotated_texture = phash_derotated_textures[i];
 
 		Camera* camera = new Camera{};
-		camera->Init("camera " + i, depth_texture, phash_texture, shaded_texture);
+		camera->Init("camera " + i, depth_texture, phash_texture, phash_derotated_texture);
 		
 		this->camera_list.push_back(camera);
 	}
@@ -104,11 +104,11 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	else if (gui_data->control_index == 4) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 
-		this->drone_alpha.Command(gui_data->keyboard);
+		this->drone_alpha.FollowCommand(gui_data->keyboard);
 
 		// debug: remove
-		Vector3* camera_cloud = this->camera_list[0]->GetCloud();
-		this->drone_alpha.Update(camera_cloud);
+		//Vector3* camera_cloud = this->camera_list[0]->GetCloud();
+		//this->drone_alpha.Update(camera_cloud);
 	}
 	else if (gui_data->control_index == 5) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
@@ -152,6 +152,7 @@ void CpuEngine::RenderUpdate(GuiData* gui_data) {
 	cudaDeviceSynchronize();
 	CudaCamera::BuildCloud(*this->camera_list[camera_index]);
 	cudaDeviceSynchronize();
+	this->camera_list[0]->seed++;
 
 	// debug code
 	//std::cin.ignore();
@@ -274,6 +275,10 @@ void CpuEngine::Playground(GuiData* gui_data) {
 	
 }
 
+void CpuEngine::SavePhash(GuiData* gui_data) {
+
+}
+
 void CpuEngine::SaveConfusionMap(GuiData* gui_data) {
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 	Vector3 render_size_3d{ this->world_space->space_data.world_size0.x, 1, this->world_space->space_data.world_size0.z };
@@ -334,7 +339,7 @@ void CpuEngine::SaveConfusionMap(GuiData* gui_data) {
 						this->camera_list[0]->transform.rotation = Quaternion::QuaternionFromDirection(this->ihm_generator.directions_cpu[direction_index]);
 						this->RenderUpdate(gui_data);
 
-						byte* phash_cpu = this->camera_list[0]->GetPhash();
+						byte* phash_cpu = this->camera_list[0]->GetPhashAsByte();
 						Vector3 anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 						anchor = anchor.Floor();
 
@@ -481,7 +486,7 @@ void CpuEngine::RenderPathConfusion(GuiData* gui_data) {
 			//anchor = this->camera_list[0]->transform.position / this->ihm_generator.world_stride;
 			//anchor = anchor.Floor();
 
-			byte* phash_cpu = this->camera_list[0]->GetPhash();
+			byte* phash_cpu = this->camera_list[0]->GetPhashAsByte();
 			
 			this->ihm_cortex.ResetDistanceBuffers();
 			CudaIhm::UpdateChamferDistances(this->ihm_cortex, this->ihm_generator, this->camera_list[0]->render_cloud, anchor);

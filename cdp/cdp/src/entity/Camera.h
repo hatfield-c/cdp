@@ -33,12 +33,15 @@ struct Camera {
 
     byte* depth_texture;
     byte* phash_texture;
-    byte* centroid_texture;
+    byte* phash_derotated_texture;
     RaycastHitData* depth_data;
     byte* phash_data;
+    byte* phash_derotated_data;
     Vector3* render_cloud;
 	
-	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr centroid_texture) {
+    long seed = 12345;
+
+	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr phash_derotated_texture) {
         float pi = 3.141592654f;
 
 		this->name = name;
@@ -46,7 +49,7 @@ struct Camera {
 		this->fov.y = pi / 2;
 		this->depth_texture = (byte*)depth_texture;
         this->phash_texture = (byte*)phash_texture;
-        this->centroid_texture = (byte*)centroid_texture;
+        this->phash_derotated_texture = (byte*)phash_derotated_texture;
         this->camera_pixel_count = this->camera_size.x * this->camera_size.y;
         this->phash_pixel_count = this->phash_texture_size.x * this->phash_texture_size.y;
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
@@ -57,14 +60,23 @@ struct Camera {
         int cloud_memory_size = this->phash_data_count * sizeof(Vector3);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->render_cloud, cloud_memory_size), __FILE__, __LINE__);
+        cudaMemset(this->phash_data, 0, phash_memory_size);
         cudaMemset(this->phash_data, 0, phash_memory_size);
         cudaMemset(this->render_cloud, 0, cloud_memory_size);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 	}
 
-    byte* GetPhash() {
+    __device__ __host__ long NextSample(long current) {
+        long next = current * 1103515245 + 12345;
+        next = (unsigned)(next / 65536) % 32768;
+
+        return next;
+    }
+
+    byte* GetPhashAsByte() {
         byte* phash_cpu = new byte[this->phash_data_count];
         int phash_memory_size = this->phash_data_count * sizeof(byte);
 
@@ -99,6 +111,9 @@ struct Camera {
 
         float min_distance = 9999999999;
 
+        Vector4 rotation = this->GetNoisyRotation();
+        //Vector4 rotation = this->transform.rotation;
+
         /// debug
         //if (phash_position.x != 7 || phash_position.y != 7) {
             //return;
@@ -123,7 +138,7 @@ struct Camera {
                     //return;
                 //}
 
-                Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, this->camera_size, this->fov, this->transform.rotation);
+                Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, this->camera_size, this->fov, rotation);
                 RaycastHitData hit_data = Physics::Raycast(space_data, this->transform.position, ray_direction, this->max_render_distance);
                 float depth = hit_data.distance;
 
@@ -157,28 +172,18 @@ struct Camera {
                 texture_position.y = (2 * phash_position.y) + j;
 
                 Camera::WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
-                Camera::WriteRGBA(this->centroid_texture, texture_position, this->phash_texture_size, phash_color);
+                Camera::WriteRGBA(this->phash_derotated_texture, texture_position, this->phash_texture_size, phash_color);
             }
         }
-    }
 
-    __device__ void BuildCloud() {
-        Vector2 phash_position{
-            threadIdx.x,
-            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
-        };
-
-        byte phash_val = this->ReadByte(this->phash_data, phash_position, this->phash_data_size);
-        
-        Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), this->transform.rotation);
+        Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), rotation);
         Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
         Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
-        Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, this->transform.rotation, true);
+        Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, rotation, true);
         Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, ray_rotation);
-        float depth = (phash_val / 256.0) * this->max_distance;
 
-        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * depth);
+        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * min_distance);
     }
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
@@ -225,6 +230,36 @@ struct Camera {
         byte pixel_val = depth_pixel_val;
 
         return pixel_val;
+    }
+
+    __host__ __device__ Vector4 GetNoisyRotation() {
+        Vector4 rotation = this->transform.rotation;
+
+        long noisy_bits = this->NextSample(this->seed);
+        float noise_x = (float)noisy_bits / 32768.0;
+        noise_x = (2 * noise_x) - 1;
+
+        noisy_bits = this->NextSample(noisy_bits);
+        float noise_y = (float)noisy_bits / 32768.0;
+        noise_y = (2 * noise_y) - 1;
+
+        noisy_bits = this->NextSample(noisy_bits);
+        float noise_z = (float)noisy_bits / 32768.0;
+        noise_z = (2 * noise_z) - 1;
+
+        noisy_bits = this->NextSample(noisy_bits);
+        float noise_w = (float)noisy_bits / 32768.0;
+        noise_w = (2 * Math::Pi() * noise_w) - Math::Pi();
+
+        Vector3 axis_noise{ noise_x, noise_y, noise_z };
+        noise_w = noise_w * 0.05;
+        
+        this->seed = noisy_bits;
+
+        Vector4 noise = Quaternion::QuaternionFromEulerParams(axis_noise, noise_w);
+        rotation = Quaternion::MultiplyQuaternions(noise, rotation, true);
+        
+        return rotation;
     }
 
     static __device__ void WriteRGBA(byte* texture, Vector2 pixel_position, Vector2 texture_size, Vector4 rgba) {

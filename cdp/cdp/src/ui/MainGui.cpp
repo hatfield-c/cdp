@@ -2,9 +2,11 @@
 #include "MainGui.h"
 
 MainGui::MainGui(int camera_count) {
+    this->save_phash_dialog.SetTitle("P-Hash Save Location");
     this->load_env_dialog.SetTitle("Load Environment");
     this->load_ihm_dialog.SetTitle("Load IHM File");
     this->save_ihm_dialog.SetTitle("IHM Save Location");
+    this->save_phash_dialog.SetTypeFilters({ ".phash" });
     this->load_env_dialog.SetTypeFilters({ ".ply" });
     this->load_ihm_dialog.SetTypeFilters({ ".ihm" });
     this->save_ihm_dialog.SetTypeFilters({ ".ihm" });
@@ -50,6 +52,7 @@ void MainGui::Update() {
     //bool show_demo_window = true;
     //ImGui::ShowDemoWindow(&show_demo_window);
     
+    this->save_phash_dialog.Display();
     this->load_env_dialog.Display();
     this->load_ihm_dialog.Display();
     this->save_ihm_dialog.Display();
@@ -85,6 +88,14 @@ void MainGui::RefreshGuiData() {
     }
     else {
         this->gui_data->save_ihm_path = "";
+    }
+
+    if (this->save_phash_dialog.HasSelected()) {
+        this->gui_data->save_phash_path = this->save_phash_dialog.GetSelected().string();
+        this->save_phash_dialog.ClearSelected();
+    }
+    else {
+        this->gui_data->save_phash_path = "";
     }
 }
 
@@ -131,6 +142,12 @@ void MainGui::DrawViewport() {
     if (ImGui::BeginMenuBar()){
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Save P-Hash")) {
+                this->save_phash_dialog.Open();
+            }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Load Environment")) {
                 this->load_env_dialog.Open();
             }
@@ -164,7 +181,7 @@ void MainGui::DrawViewport() {
             image_texture = (ImTextureID)this->vulkan_pipeline->phash_textures[this->camera_index]->instance_descriptor;
         }
         else if (this->render_texture == 2) {
-            image_texture = (ImTextureID)this->vulkan_pipeline->centroid_textures[this->camera_index]->instance_descriptor;
+            image_texture = (ImTextureID)this->vulkan_pipeline->phash_derotated_textures[this->camera_index]->instance_descriptor;
         }
     }
     
@@ -198,7 +215,7 @@ void MainGui::DrawInspector() {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Render Texture");
         ImGui::SameLine();
-        ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0Centroid\0\0");
+        ImGui::Combo("##", &this->render_texture, "Depth\0P-Hash\0De-rotated P-Hash\0\0");
     }
 
     if (!ImGui::CollapsingHeader("Camera")) {
