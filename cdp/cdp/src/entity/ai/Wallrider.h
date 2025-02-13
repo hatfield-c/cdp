@@ -1,4 +1,4 @@
- #pragma once
+#pragma once
 
 #include "../../engine/Transform.h"
 #include "PlanStep.h"
@@ -9,6 +9,7 @@ struct Wallrider {
 
 	float* transit_kernel = new float[16 * 16];
 	Vector2 transit_center{ 7, 7 };
+	float start_distance_signal = 0;
 
 	float forward_distance = 0;
 	int left_score = 0;
@@ -16,11 +17,11 @@ struct Wallrider {
 	Vector3 closest_forward{};
 
 	int plan_index = 0;
-	int plan_size = 1;
-	PlanStep plan[1] = {
-		PlanStep{ -1, "./data/wallrider/p00.phash", "" },
-		//PlanStep{ 1, "", "" },
-		//PlanStep{ 1, "", "" },
+	int plan_size = 3;
+	PlanStep plan[3] = {
+		PlanStep{ -1, "./data/wallrider/p_0001.phash", Vector2{ 7, 7 } },
+		PlanStep{ 1, "./data/wallrider/p_0002.phash", Vector2{ 5, 7 } },
+		PlanStep{ -1, "", Vector2{ 7, 7 } }
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -94,7 +95,7 @@ struct Wallrider {
 
 	Vector3 GetCommand(float* depth_phash, Vector3* camera_cloud) {
 		Vector3 command{ 0, 0, 0 };
-		
+
 		if (this->plan_index >= this->plan_size) {
 			return command;
 		}
@@ -107,14 +108,14 @@ struct Wallrider {
 				command = this->DoTransit(depth_phash, camera_cloud);
 			}
 		}
-		
+
 		return command;
 	}
 
 	bool IsSafe(float* depth_phash, Vector3* camera_cloud) {
 		// change to Vector3 command return
 		// brake if there's an emergency. otherwise, check if there are walls on either side. if so, fly in the middle
-		
+
 		if (this->plan_index >= this->plan_size) {
 			return false;
 		}
@@ -139,15 +140,16 @@ struct Wallrider {
 		if (is_proximity || this->forward_distance < 4) {
 			command[0] = -plan_step.wall_direction;
 		}
-		
+
 		if (plan_step.IsStartValid()) {
-			Vector3 search_result = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, Vector2{ 7, 7 }, Vector2{ 4, 4 });
+			Vector3 search_result = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, plan_step.target_center, Vector2{ 4, 4 });
 			float difference_score = search_result.z;
 
 			if (difference_score < 0.05) {
 				this->current_stage++;
-				this->transit_kernel = plan_step.start_phash_cpu;
+				this->transit_kernel = depth_phash;
 				this->transit_center = Vector2{ search_result.x, search_result.y };
+				this->start_distance_signal = this->VerticalEdgeAverage(depth_phash, this->transit_center);
 			}
 		}
 
@@ -157,26 +159,31 @@ struct Wallrider {
 	Vector3 DoTransit(float* depth_phash, Vector3* camera_cloud) {
 		Vector3 command{ 0, 0, 1 };
 		PlanStep plan_step = this->plan[this->plan_index];
-		
-		Vector3 search_result = this->FindSubImage(depth_phash, this->transit_kernel, this->transit_center, Vector2{ 4, 4 });
+		Vector2 kernel_radius{ 4, 4 };
+
+		Vector3 search_result = this->FindSubImage(depth_phash, this->transit_kernel, this->transit_center, kernel_radius);
 
 		float forward_target = 4;
 		float forward_margin = 0.1;
-		
+
 		this->transit_center = Vector2{ search_result.x, search_result.y };
 		float steer_error = search_result.x - 7;
 
 		if (abs(steer_error) < 2) {
 			this->transit_kernel = depth_phash;
 		}
-		
-		if (this->forward_distance > forward_target - forward_margin && this->forward_distance < forward_target + forward_margin) {
-			this->current_stage = 0;	
+
+		float distance_signal = this->VerticalEdgeAverage(depth_phash, this->transit_center);
+		float signal_delta = abs(this->start_distance_signal - distance_signal);
+		float signal_threshold = 2;
+
+		if (signal_delta > signal_threshold && this->forward_distance < forward_target){
+			this->current_stage = 0;
 			this->plan_index++;
-			
+
 			return command;
 		}
-		
+
 		if (this->transit_center.x < 7) {
 			command.x = -1;
 		}
@@ -239,7 +246,89 @@ struct Wallrider {
 		}
 
 		score = score / (((2 * kernel_radius.x) + 1) * ((2 * kernel_radius.y) + 1));
-		
+
 		return score;
+	}
+
+	float FirstVerticalEdgeDistance(float* depth_phash, Vector2 target_center) {
+		float delta_threshold = 2;
+
+		float vertical_average = 0;
+
+		for (int i = this->phash_size.y - 1; i > 1; i--) {
+			unsigned long long index0 = Indexer::FlatIndex2(target_center.x, i, this->phash_size.x);
+			unsigned long long index1 = Indexer::FlatIndex2(target_center.x, i - 1, this->phash_size.x);
+
+			float depth0 = depth_phash[index0];
+			float depth1 = depth_phash[index1];
+
+			vertical_average += depth0;
+			float delta = abs(depth1 - depth0);
+
+			if (delta > delta_threshold) {
+				if (depth0 < depth1) {
+					return depth0;
+				}
+				else {
+					return depth1;
+				}
+			}
+		}
+
+		return vertical_average / (this->phash_size.y - 1);
+	}
+
+	float VerticalEdgeAverage(float* depth_phash, Vector2 target_center) {
+		float delta_threshold = 1;
+
+		float vertical_average = 0;
+		float edge_average = 0;
+		float edge_count = 0;
+
+		for (int i = 0; i < this->phash_size.y - 1; i++) {
+			unsigned long long index0 = Indexer::FlatIndex2(target_center.x, i, this->phash_size.x);
+			unsigned long long index1 = Indexer::FlatIndex2(target_center.x, i + 1, this->phash_size.x);
+
+			float depth0 = depth_phash[index0];
+			float depth1 = depth_phash[index1];
+
+			vertical_average += depth0;
+			float delta = abs(depth1 - depth0);
+
+			if (delta > delta_threshold) {
+				if (depth0 < depth1) {
+					edge_average += depth0;
+				}
+				else {
+					edge_average += depth1;
+				}
+
+				edge_count++;
+			}
+		}
+
+		vertical_average = vertical_average / (this->phash_size.y - 1);
+
+		if (edge_count < 1) {
+			return vertical_average;
+		}
+
+		return edge_average / edge_count;
+	}
+
+	float AverageKernel(float* depth_phash, Vector2 center, Vector2 radius) {
+		float avg_distance = 0;
+		for (int i = -radius.x; i <= radius.x; i++) {
+			for (int j = -radius.y; j <= radius.y; j++) {
+				Vector2 offset{ i, j };
+				Vector2 pixel_position = this->transit_center + offset;
+				unsigned long long pixel_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, this->phash_size.x);
+
+				avg_distance += depth_phash[pixel_index];
+			}
+		}
+		avg_distance = avg_distance / (((2 * radius.x) + 1) * ((2 * radius.y) + 1));
+
+		return avg_distance;
 	}
 };
