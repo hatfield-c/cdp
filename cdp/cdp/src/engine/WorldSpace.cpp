@@ -21,6 +21,9 @@ WorldSpace::WorldSpace() {
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space0, this->space_data.memory_size0), __FILE__, __LINE__);
 	CudaError::CheckError((cudaError_enum)cudaMalloc(&this->space_data.space1, this->space_data.memory_size1), __FILE__, __LINE__);
 
+	CudaError::CheckError((cudaError_enum)cudaMemset(this->space_data.space0, 0, this->space_data.memory_size0), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMemset(this->space_data.space1, 0, this->space_data.memory_size1), __FILE__, __LINE__);
+
 	this->InitWorldMemory(false, true);
 
 	this->space_builder.Init();
@@ -29,9 +32,8 @@ WorldSpace::WorldSpace() {
 }
 
 void WorldSpace::InitWorldMemory(bool is_debug_cube, bool is_floor) {
-	VoxelData init_data{ 0, 0 };
-
-	CudaWorld::FillBox(this->space_builder, this->space_data, init_data, Vector::ZERO3(), this->space_data.world_size0);
+	//VoxelData init_data{ 0, 0 };
+	//CudaWorld::FillBox(this->space_builder, this->space_data, init_data, Vector::ZERO3(), this->space_data.world_size0);
 
 	if (is_debug_cube) {
 		Vector3 lower = Vector3{ 480, 60, 480 };
@@ -103,6 +105,13 @@ Vector3* WorldSpace::WritePointsToCuda(std::vector<std::array<double, 3>> point_
 
 void WorldSpace::ActivateStochasticSubtraction() {
 	CudaWorld::StochasticSubtraction(this->space_builder, this->space_data);
+
+	Vector3 lower = Vector3{ 0, 0, 0 };
+	Vector3 upper = Vector3{ this->space_data.world_size0.x, 3, this->space_data.world_size0.z };
+	Vector3 width = upper - lower;
+	VoxelData floor_data{ 1, 1 };
+
+	CudaWorld::FillBox(this->space_builder, this->space_data, floor_data, lower, width);
 }
 
 void WorldSpace::Cleanup() {

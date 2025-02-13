@@ -15,9 +15,9 @@ struct SpaceBuilder {
 
 	unsigned long long seed;
 
-	float large_subtraction_p = 0.000003;
-	float mid_subtraction_p = 0.00005;
-	float small_subtraction_p = 0.001;
+	float large_subtraction_p = 0.0000003;
+	float mid_subtraction_p = 0.000008;
+	float small_subtraction_p = 0.0004;
 	float large_subtraction_radius = 30;
 	float mid_subtraction_radius = 10;
 	float small_subtraction_radius = 3;
@@ -40,12 +40,19 @@ struct SpaceBuilder {
 			return;
 		}
 
+		if (voxel_data.entity_id == 0 && point.y < 4) {
+			return;
+		}
+
 		unsigned long long index0 = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size0.x, space_data.world_size0.y);
 		point = (point / space_data.level_stride).Floor();
 		unsigned long long index1 = Indexer::FlatIndex3(point.x, point.y, point.z, space_data.world_size1.x, space_data.world_size1.y);
 
-		space_data.space0[index0] = voxel_data;
-		space_data.space1[index1] = voxel_data;
+		space_data.space0[index0].entity_id = voxel_data.entity_id;
+		space_data.space0[index0].voxel_id = voxel_data.voxel_id;
+
+		space_data.space1[index1].entity_id = voxel_data.entity_id;
+		space_data.space1[index1].voxel_id = voxel_data.voxel_id;
 	}
 
 	__device__ void WritePoints(SpaceData space_data, Vector3* points, unsigned long long point_count, VoxelData voxel_data) {

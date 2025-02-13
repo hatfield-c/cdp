@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 #include "../../engine/Transform.h"
 #include "PlanStep.h"
@@ -6,6 +6,9 @@
 struct Wallrider {
 	// stages are 0:wallride, 1:transit
 	int current_stage = 0;
+
+	float* transit_kernel = new float[16 * 16];
+	Vector2 transit_center{ 7, 7 };
 
 	float forward_distance = 0;
 	int left_score = 0;
@@ -39,7 +42,7 @@ struct Wallrider {
 		float proximity_radius = 1;
 
 		float forward_distance = 20;
-		float forward_radius = 1;
+		float forward_radius = 1.8;
 		int forward_count = 0;
 		float forward_y_bias = 1;
 
@@ -92,6 +95,10 @@ struct Wallrider {
 	Vector3 GetCommand(float* depth_phash, Vector3* camera_cloud) {
 		Vector3 command{ 0, 0, 0 };
 		
+		if (this->plan_index >= this->plan_size) {
+			return command;
+		}
+
 		if (this->IsSafe(depth_phash, camera_cloud)) {
 			if (this->current_stage == 0) {
 				command = this->DoWallride(depth_phash, camera_cloud);
@@ -117,7 +124,6 @@ struct Wallrider {
 
 	Vector3 DoWallride(float* depth_phash, Vector3* camera_cloud) {
 		Vector3 command{ 0, 0, 1 };
-		//Vector3 command{ 0, 0, 0 };
 
 		float proximity_threshold = 5;
 		float forward_margin = 0.3;
@@ -134,13 +140,15 @@ struct Wallrider {
 			command[0] = -plan_step.wall_direction;
 		}
 		
-		Vector3 correlation_data = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, Vector2{ 7, 7 }, Vector2{ 4, 4 });
-		float correlation = correlation_data.z;
+		if (plan_step.IsStartValid()) {
+			Vector3 search_result = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, Vector2{ 7, 7 }, Vector2{ 4, 4 });
+			float difference_score = search_result.z;
 
-		correlation_data.Print();
-
-		if(correlation > 0.85 && this->plan_index < this->plan_size - 1){
-			this->current_stage++;
+			if (difference_score < 0.05) {
+				this->current_stage++;
+				this->transit_kernel = plan_step.start_phash_cpu;
+				this->transit_center = Vector2{ search_result.x, search_result.y };
+			}
 		}
 
 		return command;
@@ -149,21 +157,30 @@ struct Wallrider {
 	Vector3 DoTransit(float* depth_phash, Vector3* camera_cloud) {
 		Vector3 command{ 0, 0, 1 };
 		PlanStep plan_step = this->plan[this->plan_index];
-		float forward_margin = 0.3;
-		/*
-		if (this->forward_distance > plan_step.z - forward_margin && this->forward_distance < plan_step.z + forward_margin) {
-			this->current_stage = 0;
-			
-			this->plan_index++;
+		
+		Vector3 search_result = this->FindSubImage(depth_phash, this->transit_kernel, this->transit_center, Vector2{ 4, 4 });
 
+		float forward_target = 4;
+		float forward_margin = 0.1;
+		
+		this->transit_center = Vector2{ search_result.x, search_result.y };
+		float steer_error = search_result.x - 7;
+
+		if (abs(steer_error) < 2) {
+			this->transit_kernel = depth_phash;
+		}
+		
+		if (this->forward_distance > forward_target - forward_margin && this->forward_distance < forward_target + forward_margin) {
+			this->current_stage = 0;	
+			this->plan_index++;
+			
 			return command;
 		}
-		*/
-		if (this->closest_forward.z > 0) {
+		
+		if (this->transit_center.x < 7) {
 			command.x = -1;
 		}
-
-		if (this->closest_forward.z < 0) {
+		else if (this->transit_center.x > 7) {
 			command.x = 1;
 		}
 
@@ -175,17 +192,17 @@ struct Wallrider {
 		Vector2 origin = kernel_radius;
 		Vector2 endgin{ this->phash_size.x - kernel_radius.x - 1, this->phash_size.y - kernel_radius.y - 1 };
 
-		float highest_correlation = 0;
+		float lowest_score = 999999999999999;
 		for (int j = origin.y; j < endgin.y; j++) {
 			for (int i = origin.x; i < endgin.x; i++) {
 				Vector2 camera_center{ i, j };
-				float correlation = this->GetCorrelation(camera_phash, condition_phash, camera_center, condition_center, kernel_radius);
+				float difference_score = this->GetDifferenceScore(camera_phash, condition_phash, camera_center, condition_center, kernel_radius);
 
-				if (correlation > highest_correlation) {
-					highest_correlation = correlation;
+				if (difference_score < lowest_score) {
+					lowest_score = difference_score;
 					sub_center.x = camera_center.x;
 					sub_center.y = camera_center.y;
-					sub_center.z = correlation;
+					sub_center.z = difference_score;
 				}
 			}
 		}
@@ -193,10 +210,8 @@ struct Wallrider {
 		return sub_center;
 	}
 
-	float GetCorrelation(float* camera_phash, float* condition_phash, Vector2 camera_center, Vector2 condition_center, Vector2 kernel_radius) {
-		float correlation = 0;
-		float camera_norm = 0;
-		float condition_norm = 0;
+	float GetDifferenceScore(float* camera_phash, float* condition_phash, Vector2 camera_center, Vector2 condition_center, Vector2 kernel_radius) {
+		float score = 0;
 
 		for (int j = -kernel_radius.y; j < kernel_radius.y; j++) {
 			for (int i = -kernel_radius.x; i < kernel_radius.x; i++) {
@@ -219,20 +234,12 @@ struct Wallrider {
 				float camera_depth = camera_phash[camera_index];
 				float condition_depth = condition_phash[condition_index];
 
-				correlation += camera_depth * condition_depth;
-				camera_norm += camera_depth * camera_depth;
-				condition_norm += condition_depth * condition_depth;
+				score += abs(camera_depth - condition_depth) / 20;
 			}
 		}
 
-		camera_norm = sqrt(camera_norm);
-		condition_norm = sqrt(condition_norm);
-		float norm = camera_norm * condition_norm;
-
-		if (norm > 0) {
-			correlation = correlation / norm;
-		}
-
-		return correlation;
+		score = score / (((2 * kernel_radius.x) + 1) * ((2 * kernel_radius.y) + 1));
+		
+		return score;
 	}
 };

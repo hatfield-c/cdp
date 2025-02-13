@@ -27,7 +27,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	Vector3 direction = Vector3{ 1, 0, 0 };
 
 	this->drone_alpha.Init();
-	this->drone_alpha.rigidbody.position = Vector3{ 87, 2, 5 };
+	this->drone_alpha.rigidbody.position = Vector3{ 87, 3, 5 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
@@ -169,7 +169,7 @@ void CpuEngine::SaveSimulationImage(GuiData* gui_data) {
 
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 
-	int k = 20;
+	int k = 30;
 	for (int w = 0; w < render_size.x; w++) {
 		for (int h = 0; h < render_size.y; h++) {
 			Vector3 voxel_position{ w, k, h };

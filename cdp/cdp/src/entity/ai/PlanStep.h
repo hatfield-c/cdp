@@ -10,6 +10,9 @@ struct PlanStep {
 	float* end_phash_gpu;
 	float* end_phash_cpu = new float[16 * 16];
 
+	float* target_phash_cpu = new float[16 * 16];
+	Vector2 target_center{ 7, 7 };
+
 	Vector2 phash_size{ 16, 16 };
 	int phash_count = 16 * 16;
 
