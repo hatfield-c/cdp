@@ -28,10 +28,8 @@ class MainGui {
 
 		GuiData* gui_data = new GuiData{};
 
-		ImGui::FileBrowser save_phash_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);
+		ImGui::FileBrowser save_proximity_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);
 		ImGui::FileBrowser load_env_dialog;
-		ImGui::FileBrowser load_ihm_dialog;
-		ImGui::FileBrowser save_ihm_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_EnterNewFilename);
 
 		float uv_offset = 0.0f;
 		float uv_delta = 0.00005f;

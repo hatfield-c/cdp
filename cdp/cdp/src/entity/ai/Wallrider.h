@@ -10,7 +10,7 @@ struct Wallrider {
 	int plan_index = 0;
 	int plan_size = 1;
 	PlanStep plan[1] = {
-		PlanStep{ -1, "", Vector2{ 7, 7 } }
+		PlanStep{ -1, "", 7 }
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -242,72 +242,6 @@ struct Wallrider {
 		score = score / (((2 * kernel_radius.x) + 1) * ((2 * kernel_radius.y) + 1));
 
 		return score;
-	}
-
-	float FirstVerticalEdgeDistance(float* depth_phash, Vector2 target_center) {
-		float delta_threshold = 2;
-
-		float vertical_average = 0;
-
-		for (int i = this->phash_size.y - 1; i > 1; i--) {
-			unsigned long long index0 = Indexer::FlatIndex2(target_center.x, i, this->phash_size.x);
-			unsigned long long index1 = Indexer::FlatIndex2(target_center.x, i - 1, this->phash_size.x);
-
-			float depth0 = depth_phash[index0];
-			float depth1 = depth_phash[index1];
-
-			vertical_average += depth0;
-			float delta = abs(depth1 - depth0);
-
-			if (delta > delta_threshold) {
-				if (depth0 < depth1) {
-					return depth0;
-				}
-				else {
-					return depth1;
-				}
-			}
-		}
-
-		return vertical_average / (this->phash_size.y - 1);
-	}
-
-	float VerticalEdgeAverage(float* depth_phash, Vector2 target_center) {
-		float delta_threshold = 1;
-
-		float vertical_average = 0;
-		float edge_average = 0;
-		float edge_count = 0;
-
-		for (int i = 0; i < this->phash_size.y - 1; i++) {
-			unsigned long long index0 = Indexer::FlatIndex2(target_center.x, i, this->phash_size.x);
-			unsigned long long index1 = Indexer::FlatIndex2(target_center.x, i + 1, this->phash_size.x);
-
-			float depth0 = depth_phash[index0];
-			float depth1 = depth_phash[index1];
-
-			vertical_average += depth0;
-			float delta = abs(depth1 - depth0);
-
-			if (delta > delta_threshold) {
-				if (depth0 < depth1) {
-					edge_average += depth0;
-				}
-				else {
-					edge_average += depth1;
-				}
-
-				edge_count++;
-			}
-		}
-
-		vertical_average = vertical_average / (this->phash_size.y - 1);
-
-		if (edge_count < 1) {
-			return vertical_average;
-		}
-
-		return edge_average / edge_count;
 	}
 
 	void ExtractHeightPhash(float* depth_phash, Vector3* camera_cloud) {

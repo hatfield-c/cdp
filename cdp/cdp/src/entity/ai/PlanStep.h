@@ -2,37 +2,32 @@
 
 struct PlanStep {
 	float wall_direction;
-	const char* start_phash_path;
-	Vector2 target_center;
+	const char* start_proximity_path;
+	int target_center;
 
-	float* start_phash_gpu;
-	float* start_phash_cpu = new float[16 * 16];
+	float* start_proximity_hash = new float[16];
 
-	Vector2 phash_size{ 16, 16 };
-	int phash_count = 16 * 16;
+	int proximity_size = 16;
 
 	void Init() {
-		int phash_memory_size = this->phash_count * sizeof(float);
+		int proximity_memory_size = proximity_size * sizeof(float);
 		
 		if (this->IsStartValid()) {
-			memset(this->start_phash_cpu, 0, phash_memory_size);
+			memset(this->start_proximity_hash, 0, proximity_memory_size);
 
 			FILE* in_file;
-			fopen_s(&in_file, this->start_phash_path, "rb");
+			fopen_s(&in_file, this->start_proximity_path, "rb");
 			if (in_file == NULL) {
-				printf("\n\n[Warning] .phash file did not open when loading:\n    %s!\n", start_phash_path);
+				printf("\n\n[Warning] .phash file did not open when loading:\n    %s!\n", start_proximity_path);
 				exit(1);
 			}
-			int result = fread(this->start_phash_cpu, sizeof(float), this->phash_count, in_file);
+			int result = fread(this->start_proximity_hash, sizeof(float), proximity_size, in_file);
 			fclose(in_file);
-
-			CudaError::CheckError((cudaError_enum)cudaMalloc(&this->start_phash_gpu, phash_memory_size), __FILE__, __LINE__);
-			CudaError::CheckError((cudaError_enum)cudaMemcpy(this->start_phash_gpu, this->start_phash_cpu, phash_memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 		}
 	}
 
 	bool IsStartValid() {
-		if (this->start_phash_path[0] == '\0') {
+		if (this->start_proximity_path[0] == '\0') {
 			return false;
 		}
 

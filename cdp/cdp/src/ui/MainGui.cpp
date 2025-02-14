@@ -2,14 +2,10 @@
 #include "MainGui.h"
 
 MainGui::MainGui(int camera_count) {
-    this->save_phash_dialog.SetTitle("P-Hash Save Location");
+    this->save_proximity_dialog.SetTitle("Proximity Hash Save Location");
     this->load_env_dialog.SetTitle("Load Environment");
-    this->load_ihm_dialog.SetTitle("Load IHM File");
-    this->save_ihm_dialog.SetTitle("IHM Save Location");
-    this->save_phash_dialog.SetTypeFilters({ ".phash" });
+    this->save_proximity_dialog.SetTypeFilters({ ".proximity" });
     this->load_env_dialog.SetTypeFilters({ ".ply" });
-    this->load_ihm_dialog.SetTypeFilters({ ".ihm" });
-    this->save_ihm_dialog.SetTypeFilters({ ".ihm" });
 
     this->camera_count = camera_count;
 
@@ -52,10 +48,8 @@ void MainGui::Update() {
     //bool show_demo_window = true;
     //ImGui::ShowDemoWindow(&show_demo_window);
     
-    this->save_phash_dialog.Display();
+    this->save_proximity_dialog.Display();
     this->load_env_dialog.Display();
-    this->load_ihm_dialog.Display();
-    this->save_ihm_dialog.Display();
 
     this->RefreshGuiData();
 
@@ -67,36 +61,20 @@ void MainGui::RefreshGuiData() {
 
     this->gui_data->camera_index = this->camera_index;
 
+    if (this->save_proximity_dialog.HasSelected()) {
+        this->gui_data->save_phash_path = this->save_proximity_dialog.GetSelected().string();
+        this->save_proximity_dialog.ClearSelected();
+    }
+    else {
+        this->gui_data->save_phash_path = "";
+    }
+
     if (this->load_env_dialog.HasSelected()) {
         this->gui_data->load_env_path = this->load_env_dialog.GetSelected().string();
         this->load_env_dialog.ClearSelected();
     } else {
         this->gui_data->load_env_path = "";
-    }
-
-    if (this->load_ihm_dialog.HasSelected()) {
-        this->gui_data->load_ihm_path = this->load_ihm_dialog.GetSelected().string();
-        this->load_ihm_dialog.ClearSelected();
-    }
-    else {
-        this->gui_data->load_ihm_path = "";
-    }
-
-    if (this->save_ihm_dialog.HasSelected()) {
-        this->gui_data->save_ihm_path = this->save_ihm_dialog.GetSelected().string();
-        this->save_ihm_dialog.ClearSelected();
-    }
-    else {
-        this->gui_data->save_ihm_path = "";
-    }
-
-    if (this->save_phash_dialog.HasSelected()) {
-        this->gui_data->save_phash_path = this->save_phash_dialog.GetSelected().string();
-        this->save_phash_dialog.ClearSelected();
-    }
-    else {
-        this->gui_data->save_phash_path = "";
-    }
+    }    
 }
 
 void MainGui::DrawBackground() {
@@ -142,26 +120,14 @@ void MainGui::DrawViewport() {
     if (ImGui::BeginMenuBar()){
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Save P-Hash")) {
-                this->save_phash_dialog.Open();
-            }
-
-            ImGui::Separator();
-
             if (ImGui::MenuItem("Load Environment")) {
                 this->load_env_dialog.Open();
             }
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Generate IHM")) {
-                this->save_ihm_dialog.Open();
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Load IHM")) {
-                this->load_ihm_dialog.Open();
+            if (ImGui::MenuItem("Save Proximity Hash")) {
+                this->save_proximity_dialog.Open();
             }
 
             ImGui::EndMenu();
@@ -401,11 +367,8 @@ void MainGui::DrawInspector() {
         this->gui_data->is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
     }
 
-    if (ImGui::CollapsingHeader("IHM Testing")) {
+    if (ImGui::CollapsingHeader("Testing")) {
         this->gui_data->is_playground = ImGui::Button("Playground");
-        this->gui_data->is_estimate_position = ImGui::Button("Estimate Position");
-        this->gui_data->is_save_confusion = ImGui::Button("Save Confusion Map");
-        this->gui_data->is_render_path_confusion = ImGui::Button("Render Path Confusion");
     }
 
     ImGui::End();

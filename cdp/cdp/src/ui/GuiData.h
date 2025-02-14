@@ -7,8 +7,6 @@ struct GuiData {
 	bool is_window_open = false;
 	std::string save_phash_path = "";
 	std::string load_env_path = "";
-	std::string load_ihm_path = "";
-	std::string save_ihm_path = "";
 
 	// Simulation
 	bool is_simulating = false;
@@ -38,8 +36,5 @@ struct GuiData {
 
 	// Buttons
 	bool is_playground = false;
-	bool is_estimate_position = false;
-	bool is_save_confusion = false;
 	bool is_stochastic_subtraction = false;
-	bool is_render_path_confusion = false;
 };
