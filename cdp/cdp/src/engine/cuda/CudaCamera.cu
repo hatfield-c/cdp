@@ -19,6 +19,9 @@ void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
     int y_blocks = ceil(camera.phash_data_size.y / 2);
     dim3 blocks_per_grid(1, y_blocks, 1);
     
+    //cudaMemset(camera.height_texture, 255, camera.phash_pixel_count * 4 * sizeof(byte));
+    //CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
     CudaCamera::RenderCamera_Kernel<<<blocks_per_grid, threads_per_block>>>(camera, space_data);
 
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);

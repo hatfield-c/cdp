@@ -25,9 +25,13 @@ struct DroneAlpha {
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
-		this->wallrider.Update(camera_cloud);
+		this->wallrider.Update(depth_phash, camera_cloud);
 
-		Vector3 command = this->wallrider.GetCommand(depth_phash, camera_cloud);
+		
+	}
+
+	void Act() {
+		Vector3 command = this->wallrider.GetCommand();
 		this->FollowCommand(command);
 	}
 

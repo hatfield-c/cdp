@@ -30,7 +30,7 @@ VulkanPipeline::VulkanPipeline(int camera_count) {
 
         this->depth_textures.push_back(depth_texture);
         this->phash_textures.push_back(phash_texture);
-        this->phash_derotated_textures.push_back(centroid_texture);
+        this->height_textures.push_back(centroid_texture);
 
         this->texture_list.push_back(depth_texture);
         this->texture_list.push_back(phash_texture);
@@ -74,11 +74,11 @@ std::vector<CUdeviceptr> VulkanPipeline::GetPhashTextures() {
     return textures;
 }
 
-std::vector<CUdeviceptr> VulkanPipeline::GetUnrotatedTextures() {
+std::vector<CUdeviceptr> VulkanPipeline::GetHeightTextures() {
     std::vector<CUdeviceptr> textures{};
 
-    for (int i = 0; i < this->phash_derotated_textures.size(); i++) {
-        CUdeviceptr gpu_texture = this->phash_derotated_textures[i]->ExportAsCuda();
+    for (int i = 0; i < this->height_textures.size(); i++) {
+        CUdeviceptr gpu_texture = this->height_textures[i]->ExportAsCuda();
 
         textures.push_back(gpu_texture);
     }

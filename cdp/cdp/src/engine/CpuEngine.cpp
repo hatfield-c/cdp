@@ -1,6 +1,6 @@
 #include "CpuEngine.h"
 
-CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> phash_derotated_textures) {
+CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> height_textures) {
 	this->world_space = new WorldSpace();
 	this->image_builder->Init();
 
@@ -16,7 +16,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	for (int i = 0; i < depth_textures.size(); i++) {
 		CUdeviceptr depth_texture = depth_textures[i];
 		CUdeviceptr phash_texture = phash_textures[i];
-		CUdeviceptr phash_derotated_texture = phash_derotated_textures[i];
+		CUdeviceptr phash_derotated_texture = height_textures[i];
 
 		Camera* camera = new Camera{};
 		camera->Init("camera " + i, depth_texture, phash_texture, phash_derotated_texture);
@@ -27,6 +27,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	Vector3 direction = Vector3{ 1, 0, 0 };
 
 	this->drone_alpha.Init();
+	this->drone_alpha.wallrider.height_texture = this->camera_list[0]->height_texture;
 	this->drone_alpha.rigidbody.position = Vector3{ 87, 3, 5 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
@@ -98,6 +99,10 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
 	this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
+	float* depth_phash = this->camera_list[0]->GetPhashAsFloat();
+	Vector3* camera_cloud = this->camera_list[0]->GetCloud();
+	this->drone_alpha.Update(depth_phash, camera_cloud);
+
 	if (gui_data->control_index == 0) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 	}
@@ -105,17 +110,11 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 
 		this->drone_alpha.FollowCommand(gui_data->keyboard);
-
-		// debug: remove
-		//Vector3* camera_cloud = this->camera_list[0]->GetCloud();
-		//this->drone_alpha.Update(camera_cloud);
 	}
 	else if (gui_data->control_index == 5) {
 		gui_data->camera_position = this->drone_alpha.rigidbody.position;
 
-		float* depth_phash = this->camera_list[0]->GetPhashAsFloat();
-		Vector3* camera_cloud = this->camera_list[0]->GetCloud();
-		this->drone_alpha.Update(depth_phash, camera_cloud);
+		this->drone_alpha.Act();
 	}
 	else  {
 		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);

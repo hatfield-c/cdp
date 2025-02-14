@@ -33,7 +33,7 @@ class VulkanPipeline {
 
 		std::vector<VulkanTexture*> depth_textures;
 		std::vector<VulkanTexture*> phash_textures;
-		std::vector<VulkanTexture*> phash_derotated_textures;
+		std::vector<VulkanTexture*> height_textures;
 		std::vector<VulkanTexture*> texture_list;
 
 		VulkanPipeline(int camera_count);
@@ -42,5 +42,5 @@ class VulkanPipeline {
 		void Cleanup();
 		std::vector<CUdeviceptr> GetDepthTextures();
 		std::vector<CUdeviceptr> GetPhashTextures();
-		std::vector<CUdeviceptr> GetUnrotatedTextures();
+		std::vector<CUdeviceptr> GetHeightTextures();
 };

@@ -33,11 +33,11 @@ struct Camera {
 
     byte* depth_texture;
     byte* phash_texture;
-    byte* phash_derotated_texture;
+    byte* height_texture;
     RaycastHitData* depth_data;
     byte* phash_data;
-    byte* phash_derotated_data;
     float* depth_phash;
+    float* height_phash;
     Vector3* render_cloud;
 	
     long seed = 12345;
@@ -50,7 +50,7 @@ struct Camera {
 		this->fov.y = pi / 2;
 		this->depth_texture = (byte*)depth_texture;
         this->phash_texture = (byte*)phash_texture;
-        this->phash_derotated_texture = (byte*)phash_derotated_texture;
+        this->height_texture = (byte*)phash_derotated_texture;
         this->camera_pixel_count = this->camera_size.x * this->camera_size.y;
         this->phash_pixel_count = this->phash_texture_size.x * this->phash_texture_size.y;
         this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
@@ -62,12 +62,12 @@ struct Camera {
         int depth_memroy_size = this->phash_data_count * sizeof(float);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
-        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_derotated_data, phash_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_phash, depth_memroy_size), __FILE__, __LINE__);
+        CudaError::CheckError((cudaError_enum)cudaMalloc(&this->height_phash, depth_memroy_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->render_cloud, cloud_memory_size), __FILE__, __LINE__);
         cudaMemset(this->phash_data, 0, phash_memory_size);
-        cudaMemset(this->phash_derotated_data, 0, phash_memory_size);
         cudaMemset(this->depth_phash, 0, depth_memroy_size);
+        cudaMemset(this->height_phash, 0, depth_memroy_size);
         cudaMemset(this->render_cloud, 0, cloud_memory_size);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
@@ -175,22 +175,15 @@ struct Camera {
             }
         }
 
+        float depth_meters = min_distance / space_data.indices_per_meter;
+
         byte phash_pixel_value = this->DepthToPixel(min_distance);
         Vector4 phash_color{ phash_pixel_value, phash_pixel_value, phash_pixel_value, 255 };
 
-        Camera::WriteFloat(this->depth_phash, phash_position, this->phash_data_size, min_distance / space_data.indices_per_meter);
+        Camera::WriteFloat(this->depth_phash, phash_position, this->phash_data_size, depth_meters);
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);
 
-        Vector2 texture_position{};
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 2; j++) {
-                texture_position.x = (2 * phash_position.x) + i;
-                texture_position.y = (2 * phash_position.y) + j;
-
-                Camera::WriteRGBA(this->phash_texture, texture_position, this->phash_texture_size, phash_color);
-                Camera::WriteRGBA(this->phash_derotated_texture, texture_position, this->phash_texture_size, phash_color);
-            }
-        }
+        
 
         Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), rotation);
         Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
@@ -198,8 +191,39 @@ struct Camera {
 
         Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, rotation, true);
         Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_data_size, this->fov, ray_rotation);
+        Vector3 cloud_position = ray_direction * depth_meters;
 
-        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, ray_direction * (min_distance / space_data.indices_per_meter));
+        this->WriteVector3(this->render_cloud, phash_position, this->phash_data_size, cloud_position);
+
+        Vector2 top_position{
+            phash_position.x,
+            this->phash_data_size.y - round((cloud_position.x / this->max_distance) * (this->phash_data_size.y - 1)) - 1
+        };
+
+        if (depth_meters < this->max_distance) {
+            this->WriteFloat(this->height_phash, top_position, this->phash_data_size, cloud_position.y);
+        }
+
+        float pixel_value = ((cloud_position.y + 4) / 15) * 255;
+        pixel_value = Math::Clip(pixel_value, 0.0, 255.0);
+
+        Vector2 texture_position0{};
+        Vector2 texture_position1{};
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                texture_position0.x = (2 * phash_position.x) + i;
+                texture_position0.y = (2 * phash_position.y) + j;
+
+                texture_position1.x = (2 * top_position.x) + i;
+                texture_position1.y = (2 * top_position.y) + j;
+
+                Camera::WriteRGBA(this->phash_texture, texture_position0, this->phash_texture_size, phash_color);
+
+                if (depth_meters < this->max_distance) {
+                    //Camera::WriteRGBA(this->height_texture, texture_position1, this->phash_texture_size, Vector4{ pixel_value, pixel_value, pixel_value, 255 });
+                }
+            }
+        }
     }
 
     static __device__ Vector3 GetCameraRayDirection(Vector2 pixel_position, Vector2 canvas_size, Vector2 fov, Vector4 camera_rotation) {
