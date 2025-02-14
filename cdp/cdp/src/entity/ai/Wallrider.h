@@ -7,31 +7,22 @@
 struct Wallrider {
 	// stages are 0:wallride, 1:transit
 	int current_stage = 0;
-
-	float* transit_kernel = new float[16 * 16];
-	Vector2 transit_center{ 7, 7 };
-	float start_distance_signal = 0;
-
-	float forward_distance = 0;
-	int left_score = 0;
-	int right_score = 0;
-	Vector3 closest_forward{};
-
 	int plan_index = 0;
-	int plan_size = 4;
-	PlanStep plan[4] = {
-		PlanStep{ -1, "./data/wallrider/p_0001.phash", Vector2{ 7, 7 } },
-		PlanStep{ 1, "./data/wallrider/p_0002.phash", Vector2{ 5, 7 } },
-		PlanStep{ -1, "./data/wallrider/p_0003.phash", Vector2{ 5, 7 } },
-		PlanStep{ 1, "", Vector2{ 7, 7 } }
+	int plan_size = 1;
+	PlanStep plan[1] = {
+		PlanStep{ -1, "", Vector2{ 7, 7 } }
 	};
 
 	Vector2 phash_size{ 16, 16 };
 	int phash_count = 16 * 16;
 	float max_distance = 20.0;
 
-	float* height_phash = new float[256];
+	float* height_phash = new float[16 * 16];
+	float* proximity_phash = new float[16];
 	byte* height_texture;
+
+	bool brake_proximity;
+	bool* steer_proximity = new bool[3];
 
 	void Init() {
 		for (int i = 0; i < this->plan_size; i++) {
@@ -41,63 +32,55 @@ struct Wallrider {
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
-		Vector3 left_proximity{ sqrt(2) / 2, 0, sqrt(2) / 2 };
-		Vector3 right_proximity{ -sqrt(2) / 2, 0, sqrt(2) / 2 };
-		left_proximity = left_proximity * 2;
-		right_proximity = right_proximity * 2;
-
-		float proximity_radius = 1;
-
-		float forward_distance = 20;
-		float forward_radius = 1.8;
-		int forward_count = 0;
-		float forward_y_bias = 1;
-
-		float closest_ray_distance = 999999999;
-		this->left_score = 0;
-		this->right_score = 0;
-		for (int i = 0; i < 256; i++) {
-			Vector3 point = camera_cloud[i];
-
-			float ray_distance = Transform::Norm3(point);
-			float left_distance = Transform::Norm3(point - left_proximity);
-			float right_distance = Transform::Norm3(point - right_proximity);
-
-			if (ray_distance < closest_ray_distance && point.y >= 1) {
-				closest_ray_distance = ray_distance;
-				this->closest_forward = point;
-			}
-
-			if (left_distance < proximity_radius) {
-				this->left_score++;
-			}
-
-			if (right_distance < proximity_radius) {
-				this->right_score++;
-			}
-
-			Vector2 pixel = Indexer::InverseFlatIndex2(i, 16);
-			float line_distance = Transform::Norm2(Vector2{ point.z, point.y - forward_y_bias });
-
-			if (line_distance < forward_radius) {
-				if (forward_count == 0) {
-					forward_distance = point.x;
-				}
-				else {
-					forward_distance += point.x;
-				}
-
-				forward_count++;
-			}
-		}
-
-		if (forward_count > 0) {
-			forward_distance = forward_distance / forward_count;
-		}
-
-		this->forward_distance = forward_distance;
-
 		this->ExtractHeightPhash(depth_phash, camera_cloud);
+		this->brake_proximity = false;
+		this->steer_proximity[0] = false;
+		this->steer_proximity[1] = false;
+		this->steer_proximity[2] = false;
+
+		int brake_count = 0;
+		int* steer_count = new int[3];
+		memset(steer_count, 0, 3 * sizeof(int));
+
+		for (int i = 0; i < 16; i++) {
+			float distance = this->proximity_phash[i];
+
+			if (distance < 1) {
+				brake_count++;
+			}
+
+			if (i > 0 && i < 6) {
+				if (distance < 3) {
+					steer_count[0]++;
+				}
+			}
+			else if (i > 6 && i < 10) {
+				if (distance < 4) {
+					steer_count[1]++;
+				}
+			}
+			else if (i > 10 && i < 16) {
+				if (distance < 3) {
+					steer_count[2]++;
+				}
+			}
+		}
+
+		if (brake_count > 3) {
+			this->brake_proximity = true;
+		}
+
+		if (steer_count[0] > 2) {
+			this->steer_proximity[0] = true;
+		}
+		
+		if (steer_count[1] > 2) {
+			this->steer_proximity[1] = true;
+		}
+
+		if (steer_count[2] > 2) {
+			this->steer_proximity[2] = true;
+		}
 	}
 
 	Vector3 GetCommand() {
@@ -120,10 +103,11 @@ struct Wallrider {
 	}
 
 	bool IsSafe() {
-		// change to Vector3 command return
-		// brake if there's an emergency. otherwise, check if there are walls on either side. if so, fly in the middle
-
 		if (this->plan_index >= this->plan_size) {
+			return false;
+		}
+
+		if (this->brake_proximity) {
 			return false;
 		}
 
@@ -132,23 +116,20 @@ struct Wallrider {
 
 	Vector3 DoWallride() {
 		Vector3 command{ 0, 0, 1 };
-		/*
-		float proximity_threshold = 5;
-		float forward_margin = 0.3;
-
+		
 		PlanStep plan_step = this->plan[this->plan_index];
 
-		bool is_proximity = this->left_score > proximity_threshold;
+		bool is_proximity = this->steer_proximity[0] || this->steer_proximity[1];
 		if (plan_step.wall_direction > 0) {
-			is_proximity = this->right_score > proximity_threshold;
+			is_proximity = this->steer_proximity[1] || this->steer_proximity[2];
 		}
 
 		command[0] = plan_step.wall_direction;
-		if (is_proximity || this->forward_distance < 4) {
+		if (is_proximity) {
 			command[0] = -plan_step.wall_direction;
 		}
 
-		if (plan_step.IsStartValid()) {
+		/*if (plan_step.IsStartValid()) {
 			Vector3 search_result = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, plan_step.target_center, Vector2{ 4, 4 });
 			float difference_score = search_result.z;
 			printf("%.6f\n", difference_score);
@@ -158,8 +139,8 @@ struct Wallrider {
 				this->transit_center = Vector2{ search_result.x, search_result.y };
 				this->start_distance_signal = this->VerticalEdgeAverage(depth_phash, this->transit_center);
 			}
-		}
-		*/
+		}*/
+		
 		return command;
 	}
 
@@ -329,26 +310,15 @@ struct Wallrider {
 		return edge_average / edge_count;
 	}
 
-	float AverageKernel(float* depth_phash, Vector2 center, Vector2 radius) {
-		float avg_distance = 0;
-		for (int i = -radius.x; i <= radius.x; i++) {
-			for (int j = -radius.y; j <= radius.y; j++) {
-				Vector2 offset{ i, j };
-				Vector2 pixel_position = this->transit_center + offset;
-				unsigned long long pixel_index = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, this->phash_size.x);
-
-				avg_distance += depth_phash[pixel_index];
-			}
-		}
-		avg_distance = avg_distance / (((2 * radius.x) + 1) * ((2 * radius.y) + 1));
-
-		return avg_distance;
-	}
-
 	void ExtractHeightPhash(float* depth_phash, Vector3* camera_cloud) {
-		
+		float collision_bounds = -2;
+
 		for (int i = 0; i < 256; i++) {
 			this->height_phash[i] = -1000;
+		}
+
+		for (int i = 0; i < 16; i++) {
+			this->proximity_phash[i] = 16;
 		}
 
 		for (int i = 0; i < 256; i++) {
@@ -368,35 +338,9 @@ struct Wallrider {
 				if (cloud_position.y > old_height) {
 					this->height_phash[index] = cloud_position.y;
 				}
-			}
-		}
 
-		for (int i = 0; i < 16; i++) {
-			float last_up_height = -1000;
-
-			for (int j = 15; j >= 0; j--) {
-				unsigned long long up_index = Indexer::FlatIndex2(i, j, 16);
-
-				float up_value = this->height_phash[up_index];
-
-				if (up_value >= -4) {
-					last_up_height = up_value;
-				} else if (last_up_height > -4) {
-					this->height_phash[up_index] = last_up_height;
-				}
-			}
-
-			last_up_height = -1000;
-			for (int j = 0; j < 16; j++) {
-				unsigned long long down_index = Indexer::FlatIndex2(i, j, 16);
-
-				float up_value = this->height_phash[down_index];
-
-				if (up_value >= -4) {
-					last_up_height = up_value;
-				}
-				else if (last_up_height > -4) {
-					this->height_phash[down_index] = last_up_height;
+				if (cloud_position.y >= collision_bounds && height_position.y < this->proximity_phash[(int)height_position.x]) {
+					this->proximity_phash[(int)height_position.x] = height_position.y;
 				}
 			}
 		}
@@ -413,9 +357,8 @@ struct Wallrider {
 				float height_value = this->height_phash[height_index];
 
 				float height_pixel = 255;
-				if (height_value >= -4.0) {
-					height_pixel = ((height_value + 4) / 15) * 255;
-					height_pixel = Math::Clip(height_pixel, 0.0, 255.0);
+				if (height_value < collision_bounds) {
+					height_pixel = 0;
 				}
 
 				texture[texture_index] = (byte)height_pixel;

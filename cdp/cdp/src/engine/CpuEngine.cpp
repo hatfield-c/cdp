@@ -28,7 +28,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->drone_alpha.Init();
 	this->drone_alpha.wallrider.height_texture = this->camera_list[0]->height_texture;
-	this->drone_alpha.rigidbody.position = Vector3{ 87, 3, 5 };
+	this->drone_alpha.rigidbody.position = Vector3{ 90, 4, 5 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
@@ -91,9 +91,9 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	gui_data->drone_velocity = this->drone_alpha.rigidbody.velocity;
 	gui_data->drone_angular_velocity = this->drone_alpha.rigidbody.angular_velocity;
 	gui_data->wallride_sensor = Vector3{
-		this->drone_alpha.wallrider.forward_distance,
-		(float)this->drone_alpha.wallrider.left_score,
-		(float)this->drone_alpha.wallrider.right_score
+		(float)this->drone_alpha.wallrider.steer_proximity[0],
+		(float)this->drone_alpha.wallrider.steer_proximity[1],
+		(float)this->drone_alpha.wallrider.steer_proximity[2]
 	};
 
 	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
@@ -168,7 +168,7 @@ void CpuEngine::SaveSimulationImage(GuiData* gui_data) {
 
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 
-	int k = 30;
+	int k = 40;
 	for (int w = 0; w < render_size.x; w++) {
 		for (int h = 0; h < render_size.y; h++) {
 			Vector3 voxel_position{ w, k, h };
@@ -281,8 +281,13 @@ void CpuEngine::SaveDepthPhash(GuiData* gui_data) {
 
 	Camera camera = *this->camera_list[0];
 	
-	float* depth_phash = camera.GetPhashAsFloat();
-	byte* byte_phash = camera.GetPhashAsByte();
+	float* proximity_hash = this->drone_alpha.wallrider.proximity_phash;
+	byte* forward_phash = camera.GetPhashAsByte();
+	byte* height_texture = new byte[4 * 32 * 32];
+
+	CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(height_texture, this->drone_alpha.wallrider.height_texture, 4 * 32 * 32, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+	CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 
 	FILE* out_file;
 	fopen_s(&out_file, save_path.c_str(), "wb+");
@@ -290,10 +295,11 @@ void CpuEngine::SaveDepthPhash(GuiData* gui_data) {
 		printf("\n\nWarning: File did not open when saving Depth P-Hash:\n    %s!\n", save_path.c_str());
 		exit(1);
 	}
-	int result = fwrite(depth_phash, sizeof(float), camera.phash_data_count, out_file);
+	int result = fwrite(proximity_hash, sizeof(float), 16, out_file);
 	fclose(out_file);
 
-	result = stbi_write_jpg((save_path + ".jpg").c_str(), camera.phash_data_size.x, camera.phash_data_size.y, 1, byte_phash, 100);
+	result = stbi_write_jpg((save_path + ".jpg").c_str(), camera.phash_data_size.x, camera.phash_data_size.y, 1, forward_phash, 100);
+	result = stbi_write_jpg((save_path + ".height.jpg").c_str(), 32, 32, 4, height_texture, 100);
 
 	printf("    Done!\n\n");
 }
