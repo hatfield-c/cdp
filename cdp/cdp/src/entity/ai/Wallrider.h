@@ -10,7 +10,7 @@ struct Wallrider {
 	int plan_index = 0;
 	int plan_size = 1;
 	PlanStep plan[1] = {
-		PlanStep{ -1, "", 7 }
+		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 }
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -129,17 +129,14 @@ struct Wallrider {
 			command[0] = -plan_step.wall_direction;
 		}
 
-		/*if (plan_step.IsStartValid()) {
-			Vector3 search_result = this->FindSubImage(depth_phash, plan_step.start_phash_cpu, plan_step.target_center, Vector2{ 4, 4 });
-			float difference_score = search_result.z;
-			printf("%.6f\n", difference_score);
-			if (difference_score < 0.0015) {
+		if (plan_step.IsStartValid()) {
+			Vector2 search_data = this->FindSubImage(this->proximity_phash, plan_step.start_proximity_hash, plan_step.target_center, 4);
+
+			if (search_data.y > 0.95) {
 				this->current_stage++;
-				this->transit_kernel = depth_phash;
-				this->transit_center = Vector2{ search_result.x, search_result.y };
-				this->start_distance_signal = this->VerticalEdgeAverage(depth_phash, this->transit_center);
+				command[0] = 0;
 			}
-		}*/
+		}
 		
 		return command;
 	}
@@ -185,63 +182,64 @@ struct Wallrider {
 		return command;
 	}
 
-	Vector3 FindSubImage(float* camera_phash, float* condition_phash, Vector2 condition_center, Vector2 kernel_radius) {
-		Vector3 sub_center{ 7, 7, 0 };
-		Vector2 origin = kernel_radius;
-		Vector2 endgin{ this->phash_size.x - kernel_radius.x - 1, this->phash_size.y - kernel_radius.y - 1 };
+	Vector2 FindSubImage(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
+		Vector2 sub_center{ 7 , -1 };
+		int origin = kernel_radius;
+		int endgin = this->phash_size.x - kernel_radius;
 
-		float lowest_score = 999999999999999;
-		for (int j = origin.y; j < endgin.y; j++) {
-			for (int i = origin.x; i < endgin.x; i++) {
-				Vector2 camera_center{ i, j };
-				float difference_score = this->GetDifferenceScore(camera_phash, condition_phash, camera_center, condition_center, kernel_radius);
+		for (int i = origin; i < endgin; i++) {
+			int camera_index = i;
+			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius);
 
-				if (difference_score < lowest_score) {
-					lowest_score = difference_score;
-					sub_center.x = camera_center.x;
-					sub_center.y = camera_center.y;
-					sub_center.z = difference_score;
-				}
+			if (correlation > sub_center.y) {
+				sub_center.x = camera_index;
+				sub_center.y = correlation;
 			}
 		}
 
 		return sub_center;
 	}
 
+	float GetCorrelation(float* camera_proximity, float* target_proximity, int camera_center, int target_center, int kernel_radius) {
+		float correlation = 0;
 
-
-	float GetDifferenceScore(float* camera_phash, float* condition_phash, Vector2 camera_center, Vector2 condition_center, Vector2 kernel_radius) {
-		float score = 0;
-
-		for (int j = -kernel_radius.y; j < kernel_radius.y; j++) {
-			for (int i = -kernel_radius.x; i < kernel_radius.x; i++) {
-				Vector2 region_position{ i, j };
-
-				Vector2 camera_position = camera_center + region_position;
-				Vector2 condition_position = condition_center + region_position;
-
-				if (!camera_position.IsBounded(Vector::ZERO2(), this->phash_size - 1)) {
-					continue;
-				}
-
-				if (!condition_position.IsBounded(Vector::ZERO2(), this->phash_size - 1)) {
-					continue;
-				}
-
-				unsigned long long camera_index = Indexer::FlatIndex2(camera_position.x, camera_position.y, this->phash_size.x);
-				unsigned long long condition_index = Indexer::FlatIndex2(condition_position.x, condition_position.y, this->phash_size.x);
-
-				float camera_depth = camera_phash[camera_index];
-				float condition_depth = condition_phash[condition_index];
-				float pixel_score = abs(camera_depth - condition_depth) / 20;
-
-				score += pixel_score * pixel_score;
-			}
+		float camera_mean = 0;
+		float target_mean = 0;
+		for (int i = 0; i < this->phash_size.x; i++) {
+			camera_mean += camera_proximity[i];
+			target_mean += target_proximity[i];
+			
 		}
+		camera_mean = camera_mean / this->phash_size.x;
+		target_mean = target_mean / this->phash_size.x;
 
-		score = score / (((2 * kernel_radius.x) + 1) * ((2 * kernel_radius.y) + 1));
+		float camera_norm = 0;
+		float target_norm = 0;
+		for (int i = -kernel_radius; i < kernel_radius; i++) {
+			int camera_index = camera_center + i;
+			int target_index = target_center + i;
 
-		return score;
+			if (camera_index < 0 || camera_index > this->phash_size.x - 1) {
+				continue;
+			}
+
+			if (target_index < 0 || target_index > this->phash_size.x - 1) {
+				continue;
+			}
+
+			float camera_depth = camera_proximity[camera_index] - camera_mean;
+			float target_depth = target_proximity[target_index] - target_mean;
+			
+			camera_norm += camera_depth * camera_depth;
+			target_norm += target_depth * target_depth;
+			correlation += camera_depth * target_depth;
+		}
+		camera_norm = sqrt(camera_norm);
+		target_norm = sqrt(target_norm);
+
+		correlation = correlation / (camera_norm * target_norm);
+
+		return correlation;
 	}
 
 	void ExtractHeightPhash(float* depth_phash, Vector3* camera_cloud) {
