@@ -358,7 +358,7 @@ struct Wallrider {
 
 			Vector2 height_position{
 				phash_position.x,
-				this->phash_size.y - round((cloud_position.x / this->max_distance) * (this->phash_size.y - 1)) - 1
+				round((cloud_position.x / this->max_distance) * (this->phash_size.y - 1))
 			};
 
 			if (depth_phash[i] < this->max_distance) {
@@ -371,14 +371,44 @@ struct Wallrider {
 			}
 		}
 
+		for (int i = 0; i < 16; i++) {
+			float last_up_height = -1000;
+
+			for (int j = 15; j >= 0; j--) {
+				unsigned long long up_index = Indexer::FlatIndex2(i, j, 16);
+
+				float up_value = this->height_phash[up_index];
+
+				if (up_value >= -4) {
+					last_up_height = up_value;
+				} else if (last_up_height > -4) {
+					this->height_phash[up_index] = last_up_height;
+				}
+			}
+
+			last_up_height = -1000;
+			for (int j = 0; j < 16; j++) {
+				unsigned long long down_index = Indexer::FlatIndex2(i, j, 16);
+
+				float up_value = this->height_phash[down_index];
+
+				if (up_value >= -4) {
+					last_up_height = up_value;
+				}
+				else if (last_up_height > -4) {
+					this->height_phash[down_index] = last_up_height;
+				}
+			}
+		}
+
 		byte* texture = new byte[4 * 32 * 32];
 		for (int i = 0; i < 32; i++) {
 			for (int j = 0; j < 32; j++) {
 				Vector2 texture_position{ i, j };
-				unsigned long long texture_index = Indexer::FlatIndex3(0, i, j, 4, 31);
+				unsigned long long texture_index = Indexer::FlatIndex3(0, i, 31 - j, 4, 32);
 
 				Vector2 height_position = (texture_position / 2).Floor();
-				unsigned long long height_index = Indexer::FlatIndex2(height_position.x, height_position.y, 15);
+				unsigned long long height_index = Indexer::FlatIndex2(height_position.x, height_position.y, 16);
 
 				float height_value = this->height_phash[height_index];
 
@@ -395,39 +425,6 @@ struct Wallrider {
 			}
 		}
 
-		/*for (int i = 0; i < 256 * 4; i++) {
-			Vector2 height_position = Indexer::InverseFlatIndex2(i, 16);
-			float height_value = this->height_phash[i];
-
-			float height_pixel = 255;
-			if (height_value >= -4.0) {
-				height_pixel = ((height_value + 4) / 15) * 255;
-				height_pixel = Math::Clip(height_pixel, 0.0, 255.0);
-			}
-
-			Vector2 texture_position;
-			for (int j = 0; j < 2; j++) {
-				for (int k = 0; k < 2; k++) {
-					texture_position.x = (2 * height_position.x) + j;
-					texture_position.y = (2 * height_position.y) + k;
-
-
-					height_position.Print("", "");
-					texture_position.Print();
-
-					unsigned long long index = Indexer::FlatIndex3(0, texture_position.x, texture_position.y, 3, 32);
-					texture[index] = (byte)height_pixel;
-					//texture[index + 1] = (byte)height_pixel;
-					//texture[index + 2] = (byte)height_pixel;
-					//texture[index + 3] = 255;
-
-					break;
-				}
-
-				break;
-			}
-		}*/
-		
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->height_texture, texture, 4 * 32 * 32, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
