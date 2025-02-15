@@ -8,12 +8,13 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 4;
-	PlanStep plan[4] = {
+	int plan_size = 5;
+	PlanStep plan[5] = {
 		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
 		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
 		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
-		PlanStep{ 1, "", 7 }
+		PlanStep{ 1, "data/wallrider/p0004.proximity", 7 },
+		PlanStep{ -1, "", 7 }
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -25,6 +26,8 @@ struct Wallrider {
 	float* proximity_phash = new float[16];
 	float* proximity_target = new float[16];
 	int transit_center = 7;
+
+	Vector3* mass_centers = new Vector3[16];
 	
 	bool brake_proximity;
 	bool* steer_proximity = new bool[3];
@@ -38,6 +41,8 @@ struct Wallrider {
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->ExtractHeightPhash(depth_phash, camera_cloud);
+		this->ExtractMassCenters();
+
 		this->brake_proximity = false;
 		this->steer_proximity[0] = false;
 		this->steer_proximity[1] = false;
@@ -55,7 +60,7 @@ struct Wallrider {
 			}
 
 			if (i > 0 && i < 6) {
-				if (distance < 3) {
+				if (distance < 4) {
 					steer_count[0]++;
 				}
 			}
@@ -65,7 +70,7 @@ struct Wallrider {
 				}
 			}
 			else if (i > 10 && i < 16) {
-				if (distance < 3) {
+				if (distance < 4) {
 					steer_count[2]++;
 				}
 			}
@@ -180,6 +185,7 @@ struct Wallrider {
 		this->transit_center = search_result.x;
 		float steer_error = 0;
 		float steer_direction = 0;
+
 		if (search_result.x < 7) {
 			steer_error = 7 - search_result.x;
 			steer_direction = -1;
@@ -189,11 +195,14 @@ struct Wallrider {
 			steer_direction = 1;
 		}
 
-		command.x = steer_direction;
-
 		if (steer_error < 1) {
 			memcpy(this->proximity_target, this->proximity_phash, this->phash_size.x * sizeof(float));
 		}
+		else if (steer_error == 1) {
+			steer_direction = 0.25 * steer_direction;
+		}
+
+		command.x = steer_direction;
 
 		float depth_center = this->proximity_phash[this->transit_center];
 		if (steer_error < 2 && depth_center < 4.0 && this->steer_proximity[1]) {
@@ -206,22 +215,24 @@ struct Wallrider {
 		return command;
 	}
 
+	void FindEdges(float* camera_proximity, float delta_threshold) {
+
+	}
+
 	Vector2 SadMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
 		Vector2 sub_center{ 7 , 999999999 };
 		int origin = kernel_radius;
 		int endgin = this->phash_size.x - kernel_radius;
 
 		for (int i = origin; i < endgin; i++) {
-			int camera_index = i;
-
 			if (camera_proximity[i] > 15) {
 				continue;
 			}
 
-			float sad_score = this->GetSad(camera_proximity, target_proximity, camera_index, target_center, kernel_radius);
+			float sad_score = this->GetSad(camera_proximity, target_proximity, i, target_center, kernel_radius);
 
 			if (sad_score < sub_center.y) {
-				sub_center.x = camera_index;
+				sub_center.x = i;
 				sub_center.y = sad_score;
 			}
 		}
@@ -291,7 +302,7 @@ struct Wallrider {
 				continue;
 			}
 
-			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius);
+			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius, target_proximity[target_center]);
 
 			printf("[%.2f]", correlation);
 
@@ -310,7 +321,7 @@ struct Wallrider {
 		return sub_center;
 	}
 
-	float GetCorrelation(float* camera_proximity, float* target_proximity, int camera_center, int target_center, int kernel_radius) {
+	float GetCorrelation(float* camera_proximity, float* target_proximity, int camera_center, int target_center, int kernel_radius, float depth_mean) {
 		float correlation = 0;
 
 		float camera_mean = 0;
@@ -318,19 +329,19 @@ struct Wallrider {
 		float camera_count = 0;
 		float target_count = 0;
 		for (int i = 0; i < this->phash_size.x; i++) {
-			//if (camera_proximity[i] < 16) {
+			if (camera_proximity[i] < 16) {
 				camera_mean += camera_proximity[i];
 				camera_count++;
-			//}
+			}
 
-			//if (target_proximity[i] < 16) {
+			if (target_proximity[i] < 16) {
 				target_mean += target_proximity[i];
 				target_count++;
-			//}
+			}
 			
 		}
-		camera_mean = camera_mean / camera_count;
-		target_mean = target_mean / target_count;
+		camera_mean = depth_mean;// camera_mean / camera_count;
+		target_mean = depth_mean;// target_mean / target_count;
 
 		float camera_norm = 0;
 		float target_norm = 0;
@@ -398,6 +409,9 @@ struct Wallrider {
 
 		byte* texture = new byte[4 * 32 * 32];
 		for (int i = 0; i < 32; i++) {
+			int mass_index = floor(i / 2);
+			int mass_depth = this->mass_centers[mass_index].y;
+
 			for (int j = 0; j < 32; j++) {
 				Vector2 texture_position{ i, j };
 				unsigned long long texture_index = Indexer::FlatIndex3(0, i, 31 - j, 4, 32);
@@ -407,21 +421,66 @@ struct Wallrider {
 
 				float height_value = this->height_phash[height_index];
 
-				float height_pixel = 255;
+				Vector4 height_pixel{ 255, 255, 255, 255 };
 				if (height_value < collision_bounds) {
-					height_pixel = 0;
+					height_pixel = Vector4{ 0, 0, 0, 255 };
+				}
+	
+				if (floor(j / 2) == mass_depth && j % 2 == 0) {
+					if (this->mass_centers[mass_index].z >= 0) {
+						height_pixel = Vector4{ 255, 0, 0, 255 };
+					}
 				}
 
-				texture[texture_index] = (byte)height_pixel;
-				texture[texture_index + 1] = (byte)height_pixel;
-				texture[texture_index + 2] = (byte)height_pixel;
-				texture[texture_index + 3] = 255;;
+				texture[texture_index] = (byte)height_pixel.x;
+				texture[texture_index + 1] = (byte)height_pixel.y;
+				texture[texture_index + 2] = (byte)height_pixel.z;
+				texture[texture_index + 3] = 255;
 			}
 		}
 
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->height_texture, texture, 4 * 32 * 32, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+	}
+
+	void ExtractMassCenters() {
+		for (int i = 0; i < 16; i++) {
+			this->mass_centers[i] = Vector3{ 0, 16, -1 };
+		}
+
+		float mass_start = 0;
+		float mass_end = 16;
+		float center_depth = 16;
+
+		float mass_threshold = 3;
+
+		for (int i = 1; i < 16; i++) {
+			float depth0 = this->proximity_phash[i - 1];
+			float depth1 = this->proximity_phash[i];
+			
+			if (depth0 < center_depth) {
+				center_depth = depth0;
+			}
+
+			float delta = depth1 - depth0;
+
+			if (abs(delta) > mass_threshold || (depth0 != 16 && depth1 == 16) || (depth0 == 16 && depth1 != 16) || i == 15) {
+				mass_end = i - 1;
+
+				int mass_center = round((mass_end + mass_start) / 2);
+
+				if (center_depth < 16 && mass_center != 0) {
+					this->mass_centers[mass_center].x = mass_end - mass_start;
+					this->mass_centers[mass_center].y = center_depth;
+					this->mass_centers[mass_center].z = mass_center;
+				}
+
+				mass_start = i;
+				mass_end = 16;
+				center_depth = 16;
+			}
+		}
 	}
 
 	void NextPlanStep() {
