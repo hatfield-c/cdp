@@ -5,12 +5,15 @@
 #include "PlanStep.h"
 
 struct Wallrider {
-	// stages are 0:wallride, 1:transit
+	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 1;
-	PlanStep plan[1] = {
-		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 }
+	int plan_size = 4;
+	PlanStep plan[4] = {
+		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
+		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
+		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
+		PlanStep{ 1, "", 7 }
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -18,9 +21,11 @@ struct Wallrider {
 	float max_distance = 20.0;
 
 	float* height_phash = new float[16 * 16];
-	float* proximity_phash = new float[16];
 	byte* height_texture;
-
+	float* proximity_phash = new float[16];
+	float* proximity_target = new float[16];
+	int transit_center = 7;
+	
 	bool brake_proximity;
 	bool* steer_proximity = new bool[3];
 
@@ -92,9 +97,14 @@ struct Wallrider {
 
 		if (this->IsSafe()) {
 			if (this->current_stage == 0) {
+				command = this->DoAnchor();
+			}
+			
+			if (this->current_stage == 1) {
 				command = this->DoWallride();
 			}
-			else if (this->current_stage == 1) {
+			
+			if (this->current_stage == 2) {
 				command = this->DoTransit();
 			}
 		}
@@ -114,6 +124,21 @@ struct Wallrider {
 		return true;
 	}
 
+	Vector3 DoAnchor() {
+		Vector3 command{ 0, 0, 1 };
+
+		PlanStep plan_step = this->plan[this->plan_index];
+		command.x = -plan_step.wall_direction;
+
+		int proximity_index = 1 + plan_step.wall_direction;
+
+		if (!this->steer_proximity[1] && this->steer_proximity[proximity_index]) {
+			this->NextStage();
+		}
+
+		return command;
+	}
+
 	Vector3 DoWallride() {
 		Vector3 command{ 0, 0, 1 };
 		
@@ -130,10 +155,13 @@ struct Wallrider {
 		}
 
 		if (plan_step.IsStartValid()) {
-			Vector2 search_data = this->FindSubImage(this->proximity_phash, plan_step.start_proximity_hash, plan_step.target_center, 4);
+			Vector2 search_data = this->SadMatch(this->proximity_phash, plan_step.start_proximity_hash, plan_step.target_center, 4);
 
-			if (search_data.y > 0.95) {
-				this->current_stage++;
+			if (search_data.y < 0.5) {
+				this->NextStage();
+				this->transit_center = search_data.x;
+				memcpy(this->proximity_target, this->proximity_phash, this->phash_size.x * sizeof(float));
+
 				command[0] = 0;
 			}
 		}
@@ -143,59 +171,141 @@ struct Wallrider {
 
 	Vector3 DoTransit() {
 		Vector3 command{ 0, 0, 1 };
-		/*
+		
 		PlanStep plan_step = this->plan[this->plan_index];
-		Vector2 kernel_radius{ 4, 4 };
+		int kernel_radius = 4;
 
-		Vector3 search_result = this->FindSubImage(depth_phash, this->transit_kernel, this->transit_center, kernel_radius);
-
-		float forward_target = 4;
-		float forward_margin = 0.1;
-
-		this->transit_center = Vector2{ search_result.x, search_result.y };
-		float steer_error = search_result.x - 7;
-
-		if (abs(steer_error) < 2) {
-			this->transit_kernel = depth_phash;
+		Vector2 search_result = this->SadMatch(this->proximity_phash, this->proximity_target, this->transit_center, kernel_radius);
+		
+		this->transit_center = search_result.x;
+		float steer_error = 0;
+		float steer_direction = 0;
+		if (search_result.x < 7) {
+			steer_error = 7 - search_result.x;
+			steer_direction = -1;
+		}
+		else if (search_result.x > 8) {
+			steer_error = search_result.x - 8;
+			steer_direction = 1;
 		}
 
-		float distance_signal = this->VerticalEdgeAverage(depth_phash, this->transit_center);
-		float signal_delta = abs(this->start_distance_signal - distance_signal);
-		float signal_threshold = 2;
+		command.x = steer_direction;
 
-		if (signal_delta > signal_threshold && this->forward_distance < forward_target){
-			this->current_stage = 0;
-			this->plan_index++;
+		if (steer_error < 1) {
+			memcpy(this->proximity_target, this->proximity_phash, this->phash_size.x * sizeof(float));
+		}
 
-			printf("Plan Step: %d\n", this->plan_index);
+		float depth_center = this->proximity_phash[this->transit_center];
+		if (steer_error < 2 && depth_center < 4.0 && this->steer_proximity[1]) {
+			this->NextPlanStep();
+			this->NextStage();
 
 			return command;
 		}
 
-		if (this->transit_center.x < 7) {
-			command.x = -1;
-		}
-		else if (this->transit_center.x > 7) {
-			command.x = 1;
-		}
-		*/
 		return command;
 	}
 
-	Vector2 FindSubImage(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
-		Vector2 sub_center{ 7 , -1 };
+	Vector2 SadMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
+		Vector2 sub_center{ 7 , 999999999 };
 		int origin = kernel_radius;
 		int endgin = this->phash_size.x - kernel_radius;
 
 		for (int i = origin; i < endgin; i++) {
 			int camera_index = i;
+
+			if (camera_proximity[i] > 15) {
+				continue;
+			}
+
+			float sad_score = this->GetSad(camera_proximity, target_proximity, camera_index, target_center, kernel_radius);
+
+			if (sad_score < sub_center.y) {
+				sub_center.x = camera_index;
+				sub_center.y = sad_score;
+			}
+		}
+
+		return sub_center;
+	}
+
+	float GetSad(float* camera_proximity, float* target_proximity, int camera_center, int target_center, int kernel_radius) {
+		float sad_score = 0;
+		int score_count = 0;
+		for (int i = -kernel_radius; i < kernel_radius; i++) {
+			int camera_index = camera_center + i;
+			int target_index = target_center + i;
+
+			if (camera_index < 0 || camera_index > this->phash_size.x - 1) {
+				continue;
+			}
+
+			if (target_index < 0 || target_index > this->phash_size.x - 1) {
+				continue;
+			}
+
+			float camera_depth = camera_proximity[camera_index];
+			float target_depth = target_proximity[target_index];
+
+			float score = camera_depth - target_depth;
+			score = abs(score);
+
+			sad_score += score;
+			score_count++;
+		}
+		
+		sad_score = sad_score / score_count;
+
+		return sad_score;
+	}
+
+	Vector2 CorrelationMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
+		Vector2 sub_center{ 7 , -1 };
+		int origin = kernel_radius;
+		int endgin = this->phash_size.x - kernel_radius;
+
+		printf("%d\n", target_center);
+		for (int i = 0; i < 16; i++) {
+			printf("[%.2f]", camera_proximity[i]);
+		}
+		printf("\n");
+		for (int i = 0; i < 16; i++) {
+			if (i == target_center) {
+				printf("<%.2f>", target_proximity[i]);
+			}
+			else {
+				printf("[%.2f]", target_proximity[i]);
+			}
+		}
+		printf("\n");
+
+		printf("[0.00]");
+		printf("[0.00]");
+		printf("[0.00]");
+		printf("[0.00]");
+
+		for (int i = origin; i < endgin; i++) {
+			int camera_index = i;
+
+			if (camera_proximity[i] > 15) {
+				continue;
+			}
+
 			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius);
+
+			printf("[%.2f]", correlation);
 
 			if (correlation > sub_center.y) {
 				sub_center.x = camera_index;
 				sub_center.y = correlation;
 			}
 		}
+
+		printf("[0.00]");
+		printf("[0.00]");
+		printf("[0.00]");
+		printf("[0.00]\n");
+		sub_center.Print("", "\n\n");
 
 		return sub_center;
 	}
@@ -205,13 +315,22 @@ struct Wallrider {
 
 		float camera_mean = 0;
 		float target_mean = 0;
+		float camera_count = 0;
+		float target_count = 0;
 		for (int i = 0; i < this->phash_size.x; i++) {
-			camera_mean += camera_proximity[i];
-			target_mean += target_proximity[i];
+			//if (camera_proximity[i] < 16) {
+				camera_mean += camera_proximity[i];
+				camera_count++;
+			//}
+
+			//if (target_proximity[i] < 16) {
+				target_mean += target_proximity[i];
+				target_count++;
+			//}
 			
 		}
-		camera_mean = camera_mean / this->phash_size.x;
-		target_mean = target_mean / this->phash_size.x;
+		camera_mean = camera_mean / camera_count;
+		target_mean = target_mean / target_count;
 
 		float camera_norm = 0;
 		float target_norm = 0;
@@ -303,5 +422,19 @@ struct Wallrider {
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->height_texture, texture, 4 * 32 * 32, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+	}
+
+	void NextPlanStep() {
+		this->plan_index++;
+	}
+
+	void NextStage() {
+		this->current_stage++;
+
+		if (this->current_stage > 2) {
+			this->current_stage = 0;
+		}
+
+		printf("[Plan Index: %d][Stage: %d]\n", this->plan_index, this->current_stage);
 	}
 };
