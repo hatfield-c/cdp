@@ -2,7 +2,7 @@
 
 struct PlanStep {
 	float wall_direction;
-	const char* start_proximity_path;
+	const char* start_proximity_path = "\0";
 	int target_center;
 
 	float* start_proximity_hash = new float[16];

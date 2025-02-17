@@ -8,10 +8,13 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 2;
-	PlanStep plan[2] = {
+	int plan_size = 5;
+	PlanStep plan[5] = {
 		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
-		PlanStep{ 1, "", 7 },
+		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
+		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
+		PlanStep{ 1, "data/wallrider/p0004.proximity", 7 },
+		PlanStep{ -1, "", 7 },
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -23,7 +26,6 @@ struct Wallrider {
 	float* proximity_phash = new float[16];
 	float* proximity_blur = new float[16];
 	float* proximity_target = new float[16];
-	int transit_center = 7;
 
 	Vector3* mass_centers = new Vector3[16];
 	
@@ -175,8 +177,10 @@ struct Wallrider {
 
 			if (search_data.y < 0.5) {
 				this->NextStage();
-				this->transit_center = search_data.x;
-				memcpy(this->proximity_target, this->proximity_phash, this->phash_size.x * sizeof(float));
+				
+				for (int i = 0; i < 16; i++) {
+					this->proximity_target[i] = 16;
+				}
 
 				command[0] = 0;
 			}
@@ -191,32 +195,45 @@ struct Wallrider {
 		PlanStep plan_step = this->plan[this->plan_index];
 		int kernel_radius = 4;
 
-		Vector2 search_result = this->SadMatch(this->proximity_blur, this->proximity_target, this->transit_center, kernel_radius);
-		
-		this->transit_center = search_result.x;
 		float steer_error = 0;
 		float steer_direction = 0;
+		float mass_width = -1;
+		Vector3 center_data{ 0, 16, -1 };
 
-		if (search_result.x < 7) {
-			steer_error = 7 - search_result.x;
-			steer_direction = -1;
-		}
-		else if (search_result.x > 8) {
-			steer_error = search_result.x - 8;
-			steer_direction = 1;
-		}
+		for (int i = 0; i < 16; i++) {
+			Vector3 center = this->mass_centers[i];
+			
+			if (center.z < 0) {
+				continue;
+			}
 
-		if (steer_error < 1) {
-			memcpy(this->proximity_target, this->proximity_blur, this->phash_size.x * sizeof(float));
+			int err = 0;
+			int dir = 0;
+
+			if (center.z < 7) {
+				err = 7 - center.z;
+				dir = -1;
+			}
+			else if (center.z > 8) {
+				err = center.z - 8;
+				dir = 1;
+			}
+
+			if (center.x > mass_width) {
+				mass_width = center.x;
+				steer_error = err;
+				steer_direction = dir;
+				center_data = center;
+			}
 		}
-		else if (steer_error == 1) {
+		
+		if (steer_error == 1) {
 			steer_direction = 0.25 * steer_direction;
 		}
 
 		command.x = steer_direction;
 
-		float depth_center = this->proximity_blur[this->transit_center];
-		if (steer_error < 2 && depth_center < 4.0 && this->steer_proximity[1]) {
+		if (center_data.y < 4.0 && this->steer_proximity[1]) {
 			this->NextPlanStep();
 			this->NextStage();
 
@@ -420,7 +437,7 @@ struct Wallrider {
 			int hit_count = 0;
 
 			int target_depth = 16;
-			if (this->plan[this->plan_index].IsStartValid()) {
+			if (this->plan_index < this->plan_size && this->plan[this->plan_index].IsStartValid()) {
 				target_depth = this->proximity_target[half_index];
 			}
 			
@@ -472,7 +489,7 @@ struct Wallrider {
 		float mass_end = 16;
 		float center_depth = 16;
 
-		float mass_threshold = 2;
+		float mass_threshold = 1;
 
 		for (int i = 1; i < 16; i++) {
 			float depth0 = this->proximity_blur[i - 1];
