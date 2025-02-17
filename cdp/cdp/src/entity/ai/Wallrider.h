@@ -8,13 +8,9 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 5;
-	PlanStep plan[5] = {
-		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
-		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
-		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
-		PlanStep{ 1, "data/wallrider/p0004.proximity", 7 },
-		PlanStep{ -1, "", 7 }
+	int plan_size = 1;
+	PlanStep plan[1] = {
+		PlanStep{ -1, "", 7 },
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -24,6 +20,7 @@ struct Wallrider {
 	float* height_phash = new float[16 * 16];
 	byte* height_texture;
 	float* proximity_phash = new float[16];
+	float* proximity_blur = new float[16];
 	float* proximity_target = new float[16];
 	int transit_center = 7;
 
@@ -38,6 +35,8 @@ struct Wallrider {
 			plan_step.Init();
 		}
 	}
+
+	// todo: template matching with blur depth band, and add waypoints to prevent premature activation
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->ExtractHeightPhash(depth_phash, camera_cloud);
@@ -407,11 +406,41 @@ struct Wallrider {
 			}
 		}
 
+		for (int i = 0; i < 16; i++) {
+			int a = i - 1;
+			int b = i;
+			int c = i + 1;
+
+			if (a < 0) {
+				a = 0;
+			}
+
+			if (c > 15) {
+				c = 15;
+			}
+
+			this->proximity_blur[i] = round((this->proximity_phash[a] + this->proximity_phash[b] + this->proximity_phash[c]) / 3);
+		}
+
+		float* height_blur = new float[16 * 16];
+		memset(height_blur, 0, 16 * 16 * sizeof(float));
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				int index = Indexer::FlatIndex2(i, j, 16);
+
+				if (j != this->proximity_blur[i]) {
+					height_blur[index] = -1000;
+				}
+			}
+		}
+		 
 		byte* texture = new byte[4 * 32 * 32];
 		for (int i = 0; i < 32; i++) {
 			int mass_index = floor(i / 2);
 			int mass_depth = this->mass_centers[mass_index].y;
-
+			int blur_depth = this->proximity_blur[mass_index];
+			int hit_count = 0;
+			
 			for (int j = 0; j < 32; j++) {
 				Vector2 texture_position{ i, j };
 				unsigned long long texture_index = Indexer::FlatIndex3(0, i, 31 - j, 4, 32);
@@ -419,16 +448,24 @@ struct Wallrider {
 				Vector2 height_position = (texture_position / 2).Floor();
 				unsigned long long height_index = Indexer::FlatIndex2(height_position.x, height_position.y, 16);
 
-				float height_value = this->height_phash[height_index];
+				//float height_value = this->height_phash[height_index];
+				float height_value = height_blur[height_index];
 
 				Vector4 height_pixel{ 255, 255, 255, 255 };
-				if (height_value < collision_bounds) {
+				if (height_value < collision_bounds || hit_count > 1) {
 					height_pixel = Vector4{ 0, 0, 0, 255 };
 				}
-	
+				else {
+					hit_count++;
+				}
+				
+				if (floor(j / 2) == blur_depth) {
+					//height_pixel = Vector4{ 0, 255, 0, 255 };
+				}
+
 				if (floor(j / 2) == mass_depth && j % 2 == 0) {
 					if (this->mass_centers[mass_index].z >= 0) {
-						height_pixel = Vector4{ 255, 0, 0, 255 };
+						//height_pixel = Vector4{ 255, 0, 0, 255 };
 					}
 				}
 
@@ -453,11 +490,11 @@ struct Wallrider {
 		float mass_end = 16;
 		float center_depth = 16;
 
-		float mass_threshold = 3;
+		float mass_threshold = 2;
 
 		for (int i = 1; i < 16; i++) {
-			float depth0 = this->proximity_phash[i - 1];
-			float depth1 = this->proximity_phash[i];
+			float depth0 = this->proximity_blur[i - 1];
+			float depth1 = this->proximity_blur[i];
 			
 			if (depth0 < center_depth) {
 				center_depth = depth0;
