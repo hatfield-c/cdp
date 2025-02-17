@@ -204,7 +204,7 @@ void CpuEngine::SaveProximityHash(GuiData* gui_data) {
 
 	Camera camera = *this->camera_list[0];
 	
-	float* proximity_hash = this->drone_alpha.wallrider.proximity_phash;
+	float* proximity_hash = this->drone_alpha.wallrider.proximity_blur;
 	byte* forward_phash = camera.GetPhashAsByte();
 	byte* height_texture = new byte[4 * 32 * 32];
 
@@ -215,7 +215,7 @@ void CpuEngine::SaveProximityHash(GuiData* gui_data) {
 	FILE* out_file;
 	fopen_s(&out_file, save_path.c_str(), "wb+");
 	if (out_file == NULL) {
-		printf("\n\nWarning: File did not open when saving Depth P-Hash:\n    %s!\n", save_path.c_str());
+		printf("\n\nWarning: File did not open when saving Proximity Hash:\n    %s!\n", save_path.c_str());
 		exit(1);
 	}
 	int result = fwrite(proximity_hash, sizeof(float), 16, out_file);

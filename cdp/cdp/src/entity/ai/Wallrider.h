@@ -8,9 +8,10 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 1;
-	PlanStep plan[1] = {
-		PlanStep{ -1, "", 7 },
+	int plan_size = 2;
+	PlanStep plan[2] = {
+		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
+		PlanStep{ 1, "", 7 },
 	};
 
 	Vector2 phash_size{ 16, 16 };
@@ -34,9 +35,11 @@ struct Wallrider {
 			PlanStep plan_step = this->plan[i];
 			plan_step.Init();
 		}
-	}
 
-	// todo: template matching with blur depth band, and add waypoints to prevent premature activation
+		for (int i = 0; i < 16; i++) {
+			this->proximity_target[i] = 16;
+		}
+	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->ExtractHeightPhash(depth_phash, camera_cloud);
@@ -137,6 +140,15 @@ struct Wallrider {
 		int proximity_index = 1 + plan_step.wall_direction;
 
 		if (!this->steer_proximity[1] && this->steer_proximity[proximity_index]) {
+			if (plan_step.IsStartValid()) {
+				memcpy(this->proximity_target, plan_step.start_proximity_hash, this->phash_size.x * sizeof(float));
+			}
+			else {
+				for (int i = 0; i < 16; i++) {
+					this->proximity_target[i] = 16;
+				}
+			}
+
 			this->NextStage();
 		}
 
@@ -159,7 +171,7 @@ struct Wallrider {
 		}
 
 		if (plan_step.IsStartValid()) {
-			Vector2 search_data = this->SadMatch(this->proximity_phash, plan_step.start_proximity_hash, plan_step.target_center, 4);
+			Vector2 search_data = this->SadMatch(this->proximity_blur, this->proximity_target, plan_step.target_center, 4);
 
 			if (search_data.y < 0.5) {
 				this->NextStage();
@@ -179,7 +191,7 @@ struct Wallrider {
 		PlanStep plan_step = this->plan[this->plan_index];
 		int kernel_radius = 4;
 
-		Vector2 search_result = this->SadMatch(this->proximity_phash, this->proximity_target, this->transit_center, kernel_radius);
+		Vector2 search_result = this->SadMatch(this->proximity_blur, this->proximity_target, this->transit_center, kernel_radius);
 		
 		this->transit_center = search_result.x;
 		float steer_error = 0;
@@ -195,7 +207,7 @@ struct Wallrider {
 		}
 
 		if (steer_error < 1) {
-			memcpy(this->proximity_target, this->proximity_phash, this->phash_size.x * sizeof(float));
+			memcpy(this->proximity_target, this->proximity_blur, this->phash_size.x * sizeof(float));
 		}
 		else if (steer_error == 1) {
 			steer_direction = 0.25 * steer_direction;
@@ -203,7 +215,7 @@ struct Wallrider {
 
 		command.x = steer_direction;
 
-		float depth_center = this->proximity_phash[this->transit_center];
+		float depth_center = this->proximity_blur[this->transit_center];
 		if (steer_error < 2 && depth_center < 4.0 && this->steer_proximity[1]) {
 			this->NextPlanStep();
 			this->NextStage();
@@ -212,10 +224,6 @@ struct Wallrider {
 		}
 
 		return command;
-	}
-
-	void FindEdges(float* camera_proximity, float delta_threshold) {
-
 	}
 
 	Vector2 SadMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
@@ -274,26 +282,6 @@ struct Wallrider {
 		int origin = kernel_radius;
 		int endgin = this->phash_size.x - kernel_radius;
 
-		printf("%d\n", target_center);
-		for (int i = 0; i < 16; i++) {
-			printf("[%.2f]", camera_proximity[i]);
-		}
-		printf("\n");
-		for (int i = 0; i < 16; i++) {
-			if (i == target_center) {
-				printf("<%.2f>", target_proximity[i]);
-			}
-			else {
-				printf("[%.2f]", target_proximity[i]);
-			}
-		}
-		printf("\n");
-
-		printf("[0.00]");
-		printf("[0.00]");
-		printf("[0.00]");
-		printf("[0.00]");
-
 		for (int i = origin; i < endgin; i++) {
 			int camera_index = i;
 
@@ -303,20 +291,11 @@ struct Wallrider {
 
 			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius, target_proximity[target_center]);
 
-			printf("[%.2f]", correlation);
-
 			if (correlation > sub_center.y) {
 				sub_center.x = camera_index;
 				sub_center.y = correlation;
 			}
 		}
-
-		printf("[0.00]");
-		printf("[0.00]");
-		printf("[0.00]");
-		printf("[0.00]\n");
-		sub_center.Print("", "\n\n");
-
 		return sub_center;
 	}
 
@@ -436,10 +415,14 @@ struct Wallrider {
 		 
 		byte* texture = new byte[4 * 32 * 32];
 		for (int i = 0; i < 32; i++) {
-			int mass_index = floor(i / 2);
-			int mass_depth = this->mass_centers[mass_index].y;
-			int blur_depth = this->proximity_blur[mass_index];
+			int half_index = floor(i / 2);
+			int mass_depth = this->mass_centers[half_index].y;
 			int hit_count = 0;
+
+			int target_depth = 16;
+			if (this->plan[this->plan_index].IsStartValid()) {
+				target_depth = this->proximity_target[half_index];
+			}
 			
 			for (int j = 0; j < 32; j++) {
 				Vector2 texture_position{ i, j };
@@ -451,21 +434,20 @@ struct Wallrider {
 				//float height_value = this->height_phash[height_index];
 				float height_value = height_blur[height_index];
 
-				Vector4 height_pixel{ 255, 255, 255, 255 };
-				if (height_value < collision_bounds || hit_count > 1) {
-					height_pixel = Vector4{ 0, 0, 0, 255 };
+				Vector4 height_pixel{ 0, 0, 0, 255 };
+
+				if ((floor(j / 2) == target_depth)) {
+					height_pixel = Vector4{ 0, 255, 0, 255 };
 				}
-				else {
+				
+				if (height_value >= collision_bounds && hit_count < 2) {
+					height_pixel = Vector4{ 255, 255, 255, 255 };
 					hit_count++;
 				}
 				
-				if (floor(j / 2) == blur_depth) {
-					//height_pixel = Vector4{ 0, 255, 0, 255 };
-				}
-
 				if (floor(j / 2) == mass_depth && j % 2 == 0) {
-					if (this->mass_centers[mass_index].z >= 0) {
-						//height_pixel = Vector4{ 255, 0, 0, 255 };
+					if (this->mass_centers[half_index].z >= 0) {
+						height_pixel = Vector4{ 255, 0, 0, 255 };
 					}
 				}
 
