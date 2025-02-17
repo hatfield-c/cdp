@@ -8,12 +8,13 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 5;
-	PlanStep plan[5] = {
+	int plan_size = 6;
+	PlanStep plan[6] = {
 		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
 		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
 		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
 		PlanStep{ 1, "data/wallrider/p0004.proximity", 7 },
+		PlanStep{ -1, "data/wallrider/p0005.proximity", 7 },
 		PlanStep{ -1, "", 7 },
 	};
 
@@ -175,7 +176,7 @@ struct Wallrider {
 		if (plan_step.IsStartValid()) {
 			Vector2 search_data = this->SadMatch(this->proximity_blur, this->proximity_target, plan_step.target_center, 4);
 
-			if (search_data.y < 0.5) {
+			if (search_data.y < 0.35) {
 				this->NextStage();
 				
 				for (int i = 0; i < 16; i++) {
