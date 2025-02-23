@@ -42,6 +42,8 @@ struct Camera {
 	
     long seed = 12345;
 
+    bool is_rotation_noise = false;
+
 	void Init(std::string name, CUdeviceptr depth_texture, CUdeviceptr phash_texture, CUdeviceptr phash_derotated_texture) {
         float pi = 3.141592654f;
 
@@ -126,8 +128,10 @@ struct Camera {
 
         float min_distance = 9999999999;
 
-        //Vector4 rotation = this->GetNoisyRotation();
         Vector4 rotation = this->transform.rotation;
+        if (this->is_rotation_noise) {
+            rotation = this->GetNoisyRotation();
+        }
 
         /// debug
         //if (phash_position.x != 7 || phash_position.y != 7) {
@@ -182,8 +186,6 @@ struct Camera {
 
         Camera::WriteFloat(this->depth_phash, phash_position, this->phash_data_size, depth_meters);
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);
-
-        
 
         Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), rotation);
         Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);

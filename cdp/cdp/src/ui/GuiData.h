@@ -20,6 +20,7 @@ struct GuiData {
 	int camera_rotation_index = 12;
 	int camera_index = 0;
 	int control_index = 0;
+	bool is_rotation_noise = false;
 
 	// Drone
 	Vector3 drone_voxel{};

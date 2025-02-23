@@ -8,11 +8,12 @@ struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
 	int current_stage = 0;
 	int plan_index = 0;
-	int plan_size = 6;
-	PlanStep plan[6] = {
+	int plan_size = 7;
+	PlanStep plan[7] = {
 		PlanStep{ -1, "data/wallrider/p0001.proximity", 7 },
 		PlanStep{ 1, "data/wallrider/p0002.proximity", 7 },
 		PlanStep{ -1, "data/wallrider/p0003.proximity", 7 },
+		PlanStep{ 1, "data/wallrider/p0004_false.proximity", 7, false },
 		PlanStep{ 1, "data/wallrider/p0004.proximity", 7 },
 		PlanStep{ -1, "data/wallrider/p0005.proximity", 7 },
 		PlanStep{ -1, "", 7 },
@@ -123,6 +124,8 @@ struct Wallrider {
 	}
 
 	bool IsSafe() {
+		// when implemented on real d455, check if bottom row reads as max distance.
+		// this only happens when the drone is: (A) upside down or (B) too close (< 0.5m) for the camera to detect objects
 		if (this->plan_index >= this->plan_size) {
 			return false;
 		}
@@ -143,15 +146,7 @@ struct Wallrider {
 		int proximity_index = 1 + plan_step.wall_direction;
 
 		if (!this->steer_proximity[1] && this->steer_proximity[proximity_index]) {
-			if (plan_step.IsStartValid()) {
-				memcpy(this->proximity_target, plan_step.start_proximity_hash, this->phash_size.x * sizeof(float));
-			}
-			else {
-				for (int i = 0; i < 16; i++) {
-					this->proximity_target[i] = 16;
-				}
-			}
-
+			this->UpdateTarget(plan_step);
 			this->NextStage();
 		}
 
@@ -177,11 +172,11 @@ struct Wallrider {
 			Vector2 search_data = this->SadMatch(this->proximity_blur, this->proximity_target, plan_step.target_center, 4);
 
 			if (search_data.y < 0.35) {
-				this->NextStage();
-				
 				for (int i = 0; i < 16; i++) {
 					this->proximity_target[i] = 16;
 				}
+
+				this->NextStage();
 
 				command[0] = 0;
 			}
@@ -235,7 +230,6 @@ struct Wallrider {
 		command.x = steer_direction;
 
 		if (center_data.y < 4.0 && this->steer_proximity[1]) {
-			this->NextPlanStep();
 			this->NextStage();
 
 			return command;
@@ -520,15 +514,35 @@ struct Wallrider {
 		}
 	}
 
+	void UpdateTarget(PlanStep plan_step) {
+		if (plan_step.IsStartValid()) {
+			memcpy(this->proximity_target, plan_step.start_proximity_hash, this->phash_size.x * sizeof(float));
+		}
+		else {
+			for (int i = 0; i < 16; i++) {
+				this->proximity_target[i] = 16;
+			}
+		}
+	}
+
 	void NextPlanStep() {
 		this->plan_index++;
 	}
 
 	void NextStage() {
-		this->current_stage++;
+		PlanStep plan_step = this->plan[this->plan_index];
+
+		if (!plan_step.is_transit && this->current_stage == 1) {
+			this->NextPlanStep();
+			this->UpdateTarget(this->plan[this->plan_index]);
+		}
+		else {
+			this->current_stage++;
+		}
 
 		if (this->current_stage > 2) {
 			this->current_stage = 0;
+			this->NextPlanStep();
 		}
 
 		printf("[Plan Index: %d][Stage: %d]\n", this->plan_index, this->current_stage);

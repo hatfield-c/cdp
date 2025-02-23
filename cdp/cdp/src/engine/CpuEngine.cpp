@@ -83,6 +83,7 @@ void CpuEngine::End(GuiData* gui_data) {
 }
 
 void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
+	this->camera_list[0]->is_rotation_noise = gui_data->is_rotation_noise;
 
 	gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride).Floor();
 	gui_data->drone_position = this->drone_alpha.rigidbody.position;

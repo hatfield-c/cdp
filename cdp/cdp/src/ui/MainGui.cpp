@@ -195,6 +195,12 @@ void MainGui::DrawInspector() {
 
         ImGui::Separator();
 
+        ImGui::Text("Noise");
+        ImGui::SameLine();
+        ImGui::Checkbox("##is_rotation_noise", &this->gui_data->is_rotation_noise);
+
+        ImGui::Separator();
+
         unsigned long long ihm_index = this->gui_data->ihm_index;
 
         float camera_position[3] = { this->gui_data->camera_position.x, this->gui_data->camera_position.y, this->gui_data->camera_position.z };
