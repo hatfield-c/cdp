@@ -68,7 +68,7 @@ struct DroneAlpha {
 		this->seed = noisy_bits;
 	}
 
-	__device__ __host__ long NextSample(long current) {
+	long NextSample(long current) {
 		long next = current * 1103515245 + 12345;
 		next = (unsigned)(next / 65536) % 32768;
 

@@ -41,6 +41,8 @@ struct Wallrider {
 	bool brake_proximity;
 	bool* steer_proximity = new bool[3];
 
+	unsigned long long seed = 6593219;
+
 	void Init() {
 		for (int i = 0; i < this->plan_size; i++) {
 			PlanStep plan_step = this->plan[i];
@@ -580,11 +582,18 @@ struct Wallrider {
 			}
 		}
 
+		long noisy_bits = this->NextSample(this->seed);
+		float noise_y = (float)noisy_bits / 32768.0;
+		noise_y = (2 * noise_y) - 1;
+		this->seed = noisy_bits;
+
+		float y_velocity = velocity.y + (noise_y * 0.1);
+
 		if (ground_votes >= vote_threshold) {
 			this->height_estimate = (-average_height / ground_votes) + height_bias;
 		}
 		else {
-			this->height_estimate += velocity.y * Physics::DeltaTime();
+			this->height_estimate += y_velocity * Physics::DeltaTime();
 		}
 	}
 
@@ -620,5 +629,12 @@ struct Wallrider {
 		}
 
 		printf("[Plan Index: %d][Stage: %d]\n", this->plan_index, this->current_stage);
+	}
+
+	long NextSample(long current) {
+		long next = current * 1103515245 + 12345;
+		next = (unsigned)(next / 65536) % 32768;
+
+		return next;
 	}
 };
