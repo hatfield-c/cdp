@@ -253,7 +253,6 @@ struct Wallrider {
 		float height_delta = this->height_target - this->height_estimate;
 
 		command = this->height_pid.ControlStep(this->height_estimate, this->height_target, velocity.y);
-		printf("%.2f %.2f %.2f %.2f\n", this->height_target, this->height_estimate, velocity.y, command);
 
 		return command;
 	}
@@ -557,18 +556,27 @@ struct Wallrider {
 		}
 
 		for (int i = lowest_index - search_radius.x; i <= lowest_index + search_radius.x; i++) {
+			Vector3 previous_position{ 999999, 999999, 999999 };
+
 			for (int j = 0; j <= search_radius.y; j++) {
 				Vector2 phash_position{ i, 15 - j };
 				unsigned long long phash_index = Indexer::FlatIndex2(phash_position.x, phash_position.y, 16);
 				Vector3 cloud_position = camera_cloud[phash_index];
 				float depth = depth_phash[phash_index];
-
 				float height_delta = cloud_position.y - lowest_height;
+
+				float distance = Transform::Norm2(Vector2{ previous_position.x, previous_position.z } - Vector2{ cloud_position.x, cloud_position.z });
+
+				if (distance < 0.5) {
+					break;
+				}
 
 				if (height_delta < height_threshold && depth < 20.0f) {
 					average_height += cloud_position.y;
 					ground_votes++;
 				}
+
+				previous_position = cloud_position;
 			}
 		}
 

@@ -32,14 +32,13 @@ struct DroneAlpha {
 	}
 
 	void FollowCommand(Vector3 command) {
-		float time_delay_effect = 0.4;
 
 		float yaw_target = -command.x * this->yaw_max;
 		this->rigidbody.angular_velocity.y = (0.4 * yaw_target) + (0.6 * this->rigidbody.angular_velocity.y);
 
 		Vector3 body_forward = this->rigidbody.Forward();
 		body_forward.y = 0;
-		Vector3 velocity_target = body_forward * this->forward_max * command.z * time_delay_effect;
+		Vector3 velocity_target = body_forward * this->forward_max * command.z;
 		
 		velocity_target.y += command.y * this->climb_max;
 		this->rigidbody.velocity = (velocity_target * 0.4) + (this->rigidbody.velocity * 0.6);
