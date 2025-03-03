@@ -4,20 +4,18 @@
 #include "ai/Wallrider.h"
 
 struct DroneAlpha {
-	Rigidbody rigidbody;
-	Wallrider wallrider;
+	Rigidbody rigidbody{};
+	Wallrider wallrider{};
 
-	float forward_speed = 0.5;
-	float forward_max = 1.5;
+	float forward_max = 1;
+	float climb_max = 1;
+	float yaw_max = 0.5;
 
-	float yaw_speed = 0.5;
-	float yaw_max = 1;
+	Vector3 drift_direction{ 0, -1, 0 };
+	float drift_size = 0.5;
+	float drift_delta = 0.4;
 
-	float roll_speed = 0.03;
-	float roll_max = Math::Pi() / 6;
-
-	float climb_speed = 0.3;
-	float climb_max = 2;
+	unsigned long long seed = 555586;
 
 	void Init() {
 		this->rigidbody.Init();
@@ -25,79 +23,56 @@ struct DroneAlpha {
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
-		this->wallrider.Update(depth_phash, camera_cloud);
-
-		
+		this->wallrider.Update(depth_phash, camera_cloud, this->rigidbody.velocity);
 	}
 
 	void Act() {
-		Vector3 command = this->wallrider.GetCommand();
+		Vector3 command = this->wallrider.GetCommand(this->rigidbody.velocity);
 		this->FollowCommand(command);
 	}
 
 	void FollowCommand(Vector3 command) {
+		float time_delay_effect = 0.4;
 
-		float yaw_delta = -command.x * this->yaw_speed;
-		this->rigidbody.angular_velocity.y += yaw_delta;
-		this->rigidbody.angular_velocity.y = Math::Clip(this->rigidbody.angular_velocity.y, -this->yaw_max, this->yaw_max);
+		float yaw_target = -command.x * this->yaw_max;
+		this->rigidbody.angular_velocity.y = (0.4 * yaw_target) + (0.6 * this->rigidbody.angular_velocity.y);
 
 		Vector3 body_forward = this->rigidbody.Forward();
 		body_forward.y = 0;
-		Vector3 acceleration = body_forward * this->forward_speed * command.z;
+		Vector3 velocity_target = body_forward * this->forward_max * command.z * time_delay_effect;
 		
-		acceleration.y += command.y * this->climb_speed;
+		velocity_target.y += command.y * this->climb_max;
+		this->rigidbody.velocity = (velocity_target * 0.4) + (this->rigidbody.velocity * 0.6);
+	}
 
-		this->rigidbody.velocity += acceleration;
-		this->rigidbody.velocity.y = Math::Clip(this->rigidbody.velocity.y, -this->climb_max, this->climb_max);
+	void Drift() {
+		long noisy_bits = this->NextSample(this->seed);
+		float noise_x = (float)noisy_bits / 32768.0;
+		noise_x = (2 * noise_x) - 1;
 
-		Vector3 planar_velocity{ this->rigidbody.velocity.x, 0, this->rigidbody.velocity.z };
-		float speed = Transform::Norm3(planar_velocity);
+		noisy_bits = this->NextSample(noisy_bits);
+		float noise_y = (float)noisy_bits / 32768.0;
+		noise_y = (2 * noise_x) - 1;
 
-		if (speed > this->forward_max) {
-			planar_velocity = Transform::Unit3(planar_velocity) * this->forward_max;
+		noisy_bits = this->NextSample(noisy_bits);
+		float noise_z = (float)noisy_bits / 32768.0;
+		noise_z = (2 * noise_x) - 1;
 
-			this->rigidbody.velocity.x = planar_velocity.x;
-			this->rigidbody.velocity.z = planar_velocity.z;
-		}
+		Vector3 drift_offset{ noise_x, noise_y, noise_z };
+		drift_offset = Transform::Unit3(drift_offset);
+		drift_offset = drift_offset * this->drift_delta;
 
-		float roll_amount = this->roll_speed * command.x;
-		Vector4 roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
-		//this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
-
-		Vector3 right = this->rigidbody.Right();
-		float xy_distance = Transform::Norm2(Vector2{right.x, right.z});
-		float theta = Quaternion::Atan2(xy_distance, right.y);
-		float theta_val = abs(theta);
+		this->drift_direction = this->drift_direction + drift_offset;
+		this->drift_direction = Transform::Unit3(this->drift_direction);
 		
-		float roll_target = this->roll_max;
-		float roll_sign = 1;
+		this->rigidbody.velocity += this->drift_direction * this->drift_size * Physics::DeltaTime();
+		this->seed = noisy_bits;
+	}
 
-		if (theta < 0) {
-			roll_sign = -1;
-		}
+	__device__ __host__ long NextSample(long current) {
+		long next = current * 1103515245 + 12345;
+		next = (unsigned)(next / 65536) % 32768;
 
-		if (command.x == 0) {
-			roll_target = theta_val * 0.95;
-		}
-		
-		if (theta_val > roll_target) {
-			roll_amount = (theta_val - roll_target) * roll_sign;
-			roll_delta = Quaternion::QuaternionFromEulerParams(this->rigidbody.Forward(), roll_amount);
-
-			//this->rigidbody.rotation = Quaternion::MultiplyQuaternions(roll_delta, this->rigidbody.rotation, true);
-		}
-
-		if (command.x == 0) {
-			this->rigidbody.angular_velocity.y *= 0.8;
-		}
-
-		if (command.y == 0) {
-			this->rigidbody.velocity.y *= 0.8;
-		}
-
-		if (command.z == 0) {
-			this->rigidbody.velocity.x *= 0.8;
-			this->rigidbody.velocity.z *= 0.8;
-		}
+		return next;
 	}
 };

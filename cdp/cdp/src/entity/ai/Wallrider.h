@@ -2,7 +2,9 @@
 
 #include "../../engine/Transform.h"
 #include "../../engine/Math.h"
+#include "../../engine/Physics.h"
 #include "PlanStep.h"
+#include "Pid.h"
 
 struct Wallrider {
 	// stages are 0: anchor, 1:wallride, 2:transit
@@ -29,6 +31,11 @@ struct Wallrider {
 	float* proximity_blur = new float[16];
 	float* proximity_target = new float[16];
 
+	Vector3 velocity{};
+	float height_estimate = 4;
+	float height_target = 4;
+	Pid height_pid{ 0.4, 0, 0.1 };
+
 	Vector3* mass_centers = new Vector3[16];
 	
 	bool brake_proximity;
@@ -45,9 +52,11 @@ struct Wallrider {
 		}
 	}
 
-	void Update(float* depth_phash, Vector3* camera_cloud) {
+	void Update(float* depth_phash, Vector3* camera_cloud, Vector3 velocity) {
+		this->velocity = velocity;
 		this->ExtractHeightPhash(depth_phash, camera_cloud);
 		this->ExtractMassCenters();
+		this->ExtractGroundHeight(depth_phash, camera_cloud, velocity);
 
 		this->brake_proximity = false;
 		this->steer_proximity[0] = false;
@@ -99,7 +108,7 @@ struct Wallrider {
 		}
 	}
 
-	Vector3 GetCommand() {
+	Vector3 GetCommand(Vector3 velocity) {
 		Vector3 command{ 0, 0, 0 };
 
 		if (this->plan_index >= this->plan_size) {
@@ -120,12 +129,12 @@ struct Wallrider {
 			}
 		}
 
+		command.y = this->DoHeight(velocity);
+
 		return command;
 	}
 
 	bool IsSafe() {
-		// when implemented on real d455, check if bottom row reads as max distance.
-		// this only happens when the drone is: (A) upside down or (B) too close (< 0.5m) for the camera to detect objects
 		if (this->plan_index >= this->plan_size) {
 			return false;
 		}
@@ -234,6 +243,17 @@ struct Wallrider {
 
 			return command;
 		}
+
+		return command;
+	}
+
+	float DoHeight(Vector3 velocity) {
+		float command = 0;
+
+		float height_delta = this->height_target - this->height_estimate;
+
+		command = this->height_pid.ControlStep(this->height_estimate, this->height_target, velocity.y);
+		printf("%.2f %.2f %.2f %.2f\n", this->height_target, this->height_estimate, velocity.y, command);
 
 		return command;
 	}
@@ -511,6 +531,52 @@ struct Wallrider {
 				mass_end = 16;
 				center_depth = 16;
 			}
+		}
+	}
+
+	void ExtractGroundHeight(float* depth_phash, Vector3* camera_cloud, Vector3 velocity) {
+		Vector2 search_radius{ 1, 8 };
+		float average_height = 0;
+		float height_threshold = 1;
+		float height_bias = 0.7;
+		int ground_votes = 0;
+		int vote_threshold = 4;
+
+		int lowest_index = 0;
+		float lowest_height = 99999999;
+
+		for (int i = 0; i < 16; i++) {
+			Vector2 phash_position{ i, 15 };
+			unsigned long long phash_index = Indexer::FlatIndex2(phash_position.x, phash_position.y, 16);
+			Vector3 cloud_position = camera_cloud[phash_index];
+
+			if (cloud_position.y < lowest_height) {
+				lowest_height = cloud_position.y;
+				lowest_index = i;
+			}
+		}
+
+		for (int i = lowest_index - search_radius.x; i <= lowest_index + search_radius.x; i++) {
+			for (int j = 0; j <= search_radius.y; j++) {
+				Vector2 phash_position{ i, 15 - j };
+				unsigned long long phash_index = Indexer::FlatIndex2(phash_position.x, phash_position.y, 16);
+				Vector3 cloud_position = camera_cloud[phash_index];
+				float depth = depth_phash[phash_index];
+
+				float height_delta = cloud_position.y - lowest_height;
+
+				if (height_delta < height_threshold && depth < 20.0f) {
+					average_height += cloud_position.y;
+					ground_votes++;
+				}
+			}
+		}
+
+		if (ground_votes >= vote_threshold) {
+			this->height_estimate = (-average_height / ground_votes) + height_bias;
+		}
+		else {
+			this->height_estimate += velocity.y * Physics::DeltaTime();
 		}
 	}
 

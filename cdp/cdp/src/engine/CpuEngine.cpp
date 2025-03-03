@@ -140,6 +140,7 @@ void CpuEngine::PhysicsUpdate(GuiData* gui_data) {
 	Vector3 wind = Vector::ZERO3();
 
 	//this->drone_alpha.rigidbody.Accelerate(Physics::Gravity());
+	this->drone_alpha.Drift();
 	this->drone_alpha.rigidbody.AirResistance(wind);
 	this->drone_alpha.rigidbody.Update();
 
