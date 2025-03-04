@@ -7,8 +7,8 @@
 #include "Pid.h"
 
 struct Wallrider {
-	// stages are 0: anchor, 1:wallride, 2:transit
-	int current_stage = 0;
+	// stages are [-1: takeof, 0: anchor, 1:wallride, 2:transit]
+	int current_stage = -1;
 	int plan_index = 0;
 	int plan_size = 7;
 	PlanStep plan[7] = {
@@ -35,6 +35,7 @@ struct Wallrider {
 	float height_estimate = 4;
 	float height_target = 4;
 	Pid height_pid{ 0.4, 0, 0.1 };
+	float takeoff_timer = 0;
 
 	Vector3* mass_centers = new Vector3[16];
 	
@@ -117,7 +118,11 @@ struct Wallrider {
 			return command;
 		}
 
-		if (this->IsSafe()) {
+		if (this->current_stage == -1) {
+			command = this->DoTakeoff();
+		}
+
+		if (this->IsSafe()) {	
 			if (this->current_stage == 0) {
 				command = this->DoAnchor();
 			}
@@ -129,10 +134,11 @@ struct Wallrider {
 			if (this->current_stage == 2) {
 				command = this->DoTransit();
 			}
+
+			if (this->current_stage > -1) {
+				command.y = this->DoHeight(velocity);
+			}
 		}
-
-		command.y = this->DoHeight(velocity);
-
 		return command;
 	}
 
@@ -146,6 +152,18 @@ struct Wallrider {
 		}
 
 		return true;
+	}
+
+	Vector3 DoTakeoff() {
+		Vector3 command{ 0, 1, 0 };
+
+		this->takeoff_timer += Physics::DeltaTime();
+
+		if (this->takeoff_timer >= 3.0) {
+			this->current_stage = 0;
+		}
+
+		return command;
 	}
 
 	Vector3 DoAnchor() {
@@ -254,7 +272,7 @@ struct Wallrider {
 
 		float height_delta = this->height_target - this->height_estimate;
 
-		command = this->height_pid.ControlStep(this->height_estimate, this->height_target, velocity.y);
+		command = this->height_pid.ControlStep(this->height_estimate, this->height_target, 0, true);
 
 		return command;
 	}

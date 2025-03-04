@@ -28,7 +28,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->drone_alpha.Init();
 	this->drone_alpha.wallrider.height_texture = this->camera_list[0]->height_texture;
-	this->drone_alpha.rigidbody.position = Vector3{ 88, 4, 5 };
+	this->drone_alpha.rigidbody.position = Vector3{ 88, 0.4, 5 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
