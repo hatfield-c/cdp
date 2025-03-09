@@ -32,7 +32,9 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 	//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
-	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, -Math::Pi() / 4);
+	float rot_angle = -Math::Pi() / 4;
+	rot_angle = -(45.0 / 180.0) * Math::Pi();
+	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, rot_angle);
 	Vector4 quat = x_rot;// Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
 	//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
@@ -137,10 +139,10 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 }
 
 void CpuEngine::PhysicsUpdate(GuiData* gui_data) {
-	Vector3 wind = Vector::ZERO3();
-
+	Vector3 wind = this->wind_generatior.RandomWind() * 0;
+	
 	//this->drone_alpha.rigidbody.Accelerate(Physics::Gravity());
-	this->drone_alpha.Drift();
+	//this->drone_alpha.Drift();
 	this->drone_alpha.rigidbody.AirResistance(wind);
 	this->drone_alpha.rigidbody.Update();
 

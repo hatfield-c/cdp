@@ -15,6 +15,7 @@
 #include "WorldSpace.h"
 #include "../entity/Camera.h"
 #include "../entity/DroneAlpha.h"
+#include "../entity/WindGenerator.h"
 #include "ImageBuilder.h"
 
 #include "ihm/IhmState.h"
@@ -37,6 +38,7 @@ class CpuEngine {
 		IhmGenerator ihm_generator{};
 		IhmCortex ihm_cortex{};
 		DroneAlpha drone_alpha{};
+		WindGenerator wind_generatior{};
 		byte* simulation_image;
 
 		CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdeviceptr> phash_textures, std::vector<CUdeviceptr> derotated_textures);

@@ -209,6 +209,9 @@
     <ClInclude Include="src\entity\ai\Pid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\entity\WindGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />

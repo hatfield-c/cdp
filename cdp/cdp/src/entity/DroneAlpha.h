@@ -32,7 +32,6 @@ struct DroneAlpha {
 	}
 
 	void FollowCommand(Vector3 command) {
-
 		float yaw_target = -command.x * this->yaw_max;
 		this->rigidbody.angular_velocity.y = (0.4 * yaw_target) + (0.6 * this->rigidbody.angular_velocity.y);
 
@@ -42,6 +41,11 @@ struct DroneAlpha {
 		
 		velocity_target.y += command.y * this->climb_max;
 		this->rigidbody.velocity = (velocity_target * 0.4) + (this->rigidbody.velocity * 0.6);
+
+		//Vector3 xz_velocity = body_forward * command.z * 2;
+
+		//Vector3 force = Vector3{ xz_velocity.x, command.y * 5.0f, xz_velocity.z };
+		//this->rigidbody.AddForce(force);
 	}
 
 	void Drift() {

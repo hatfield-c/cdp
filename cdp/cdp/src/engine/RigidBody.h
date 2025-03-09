@@ -5,7 +5,7 @@
 #include "Quaternion.h"
 
 struct Rigidbody {
-	float mass = 1;
+	float mass = 3;
 	Vector3 position = Vector::ZERO3();
 	Vector4 rotation{ 0, 0, 0, 1 };
 	Vector3 velocity = Vector::ZERO3();

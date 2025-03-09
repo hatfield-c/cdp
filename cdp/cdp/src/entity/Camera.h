@@ -188,7 +188,9 @@ struct Camera {
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);
 
         Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), rotation);
-        Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
+        Vector3 xz_dir{ quat_dir.x, 0, quat_dir.z };
+        xz_dir = Transform::Unit3(xz_dir);
+        Vector3 angles = Quaternion::EulerAnglesFromDirection(xz_dir);
         Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
         Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, rotation, true);
