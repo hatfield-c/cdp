@@ -49,8 +49,8 @@ struct Wallrider {
 			PlanStep* plan_step = &this->plan[i];
 			plan_step->Init();
 
-			if (plan_step->mass_target.z < 0) {
-				printf("[Warning]: Plan step %d does not have a valid mass target.");
+			if (plan_step->mass_target.z < 0 && i < this->plan_size - 1) {
+				printf("[Warning]: Plan step %d does not have a valid mass target.\n");
 			}
 		}
 		

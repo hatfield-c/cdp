@@ -22,7 +22,7 @@ struct IhmRenderer {
 
 		this->render_size_strided = Vector2{ (float)(int)(render_size.x / render_stride.x), (float)(int)(render_size.y / render_stride.y)};
 
-		this->pixel_count = render_size.x * render_size.y;
+		this->pixel_count = (unsigned long long)(render_size.x * render_size.y);
 	}
 
 	

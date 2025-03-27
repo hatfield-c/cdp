@@ -44,6 +44,10 @@ void MainApplication::GuiAction(GuiData* gui_data) {
         this->engine->world_space->ActivateStochasticSubtraction();
     }
 
+    if (gui_data->is_generate_hitpoly_data) {
+        this->engine->GenerateHitPolyData(gui_data);
+    }
+
     if (is_state_changed && !this->engine->is_simulating) {
         this->engine->Start(gui_data);
     }

@@ -373,6 +373,10 @@ void MainGui::DrawInspector() {
         this->gui_data->is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
     }
 
+    if (ImGui::CollapsingHeader("HitPoly")) {
+        this->gui_data->is_generate_hitpoly_data = ImGui::Button("Generate Data");
+    }
+
     if (ImGui::CollapsingHeader("Testing")) {
         this->gui_data->is_playground = ImGui::Button("Playground");
     }

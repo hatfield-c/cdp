@@ -17,6 +17,7 @@
 #include "../entity/DroneAlpha.h"
 #include "../entity/WindGenerator.h"
 #include "ImageBuilder.h"
+#include "ihm/hitpoly/NeuralGrid.h"
 
 #include "ihm/IhmState.h"
 #include "ihm/IhmGenerator.h"
@@ -24,6 +25,7 @@
 #include "../ui/GuiData.h"
 
 #include "cuda/CudaCamera.cuh"
+#include "ihm/hitpoly/cuda/CudaHitPoly.cuh"
 #include "ihm/cuda/CudaIhm.cuh"
 #include "ihm/IhmEstimate.h"
 
@@ -51,6 +53,7 @@ class CpuEngine {
 		void SaveSimulationImage(GuiData* gui_data);
 		void DrawDronePosition();
 		void SaveProximityHash(GuiData* gui_data);
+		void GenerateHitPolyData(GuiData* gui_data);
 		void Playground(GuiData* gui_data);
 		void Cleanup();
 };

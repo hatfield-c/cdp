@@ -198,8 +198,13 @@ void CpuEngine::DrawDronePosition() {
 	this->image_builder->WritePixel(this->simulation_image, render_size, render_position, Vector3{ 0, 0, 255 }, true);
 }
 
+void CpuEngine::GenerateHitPolyData(GuiData* gui_data) {
+	CudaHitPoly::GenerateTrainingData();
+}
+
 void CpuEngine::Playground(GuiData* gui_data) {
-	
+	NeuralGrid hitpoly{};
+	hitpoly.Init();
 }
 
 void CpuEngine::SaveProximityHash(GuiData* gui_data) {

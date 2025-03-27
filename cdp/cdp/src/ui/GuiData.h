@@ -38,4 +38,5 @@ struct GuiData {
 	// Buttons
 	bool is_playground = false;
 	bool is_stochastic_subtraction = false;
+	bool is_generate_hitpoly_data = false;
 };
