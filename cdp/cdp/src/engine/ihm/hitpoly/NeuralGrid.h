@@ -16,10 +16,10 @@ struct NeuralGrid {
 	const int h_size = 256;
 
 	void Init() {
-		const char* w0_path = "data/hitpoly/w0.float";
-		const char* b0_path = "data/hitpoly/b0.float";
-		const char* w1_path = "data/hitpoly/w1.float";
-		const char* b1_path = "data/hitpoly/b1.float";
+		const char* w0_path = "data/hitpoly/ng/w0.float";
+		const char* b0_path = "data/hitpoly/ng/b0.float";
+		const char* w1_path = "data/hitpoly/ng/w1.float";
+		const char* b1_path = "data/hitpoly/ng/b1.float";
 
 		FILE* in_file;
 		fopen_s(&in_file, w0_path, "rb");
@@ -54,7 +54,7 @@ struct NeuralGrid {
 		result = (int)fread(this->b1, sizeof(float), (size_t)this->h_size, in_file);
 		fclose(in_file);
 
-		printf("HitPoly loaded.");
+		printf("HitPoly loaded.\n");
 
 		for (int i = 0; i < this->in_size * 2; i++) {
 			printf("%.2f, ", w0[i]);
@@ -74,8 +74,6 @@ struct NeuralGrid {
 			}
 		}
 		printf("\n\n");
-
-		exit(0);
 	}
 
 	bool IsRelease(Vector3 drone_offset, Vector3 drone_velocity) {
@@ -126,10 +124,11 @@ struct NeuralGrid {
 			float h_value = this->h[i];
 
 			out_data += w_value * h_value;
+			
 		}
 		out_data += this->b1[0];
 		out_data = this->Sigmoid(out_data);
-
+		
 		return out_data;
 	}
 

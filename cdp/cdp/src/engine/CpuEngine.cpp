@@ -205,6 +205,20 @@ void CpuEngine::GenerateHitPolyData(GuiData* gui_data) {
 void CpuEngine::Playground(GuiData* gui_data) {
 	NeuralGrid hitpoly{};
 	hitpoly.Init();
+
+	Vector3 position{ 0, 4, -10 };
+	Vector3 velocity{ 0, 0, 5 };
+
+	for (int i = 0; i < 12; i++) {
+		float signal = hitpoly.ForwardPass(position, velocity);
+		
+		if (signal > 0.95) {
+			position.Print("[Release]: ", "");
+			velocity.Print();
+		}
+
+		position.z++;
+	}
 }
 
 void CpuEngine::SaveProximityHash(GuiData* gui_data) {
