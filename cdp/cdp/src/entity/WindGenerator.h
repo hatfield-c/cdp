@@ -3,7 +3,7 @@
 #include "../engine/Transform.h"
 
 struct WindGenerator {
-	unsigned long long seed = 555586;
+	long seed = 555586;
 
 	Vector3 RandomWind() {
 		Vector3 wind_direction{ -1, 0, 0 };
@@ -25,7 +25,7 @@ struct WindGenerator {
 
 	float FloatNoise() {
 		long noisy_bits = this->NextSample(this->seed);
-		float noise = (float)noisy_bits / 32768.0;
+		float noise = (float)noisy_bits / 32768.0f;
 		noise = (2 * noise) - 1;
 		this->seed = noisy_bits;
 		

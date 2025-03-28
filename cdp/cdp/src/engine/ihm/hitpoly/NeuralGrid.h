@@ -21,36 +21,37 @@ struct NeuralGrid {
 		const char* w1_path = "data/hitpoly/w1.float";
 		const char* b1_path = "data/hitpoly/b1.float";
 
-		FILE* in_file = fopen(w0_path, "rb");
+		FILE* in_file;
+		fopen_s(&in_file, w0_path, "rb");
 		if (in_file == NULL) {
 			printf("\n\n[Warning] file did not open when loading:\n    %s!\n", w0_path);
 			exit(1);
 		}
-		int result = fread(this->w0, sizeof(float), this->in_size * this->h_size, in_file);
+		int result = (int)fread(this->w0, sizeof(float), (size_t)(this->in_size * this->h_size), in_file);
 		fclose(in_file);
 
-		in_file = fopen(b0_path, "rb");
+		fopen_s(&in_file, b0_path, "rb");
 		if (in_file == NULL) {
 			printf("\n\n[Warning] file did not open when loading:\n    %s!\n", b0_path);
 			exit(1);
 		}
-		result = fread(this->b0, sizeof(float), this->h_size, in_file);
+		result = (int)fread(this->b0, sizeof(float), (size_t)this->h_size, in_file);
 		fclose(in_file);
 
-		in_file = fopen(w1_path, "rb");
+		fopen_s(&in_file, w1_path, "rb");
 		if (in_file == NULL) {
 			printf("\n\n[Warning] file did not open when loading:\n    %s!\n", w1_path);
 			exit(1);
 		}
-		result = fread(this->w1, sizeof(float), this->in_size * this->h_size, in_file);
+		result = (int)fread(this->w1, sizeof(float), (size_t)(this->in_size * this->h_size), in_file);
 		fclose(in_file);
 
-		in_file = fopen(b1_path, "rb");
+		fopen_s(&in_file, b1_path, "rb");
 		if (in_file == NULL) {
 			printf("\n\n[Warning] file did not open when loading:\n    %s!\n", b1_path);
 			exit(1);
 		}
-		result = fread(this->b1, sizeof(float), this->h_size, in_file);
+		result = (int)fread(this->b1, sizeof(float), (size_t)this->h_size, in_file);
 		fclose(in_file);
 
 		printf("HitPoly loaded.");
@@ -105,7 +106,7 @@ struct NeuralGrid {
 			float bias = this->b0[i];
 
 			for (int j = 0; j < this->in_size; j++) {
-				unsigned long long w_index = Indexer::FlatIndex2(j, i, this->in_size);
+				unsigned long long w_index = Indexer::FlatIndex2((unsigned long long)j, (unsigned long long)i, (unsigned long long)this->in_size);
 				float weight = this->w0[w_index];
 				float in_value = in_data[j];
 
@@ -137,10 +138,10 @@ struct NeuralGrid {
 			return value;
 		}
 
-		return 0;
+		return 0.0f;
 	}
 
 	float Sigmoid(float value) {
-		return 1.0 / (1.0 + exp(-value));
+		return 1.0f / (1.0f + exp(-value));
 	}
 };

@@ -38,20 +38,20 @@ struct IhmGenerator {
 		this->world_size = world_size;
 		this->world_stride = world_stride;
 
-		this->world_width_strided = world_width / world_stride;
-		this->world_width_strided.x = (int)world_width_strided.x;
-		this->world_width_strided.y = (int)world_width_strided.y;
-		this->world_width_strided.z = (int)world_width_strided.z;
+		this->world_width_strided = (world_width / world_stride).Floor();
+		this->world_width_strided.x = world_width_strided.x;
+		this->world_width_strided.y = world_width_strided.y;
+		this->world_width_strided.z = world_width_strided.z;
 
-		this->world_size_strided = world_size / world_stride;
-		this->world_size_strided.x = (int)world_size_strided.x;
-		this->world_size_strided.y = (int)world_size_strided.y;
-		this->world_size_strided.z = (int)world_size_strided.z;
+		this->world_size_strided = (world_size / world_stride).Floor();
+		this->world_size_strided.x = world_size_strided.x;
+		this->world_size_strided.y = world_size_strided.y;
+		this->world_size_strided.z = world_size_strided.z;
 		
 		this->phash_size = phash_size;
 
-		this->phash_count = this->phash_size.x * this->phash_size.y;
-		this->voxel_count = this->world_width_strided.x * this->world_width_strided.y * this->world_width_strided.z;
+		this->phash_count = (unsigned long long)(this->phash_size.x * this->phash_size.y);
+		this->voxel_count = (unsigned long long)(this->world_width_strided.x * this->world_width_strided.y * this->world_width_strided.z);
 		this->state_count = this->voxel_count * ((unsigned long long)this->direction_count);
 		this->bit_count = this->state_count * this->phash_count;
 		
@@ -69,8 +69,8 @@ struct IhmGenerator {
 
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 		Vector2 phash_position{
-			threadIdx.x,
-			Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+			(float)threadIdx.x,
+			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y)
 		};
 		Vector2 pixel_position;
 
@@ -88,15 +88,15 @@ struct IhmGenerator {
 		float avg_distance = 0;
 		int avg_count = 0;
 
-		for (int i = 0; i < camera->chunk_size.x; i += camera->box_filter_stride.x) {
-			pixel_position.x = Indexer::FlatIndex2(i, phash_position.x, camera->chunk_size.x);
+		for (int i = 0; i < (int)camera->chunk_size.x; i += (int)camera->box_filter_stride.x) {
+			pixel_position.x = (float)Indexer::FlatIndex2((float)i, phash_position.x, camera->chunk_size.x);
 
 			if (pixel_position.x >= camera->camera_size.x) {
 				continue;
 			}
 
-			for (int j = 0; j < camera->chunk_size.y; j += camera->box_filter_stride.y) {
-				pixel_position.y = Indexer::FlatIndex2(j, phash_position.y, camera->chunk_size.y);
+			for (int j = 0; j < (int)camera->chunk_size.y; j += (int)camera->box_filter_stride.y) {
+				pixel_position.y = (float)Indexer::FlatIndex2((float)j, phash_position.y, camera->chunk_size.y);
 
 				if (pixel_position.y >= camera->camera_size.y) {
 					continue;
@@ -124,7 +124,7 @@ struct IhmGenerator {
 
 		byte phash_pixel_value = camera->DepthToPixel(avg_distance);
 
-		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
+		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
 		ihm[data_index] = phash_pixel_value;
 	}
 
@@ -135,15 +135,15 @@ struct IhmGenerator {
 		}
 
 		Vector2 phash_position{
-			threadIdx.x,
-			Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+			(float)threadIdx.x,
+			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y)
 		};
 
 		if (!phash_position.IsBounded(Vector::ZERO2(), camera->phash_data_size - 1)) {
 			return;
 		}
 
-		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
+		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
 		byte depth_val = ihm[data_index];
 
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
@@ -154,14 +154,14 @@ struct IhmGenerator {
 
 		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, ihm_state.rotation, true);
 		Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_size, camera->fov, ray_rotation);
-		float depth = (depth_val / 256.0) * camera->max_distance;
+		float depth = ((float)depth_val / 256.0f) * camera->max_distance;
 
 		ihm_clouds[data_index] = ray_direction * depth;
 	}
 
 	__host__ __device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
 		IhmState ihm_state;
-		Vector4 state_data = Indexer::InverseFlatIndex4(position_index, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+		Vector4 state_data = Indexer::InverseFlatIndex4((float)position_index, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 		
 		ihm_state.position_strided.x = state_data.y;
 		ihm_state.position_strided.y = state_data.z;
@@ -174,7 +174,7 @@ struct IhmGenerator {
 		ihm_state.position_strided += this->world_origin;
 		ihm_state.position += this->world_origin;
 
-		int direction_index = state_data.x;
+		int direction_index = (int)state_data.x;
 		Vector3 direction{};
 
 		if (is_gpu) {
@@ -253,7 +253,7 @@ struct IhmGenerator {
 
 	int GetClosestDirectionIndex(Vector3 unit_vector) {
 		int closest_index = 0;
-		float smallest_norm = 99999999999999;
+		float smallest_norm = 99999999999999.0f;
 		for (int i = 0; i < this->direction_count; i++) {
 			Vector3 direction = this->directions_cpu[i];
 			float diff_norm = Transform::Norm3(direction - unit_vector);

@@ -16,19 +16,19 @@ struct ImageBuilder {
 	}
 
 	__host__ __device__ void WritePixel(byte* img, Vector2 img_size, Vector2 position, Vector3 rgb, bool is_invert_y = true) {
-		int y_position = position.y;
+		int y_position = (int)position.y;
 
 		if (is_invert_y) {
-			y_position = img_size.y - position.y - 1;
+			y_position = (int)(img_size.y - position.y - 1.0f);
 		}
 
-		unsigned long long r_index = Indexer::FlatIndex3(0, position.x, y_position, 3, img_size.x);
-		unsigned long long g_index = Indexer::FlatIndex3(1, position.x, y_position, 3, img_size.x);
-		unsigned long long b_index = Indexer::FlatIndex3(2, position.x, y_position, 3, img_size.x);
+		unsigned long long r_index = Indexer::FlatIndex3(0, position.x, (float)y_position, 3, img_size.x);
+		unsigned long long g_index = Indexer::FlatIndex3(1, position.x, (float)y_position, 3, img_size.x);
+		unsigned long long b_index = Indexer::FlatIndex3(2, position.x, (float)y_position, 3, img_size.x);
 
-		img[r_index] = rgb.x;
-		img[g_index] = rgb.y;
-		img[b_index] = rgb.z;
+		img[r_index] = (byte)rgb.x;
+		img[g_index] = (byte)rgb.y;
+		img[b_index] = (byte)rgb.z;
 	}
 
 	__host__ __device__ void DrawLine_Serial(byte* img, Vector2 img_size, Vector2 start, Vector2 end, Vector3 rgb, bool is_invert_y = true) {

@@ -15,12 +15,12 @@ struct SpaceBuilder {
 
 	unsigned long long seed;
 
-	float large_subtraction_p = 0.0000003;
-	float mid_subtraction_p = 0.000008;
-	float small_subtraction_p = 0.0004;
-	float large_subtraction_radius = 30;
-	float mid_subtraction_radius = 10;
-	float small_subtraction_radius = 3;
+	float large_subtraction_p = 0.0000003f;
+	float mid_subtraction_p = 0.000008f;
+	float small_subtraction_p = 0.0004f;
+	float large_subtraction_radius = 30.0f;
+	float mid_subtraction_radius = 10.0f;
+	float small_subtraction_radius = 3.0f;
 
 	VoxelData empty_voxel{ 0, 0 };
 
@@ -56,7 +56,7 @@ struct SpaceBuilder {
 	}
 
 	__device__ void WritePoints(SpaceData space_data, Vector3* points, unsigned long long point_count, VoxelData voxel_data) {
-		unsigned long long point_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		unsigned long long point_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
 
 		if (point_index >= point_count) {
 			return;
@@ -68,9 +68,9 @@ struct SpaceBuilder {
 
 	__device__ void FillBox(SpaceData space_data, VoxelData voxel_data, Vector3 origin, Vector3 width) {
 		Vector3 local_offset{
-			Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x),
-			Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y),
-			Indexer::FlatIndex2(threadIdx.z, blockIdx.z, blockDim.z)
+			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x),
+			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y),
+			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.z, (unsigned long long)blockIdx.z, (unsigned long long)blockDim.z)
 		};
 
 		if (local_offset.x >= width.x || local_offset.y >= width.y || local_offset.z >= width.z) {
@@ -111,7 +111,7 @@ struct SpaceBuilder {
 
 	__device__ void FillLine_Serial(SpaceData space_data, Vector3 point_a, Vector3 point_b, VoxelData voxel_data) {
 		Vector3 unit_direction = point_b - point_a;
-		unsigned long long step_count = ceil(Transform::Norm3(unit_direction));
+		unsigned long long step_count = (unsigned long long)ceil(Transform::Norm3(unit_direction));
 		unit_direction = Transform::Unit3(unit_direction);
 
 		Vector3 brush_position{ point_a.x, point_a.y, point_a.z };
@@ -123,7 +123,7 @@ struct SpaceBuilder {
 	}
 
 	__device__ void PlanarDensify(SpaceData space_data, Vector3* points, int point_count) {
-		int point_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		int point_index = (int)Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
 
 		if (point_index >= point_count) {
 			return;
@@ -209,7 +209,7 @@ struct SpaceBuilder {
 	}
 
 	__device__ void StochasticSubtraction(SpaceData space_data) {
-		int voxel_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		int voxel_index = (int)Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
 
 		if (voxel_index >= space_data.voxel_count0) {
 			return;
@@ -223,7 +223,7 @@ struct SpaceBuilder {
 			return;
 		}
 
-		Vector3 voxel_position = Indexer::InverseFlatIndex3(voxel_index, space_data.world_size0.x, space_data.world_size0.y);
+		Vector3 voxel_position = Indexer::InverseFlatIndex3((float)voxel_index, space_data.world_size0.x, space_data.world_size0.y);
 
 		curandState_t curand_state;
 		unsigned long sequence = voxel_index;
@@ -232,19 +232,19 @@ struct SpaceBuilder {
 		float dice_roll = curand_uniform(&curand_state);
 
 		if (dice_roll < large_subtraction_p) {
-			this->FillSphere_Serial(space_data, voxel_position, this->large_subtraction_radius, this->empty_voxel);
+			this->FillSphere_Serial(space_data, voxel_position, (int)this->large_subtraction_radius, this->empty_voxel);
 		}
 		else {
 			dice_roll = curand_uniform(&curand_state);
 
 			if (dice_roll < mid_subtraction_p) {
-				this->FillSphere_Serial(space_data, voxel_position, this->mid_subtraction_radius, this->empty_voxel);
+				this->FillSphere_Serial(space_data, voxel_position, (int)this->mid_subtraction_radius, this->empty_voxel);
 			}
 			else {
 				dice_roll = curand_uniform(&curand_state);
 
 				if (dice_roll < small_subtraction_p) {
-					this->FillSphere_Serial(space_data, voxel_position, this->small_subtraction_radius, this->empty_voxel);
+					this->FillSphere_Serial(space_data, voxel_position, (int)this->small_subtraction_radius, this->empty_voxel);
 				}
 			}
 

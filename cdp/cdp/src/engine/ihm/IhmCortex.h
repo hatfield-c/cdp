@@ -43,15 +43,13 @@ struct IhmCortex {
 		this->ihm_cpu = ihm_cpu;
 		this->ihm_clouds = ihm_clouds;
 		this->direction_count = direction_count;
-		this->state_count = this->direction_count * this->search_width.Mult();
-		this->phash_count = this->phash_size.x * this->phash_size.y;
+		this->state_count = (unsigned long long)(this->direction_count * this->search_width.Mult());
+		this->phash_count = (unsigned long long)(this->phash_size.x * this->phash_size.y);
 		this->pixel_count = (this->phash_count / 4) * this->state_count;
 
-		this->pixel_distances;
 		this->distance_memory_size = pixel_count * sizeof(float);
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->pixel_distances, this->distance_memory_size), __FILE__, __LINE__);
 
-		this->chamfer_distances;
 		this->chamfer_memory_size = state_count * sizeof(float);
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->chamfer_distances, this->chamfer_memory_size), __FILE__, __LINE__);
 
@@ -62,7 +60,7 @@ struct IhmCortex {
 
 	IhmEstimate EstimateIhmState() {
 		float* chamfer_distances = new float[this->state_count];
-		int memory_size = this->state_count * sizeof(float);
+		int memory_size = (int)this->state_count * sizeof(float);
 
 		CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(chamfer_distances, this->chamfer_distances, memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -71,7 +69,7 @@ struct IhmCortex {
 		IhmEstimate estimate{};
 
 		for (unsigned long long i = 0; i < this->state_count; i++) {
-			Vector4 index_data = Indexer::InverseFlatIndex4(i, this->direction_count, this->search_width.x, this->search_width.y);
+			Vector4 index_data = Indexer::InverseFlatIndex4((float)i, (float)this->direction_count, this->search_width.x, this->search_width.y);
 
 			float score = chamfer_distances[i];
 
@@ -83,7 +81,7 @@ struct IhmCortex {
 			if (score < estimate.chamfer_score) {
 				estimate.local_index = i;
 				estimate.chamfer_score = score;
-				estimate.direction_index = index_data.x;
+				estimate.direction_index = (int)index_data.x;
 				estimate.position = Vector3{ index_data.y, index_data.z, index_data.w };
 			}
 		}
@@ -106,17 +104,17 @@ struct IhmCortex {
 	}
 
 	__device__ float SampleFloat(long sample) {
-		return (float)sample / 32768.0;
+		return (float)sample / 32768.0f;
 	}
 
 	__device__ void UpdateNearestDistances(IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor) {
-		unsigned long long region_pixel_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
-		this->pixel_distances[region_pixel_index] = 1000000000;
+		unsigned long long region_pixel_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
+		this->pixel_distances[region_pixel_index] = 1000000000.0f;
 		
-		Vector3 index_data = Indexer::InverseFlatIndex3(region_pixel_index, this->phash_size.x / 2, this->phash_size.y / 2);
+		Vector3 index_data = Indexer::InverseFlatIndex3((float)region_pixel_index, this->phash_size.x / 2.0f, this->phash_size.y / 2.0f);
 		Vector2 offset{};
 
-		long sample = this->NextSample(this->seed + region_pixel_index);
+		long sample = this->NextSample(this->seed + (long)region_pixel_index);
 		float dice_roll = this->SampleFloat(sample);
 		offset.x = round(dice_roll);
 
@@ -126,29 +124,29 @@ struct IhmCortex {
 
 		Vector2 pixel_position = (Vector2{ index_data.x, index_data.y } * 2) + offset;
 		
-		unsigned long long region_state_index = index_data.z;
+		unsigned long long region_state_index = (unsigned long long)index_data.z;
 		
-		Vector4 region_state_data = Indexer::InverseFlatIndex4(region_state_index, this->direction_count, this->search_width.x, this->search_width.y);
-		int direction_index = region_state_data.x;
+		Vector4 region_state_data = Indexer::InverseFlatIndex4((float)region_state_index, (float)this->direction_count, this->search_width.x, this->search_width.y);
+		int direction_index = (int)region_state_data.x;
 		Vector3 local_position{ region_state_data.y, region_state_data.z, region_state_data.w };
 		Vector3 voxel_position = anchor - this->search_radius + local_position;
 
-		unsigned long long ihm_state_index = Indexer::FlatIndex4(direction_index, voxel_position.x, voxel_position.y, voxel_position.z, ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
+		unsigned long long ihm_state_index = Indexer::FlatIndex4((float)direction_index, voxel_position.x, voxel_position.y, voxel_position.z, (float)ihm_generator.direction_count, ihm_generator.world_width_strided.x, ihm_generator.world_width_strided.y);
 
 		if (!voxel_position.IsBounded(Vector::ZERO3(), ihm_generator.world_width_strided - 1)) {
 			return;
 		}
 
 		unsigned long long index_a0 = Indexer::FlatIndex2(pixel_position.x, pixel_position.y, this->phash_size.x);
-		unsigned long long index_b0 = Indexer::FlatIndex3(pixel_position.x, pixel_position.y, ihm_state_index, this->phash_size.x, this->phash_size.y);
+		unsigned long long index_b0 = Indexer::FlatIndex3((unsigned long long)pixel_position.x, (unsigned long long)pixel_position.y, ihm_state_index, (unsigned long long)this->phash_size.x, (unsigned long long)this->phash_size.y);
 
 		Vector3 a0 = camera_cloud[index_a0];
 		Vector3 b0 = this->ihm_clouds[index_b0];
 
-		float shortest_a = 1000000000000;
-		float shortest_b = 1000000000000;
+		float shortest_a = 1000000000000.0f;
+		float shortest_b = 1000000000000.0f;
 		for (int j = 0; j < ihm_generator.phash_count; j++) {
-			unsigned long long index_a1 = j + Indexer::FlatIndex3(0, 0, ihm_state_index, this->phash_size.x, this->phash_size.y);
+			unsigned long long index_a1 = j + Indexer::FlatIndex3(0, 0, ihm_state_index, (unsigned long long)this->phash_size.x, (unsigned long long)this->phash_size.y);
 			unsigned long long index_b1 = j;
 
 			Vector3 a1 = this->ihm_clouds[index_a1];
@@ -176,10 +174,10 @@ struct IhmCortex {
 	}
 
 	__device__ void UpdateChamferDistances(IhmGenerator ihm_generator) {
-		unsigned long long region_state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		unsigned long long region_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
 
-		Vector4 index_data = Indexer::InverseFlatIndex4(region_state_index, this->direction_count, this->search_width.x, this->search_width.y);
-		int direction_index = index_data.x;
+		Vector4 index_data = Indexer::InverseFlatIndex4((float)region_state_index, (float)this->direction_count, this->search_width.x, this->search_width.y);
+		int direction_index = (int)index_data.x;
 		Vector3 local{ index_data.y, index_data.z, index_data.w };
 
 		if (region_state_index >= this->state_count) {
@@ -188,7 +186,7 @@ struct IhmCortex {
 
 		float chamfer_distance = 0;
 		for (int i = 0; i < this->phash_count / 4.0; i++) {
-			unsigned long long pixel_index = i + Indexer::FlatIndex3(0, 0, region_state_index, this->phash_size.x / 2, this->phash_size.y / 2);
+			unsigned long long pixel_index = i + Indexer::FlatIndex3(0.0f, 0.0f, (float)region_state_index, this->phash_size.x / 2, this->phash_size.y / 2);
 
 			chamfer_distance += this->pixel_distances[pixel_index];
 		}

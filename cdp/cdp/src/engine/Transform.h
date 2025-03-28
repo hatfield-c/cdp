@@ -10,7 +10,7 @@ struct Vector2 {
 	float x = 0;
 	float y = 0;
 
-	__host__ __device__ Vector2& operator+(Vector2 operand) {
+	__host__ __device__ Vector2 operator+(Vector2 operand) {
 		Vector2 result{
 			this->x + operand.x,
 			this->y + operand.y
@@ -87,7 +87,7 @@ struct Vector2 {
 		return *this;
 	}
 
-	__host__ __device__ Vector2& operator-() {
+	__host__ __device__ Vector2 operator-() {
 		Vector2 result{
 			-this->x,
 			-this->y
@@ -96,14 +96,14 @@ struct Vector2 {
 		return result;
 	}
 
-	__host__ __device__ bool& operator==(Vector2 operand) {
+	__host__ __device__ bool operator==(Vector2 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 
 		return result;
 	}
 
-	__host__ __device__ bool& operator!=(Vector2 operand) {
+	__host__ __device__ bool operator!=(Vector2 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result = !result;
@@ -206,8 +206,8 @@ struct Vector2 {
 			this->y
 		};
 
-		result.x = Math::Clip(result.x, lower.x, upper.x);
-		result.y = Math::Clip(result.y, lower.y, upper.y);
+		result.x = (float)Math::Clip(result.x, lower.x, upper.x);
+		result.y = (float)Math::Clip(result.y, lower.y, upper.y);
 
 		return result;
 	}
@@ -235,7 +235,7 @@ struct Vector3 {
 	float y = 0;
 	float z = 0;
 
-	__host__ __device__ Vector3& operator+(Vector3 operand) {
+	__host__ __device__ Vector3 operator+(Vector3 operand) {
 		Vector3 result{
 			this->x + operand.x,
 			this->y + operand.y,
@@ -331,7 +331,7 @@ struct Vector3 {
 		return *this;
 	}
 
-	__host__ __device__ Vector3& operator-() {
+	__host__ __device__ Vector3 operator-() {
 		Vector3 result{
 			-this->x,
 			-this->y,
@@ -341,7 +341,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__host__ __device__ bool& operator==(Vector3 operand) {
+	__host__ __device__ bool operator==(Vector3 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result &= this->z == operand.z;
@@ -349,7 +349,7 @@ struct Vector3 {
 		return result;
 	}
 
-	__host__ __device__ bool& operator!=(Vector3 operand) {
+	__host__ __device__ bool operator!=(Vector3 operand) {
 		bool result = this->x == operand.x;
 		result &= this->y == operand.y;
 		result &= this->z == operand.z;
@@ -471,9 +471,9 @@ struct Vector3 {
 			this->z
 		};
 
-		result.x = Math::Clip(result.x, lower.x, upper.x);
-		result.y = Math::Clip(result.y, lower.y, upper.y);
-		result.z = Math::Clip(result.z, lower.z, upper.z);
+		result.x = (float)Math::Clip(result.x, lower.x, upper.x);
+		result.y = (float)Math::Clip(result.y, lower.y, upper.y);
+		result.z = (float)Math::Clip(result.z, lower.z, upper.z);
 
 		return result;
 	}
@@ -501,7 +501,7 @@ struct Vector4 {
 	float z = 0;
 	float w = 0;
 
-	__host__ __device__ Vector4& operator+(Vector4 operand) {
+	__host__ __device__ Vector4 operator+(Vector4 operand) {
 		Vector4 result{
 			result.x = this->x + operand.x,
 			result.y = this->y + operand.y,
@@ -563,7 +563,7 @@ struct Vector4 {
 		return *this;
 	}
 
-	__host__ __device__ Vector4& operator-() {
+	__host__ __device__ Vector4 operator-() {
 		Vector4 result{
 			-this->x,
 			-this->y,

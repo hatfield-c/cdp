@@ -34,7 +34,7 @@ struct Wallrider {
 	Vector3 velocity{};
 	float height_estimate = 4;
 	float height_target = 4;
-	Pid height_pid{ 0.4, 0, 0.1 };
+	Pid height_pid{ 0.4f, 0, 0.1f };
 	float takeoff_timer = 0;
 
 	Vector3* mass_centers = new Vector3[16];
@@ -42,7 +42,7 @@ struct Wallrider {
 	bool brake_proximity;
 	bool* steer_proximity = new bool[3];
 
-	unsigned long long seed = 6593219;
+	long seed = 6593219;
 
 	void Init() {
 		for (int i = 0; i < this->plan_size; i++) {
@@ -50,7 +50,7 @@ struct Wallrider {
 			plan_step->Init();
 
 			if (plan_step->mass_target.z < 0 && i < this->plan_size - 1) {
-				printf("[Warning]: Plan step %d does not have a valid mass target.\n");
+				printf("[Warning]: Plan step %d does not have a valid mass target.\n", i);
 			}
 		}
 		
@@ -176,7 +176,7 @@ struct Wallrider {
 		PlanStep plan_step = this->plan[this->plan_index];
 		command.x = -plan_step.wall_direction;
 
-		int proximity_index = 1 + plan_step.wall_direction;
+		int proximity_index = 1 + (int)plan_step.wall_direction;
 
 		if (!this->steer_proximity[1] && this->steer_proximity[proximity_index]) {
 			this->UpdateTarget(plan_step);
@@ -242,24 +242,24 @@ struct Wallrider {
 			int dir = 0;
 
 			if (center.z < 7) {
-				err = 7 - center.z;
+				err = (int)(7 - center.z);
 				dir = -1;
 			}
 			else if (center.z > 8) {
-				err = center.z - 8;
+				err = (int)(center.z - 8);
 				dir = 1;
 			}
 
 			if (center.x > mass_width) {
 				mass_width = center.x;
-				steer_error = err;
-				steer_direction = dir;
+				steer_error = (float)err;
+				steer_direction = (float)dir;
 				center_data = center;
 			}
 		}
 		
 		if (steer_error == 1) {
-			steer_direction = 0.25 * steer_direction;
+			steer_direction = 0.25f * steer_direction;
 		}
 
 		command.x = steer_direction;
@@ -300,9 +300,9 @@ struct Wallrider {
 	}
 
 	Vector2 SadMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
-		Vector2 sub_center{ 7 , 999999999 };
+		Vector2 sub_center{ 7.0f , 999999999.0f };
 		int origin = kernel_radius;
-		int endgin = this->phash_size.x - kernel_radius;
+		int endgin = (int)this->phash_size.x - kernel_radius;
 
 		for (int i = origin; i < endgin; i++) {
 			if (camera_proximity[i] > 15) {
@@ -312,7 +312,7 @@ struct Wallrider {
 			float sad_score = this->GetSad(camera_proximity, target_proximity, i, target_center, kernel_radius);
 
 			if (sad_score < sub_center.y) {
-				sub_center.x = i;
+				sub_center.x = (float)i;
 				sub_center.y = sad_score;
 			}
 		}
@@ -353,7 +353,7 @@ struct Wallrider {
 	Vector2 CorrelationMatch(float* camera_proximity, float* target_proximity, int target_center, int kernel_radius) {
 		Vector2 sub_center{ 7 , -1 };
 		int origin = kernel_radius;
-		int endgin = this->phash_size.x - kernel_radius;
+		int endgin = (int)this->phash_size.x - kernel_radius;
 
 		for (int i = origin; i < endgin; i++) {
 			int camera_index = i;
@@ -365,7 +365,7 @@ struct Wallrider {
 			float correlation = this->GetCorrelation(camera_proximity, target_proximity, camera_index, target_center, kernel_radius, target_proximity[target_center]);
 
 			if (correlation > sub_center.y) {
-				sub_center.x = camera_index;
+				sub_center.x = (float)camera_index;
 				sub_center.y = correlation;
 			}
 		}
@@ -437,7 +437,7 @@ struct Wallrider {
 		for (int i = 0; i < 256; i++) {
 			Vector3 cloud_position = camera_cloud[i];
 
-			Vector2 phash_position = Indexer::InverseFlatIndex2(i, 16);
+			Vector2 phash_position = Indexer::InverseFlatIndex2((unsigned long long)i, (unsigned long long)16);
 
 			Vector2 height_position{
 				phash_position.x,
@@ -478,7 +478,7 @@ struct Wallrider {
 		memset(height_blur, 0, 16 * 16 * sizeof(float));
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 16; j++) {
-				int index = Indexer::FlatIndex2(i, j, 16);
+				unsigned long long index = Indexer::FlatIndex2((unsigned long long)i, (unsigned long long)j, (unsigned long long)16);
 
 				if (j != this->proximity_blur[i]) {
 					height_blur[index] = -1000;
@@ -488,8 +488,8 @@ struct Wallrider {
 		 
 		byte* texture = new byte[4 * 32 * 32];
 		for (int i = 0; i < 32; i++) {
-			int half_index = floor(i / 2);
-			int mass_depth = this->mass_centers[half_index].y;
+			int half_index = (int)floor(i / 2);
+			int mass_depth = (int)this->mass_centers[half_index].y;
 			int hit_count = 0;
 
 			int target_depth = 16;
@@ -498,8 +498,8 @@ struct Wallrider {
 			}
 			
 			for (int j = 0; j < 32; j++) {
-				Vector2 texture_position{ i, j };
-				unsigned long long texture_index = Indexer::FlatIndex3(0, i, 31 - j, 4, 32);
+				Vector2 texture_position{ (float)i, (float)j };
+				unsigned long long texture_index = Indexer::FlatIndex3(0, (float)i, 31 - (float)j, 4, 32);
 
 				Vector2 height_position = (texture_position / 2).Floor();
 				unsigned long long height_index = Indexer::FlatIndex2(height_position.x, height_position.y, 16);
@@ -558,17 +558,17 @@ struct Wallrider {
 			float delta = depth1 - depth0;
 
 			if (abs(delta) > mass_threshold || (depth0 != 16 && depth1 == 16) || (depth0 == 16 && depth1 != 16) || i == 15) {
-				mass_end = i - 1;
+				mass_end = (float)i - 1;
 
-				int mass_center = round((mass_end + mass_start) / 2);
+				int mass_center = (int)round((mass_end + mass_start) / 2);
 
 				if (center_depth < 16 && mass_center != 0) {
 					this->mass_centers[mass_center].x = mass_end - mass_start;
 					this->mass_centers[mass_center].y = center_depth;
-					this->mass_centers[mass_center].z = mass_center;
+					this->mass_centers[mass_center].z = (float)mass_center;
 				}
 
-				mass_start = i;
+				mass_start = (float)i;
 				mass_end = 16;
 				center_depth = 16;
 			}
@@ -579,15 +579,15 @@ struct Wallrider {
 		Vector2 search_radius{ 1, 8 };
 		float average_height = 0;
 		float height_threshold = 1;
-		float height_bias = 0.7;
+		float height_bias = 0.7f;
 		int ground_votes = 0;
 		int vote_threshold = 4;
 
 		int lowest_index = 0;
-		float lowest_height = 99999999;
+		float lowest_height = 99999999.0f;
 
 		for (int i = 0; i < 16; i++) {
-			Vector2 phash_position{ i, 13 };
+			Vector2 phash_position{ (float)i, 13.0f };
 			unsigned long long phash_index = Indexer::FlatIndex2(phash_position.x, phash_position.y, 16);
 			Vector3 cloud_position = camera_cloud[phash_index];
 
@@ -597,11 +597,11 @@ struct Wallrider {
 			}
 		}
 
-		for (int i = lowest_index - search_radius.x; i <= lowest_index + search_radius.x; i++) {
+		for (int i = lowest_index - (int)search_radius.x; i <= lowest_index + (int)search_radius.x; i++) {
 			Vector3 previous_position{ 999999, 999999, 999999 };
 
 			for (int j = 0; j <= search_radius.y; j++) {
-				Vector2 phash_position{ i, 15 - j };
+				Vector2 phash_position{ (float)i, 15.0f - (float)j };
 				unsigned long long phash_index = Indexer::FlatIndex2(phash_position.x, phash_position.y, 16);
 				Vector3 cloud_position = camera_cloud[phash_index];
 				float depth = depth_phash[phash_index];
@@ -623,11 +623,11 @@ struct Wallrider {
 		}
 
 		long noisy_bits = this->NextSample(this->seed);
-		float noise_y = (float)noisy_bits / 32768.0;
+		float noise_y = (float)noisy_bits / 32768.0f;
 		noise_y = (2 * noise_y) - 1;
 		this->seed = noisy_bits;
 
-		float y_velocity = velocity.y + (noise_y * 0.1);
+		float y_velocity = velocity.y + (noise_y * 0.1f);
 
 		if (ground_votes >= vote_threshold) {
 			this->height_estimate = (-average_height / ground_votes) + height_bias;
@@ -639,7 +639,7 @@ struct Wallrider {
 
 	void UpdateTarget(PlanStep plan_step) {
 		if (plan_step.IsStartValid()) {
-			memcpy(this->proximity_target, plan_step.start_proximity_hash, this->phash_size.x * sizeof(float));
+			memcpy(this->proximity_target, plan_step.start_proximity_hash, (unsigned int)this->phash_size.x * sizeof(float));
 		}
 		else {
 			for (int i = 0; i < 16; i++) {

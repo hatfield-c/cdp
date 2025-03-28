@@ -20,12 +20,11 @@ struct Physics {
     }
 
     static __host__ __device__ Vector3 Gravity() {
-        return Vector3{ 0, -9.80665, 0 };
+        return Vector3{ 0, -9.80665f, 0 };
     }
 
     static __host__ __device__ RaycastHitData Raycast(SpaceData space_data, Vector3 start_position, Vector3 ray_direction, float max_distance) {
         RaycastHitData hit_data{};
-        VoxelData voxel_data{};
 
         Vector3 current_position = start_position;
         Vector3 end_position = start_position + (ray_direction * max_distance);
@@ -65,6 +64,7 @@ struct Physics {
         int driving_distance = 0;
         while (driving_distance <= voxel_distance[driving_axis]) {
             driving_distance++;
+
             current_position[driving_axis] += difference_sign[driving_axis];
             current_position[second_axis] = (current_position[driving_axis] * second_slope) + second_bias;
             current_position[third_axis] = (current_position[driving_axis] * third_slope) + third_bias;
@@ -82,13 +82,13 @@ struct Physics {
             VoxelData voxel_data1 = space_data.space1[world_index1];
 
             if (voxel_data1.entity_id == 0) {
-                int voxel_index = floor(current_voxel[driving_axis] / space_data.level_stride);
+                int voxel_index = (int)floor(current_voxel[driving_axis] / space_data.level_stride);
 
                 if (voxel_index != end_voxel1[driving_axis]) {
                     int remaining_voxels = ((int)current_voxel[driving_axis] % (int)space_data.level_stride);
 
                     if (difference_sign[driving_axis] > 0) {
-                        remaining_voxels = (space_data.level_stride - 1) - remaining_voxels;
+                        remaining_voxels = (int)(space_data.level_stride - 1) - remaining_voxels;
                     }
                     
                     driving_distance += remaining_voxels;

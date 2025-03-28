@@ -25,11 +25,11 @@ MainGui::MainGui(int camera_count) {
         Vector2{ 16, 16 }
     );
     this->gui_data->ihm_index = Indexer::FlatIndex4(
-        this->gui_data->camera_rotation_index, 
+        (float)this->gui_data->camera_rotation_index,
         this->gui_data->camera_position.x, 
         this->gui_data->camera_position.y,
         this->gui_data->camera_position.z,
-        this->ihm_generator.direction_count, 
+        (float)this->ihm_generator.direction_count, 
         this->ihm_generator.world_width_strided.x, 
         this->ihm_generator.world_width_strided.y
     );
@@ -223,7 +223,7 @@ void MainGui::DrawInspector() {
         }
         else if (this->gui_data->control_index == 2) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
-            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
+            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }
         else if (this->gui_data->control_index == 3) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
@@ -254,12 +254,12 @@ void MainGui::DrawInspector() {
                 direction_index--;
             }
 
-            camera_position[0] = Math::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
-            camera_position[1] = Math::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
-            camera_position[2] = Math::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
-            direction_index = Math::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
+            camera_position[0] = (float)Math::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
+            camera_position[1] = (float)Math::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
+            camera_position[2] = (float)Math::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
+            direction_index = (int)Math::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
 
-            ihm_index = Indexer::FlatIndex4(direction_index, camera_position[0], camera_position[1], camera_position[2], this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
+            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
         }
         else if (this->gui_data->control_index == 4) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;

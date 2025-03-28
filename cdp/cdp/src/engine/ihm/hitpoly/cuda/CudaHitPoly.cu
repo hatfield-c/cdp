@@ -15,8 +15,8 @@ void CudaHitPoly::GenerateTrainingData() {
     generator.Init(position_lower, position_steps, velocity_lower, velocity_steps);
 
     dim3 threads_per_block(32, 1, 1);
-    unsigned long long block_count = ceil((float)generator.state_count / (float)threads_per_block.x);
-    dim3 blocks_per_grid(block_count, 1, 1);
+    unsigned long long block_count = (unsigned long long)ceil((double)generator.state_count / (double)threads_per_block.x);
+    dim3 blocks_per_grid((unsigned int)block_count, 1, 1);
 
     CudaHitPoly::GenerateTrainingData_Kernel<<<blocks_per_grid, threads_per_block>>>(generator);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
@@ -67,25 +67,23 @@ void CudaHitPoly::GenerateTrainingData() {
         printf("\n\nWarning: File did not open when saving state data:\n    %s!\n", state_path.c_str());
         exit(1);
     }
-    int result = fwrite(state_cpu, sizeof(float), generator.float_count, out_file);
+    int result = (int)fwrite(state_cpu, sizeof(float), generator.float_count, out_file);
     fclose(out_file);
 
-    out_file;
     fopen_s(&out_file, value_path.c_str(), "wb+");
     if (out_file == NULL) {
         printf("\n\nWarning: File did not open when saving value data:\n    %s!\n", value_path.c_str());
         exit(1);
     }
-    result = fwrite(value_cpu, sizeof(float), generator.state_count, out_file);
+    result = (int)fwrite(value_cpu, sizeof(float), generator.state_count, out_file);
     fclose(out_file);
 
-    out_file;
     fopen_s(&out_file, positive_path.c_str(), "wb+");
     if (out_file == NULL) {
         printf("\n\nWarning: File did not open when saving positive data:\n    %s!\n", positive_path.c_str());
         exit(1);
     }
-    result = fwrite(state_positives, sizeof(float), positive_count * generator.dim, out_file);
+    result = (int)fwrite(state_positives, sizeof(float), positive_count * generator.dim, out_file);
     fclose(out_file);
 
     printf("Generation Complete:\n");

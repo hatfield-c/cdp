@@ -15,8 +15,8 @@ __global__ void CudaCamera::BuildCloud_Kernel(Camera camera)
 }
 
 void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
-    dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
-    int y_blocks = ceil(camera.phash_data_size.y / 2);
+    dim3 threads_per_block((unsigned int)camera.phash_data_size.x, 2, 1);
+    int y_blocks = (int)ceil(camera.phash_data_size.y / 2.0f);
     dim3 blocks_per_grid(1, y_blocks, 1);
     
     //cudaMemset(camera.height_texture, 255, camera.phash_pixel_count * 4 * sizeof(byte));
@@ -29,8 +29,8 @@ void CudaCamera::RenderCamera(Camera camera, SpaceData space_data) {
 }
 
 void CudaCamera::BuildCloud(Camera camera) {
-    dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
-    int y_blocks = ceil(camera.phash_data_size.y / 2);
+    dim3 threads_per_block((unsigned int)camera.phash_data_size.x, 2, 1);
+    int y_blocks = (int)ceil(camera.phash_data_size.y / 2.0f);
     dim3 blocks_per_grid(1, y_blocks, 1);
 
     CudaCamera::BuildCloud_Kernel<<<blocks_per_grid, threads_per_block>>>(camera);

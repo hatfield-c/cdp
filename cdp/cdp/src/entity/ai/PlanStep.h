@@ -25,7 +25,7 @@ struct PlanStep {
 				printf("\n\n[Warning] .phash file did not open when loading:\n    %s!\n", start_proximity_path);
 				exit(1);
 			}
-			int result = fread(this->start_proximity_hash, sizeof(float), proximity_size, in_file);
+			int result = (int)fread(this->start_proximity_hash, sizeof(float), (unsigned int)proximity_size, in_file);
 			fclose(in_file);
 		}
 
@@ -59,14 +59,14 @@ struct PlanStep {
 			float delta = depth1 - depth0;
 
 			if (abs(delta) > mass_threshold || (depth0 != 16 && depth1 == 16) || (depth0 == 16 && depth1 != 16) || i == 15) {
-				mass_end = i - 1;
+				mass_end = (float)i - 1.0f;
 
-				int mass_center = round((mass_end + mass_start) / 2);
+				int mass_center = (int)round((mass_end + mass_start) / 2);
 
 				if (center_depth < 16 && mass_center != 0) {
 					this->mass_centers[mass_center].x = mass_end - mass_start;
 					this->mass_centers[mass_center].y = center_depth;
-					this->mass_centers[mass_center].z = mass_center;
+					this->mass_centers[mass_center].z = (float)mass_center;
 
 					if (mass_center >= 6 && mass_center <= 9) {
 						this->mass_target = this->mass_centers[mass_center];
@@ -76,9 +76,9 @@ struct PlanStep {
 					//this->mass_centers[mass_center].Print();
 				}
 				
-				mass_start = i;
-				mass_end = 16;
-				center_depth = 16;
+				mass_start = (float)i;
+				mass_end = 16.0f;
+				center_depth = 16.0f;
 			}
 		}
 	}

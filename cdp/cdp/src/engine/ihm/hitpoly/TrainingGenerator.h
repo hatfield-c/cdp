@@ -21,7 +21,7 @@ struct TrainingGenerator {
 	Vector3 position_steps{};
 	Vector3 velocity_lower{};
 	Vector3 velocity_steps{};
-	int time_steps = (1 / Physics::DeltaTime()) * 2;
+	int time_steps = (int)(1 / Physics::DeltaTime()) * 2;
 
 	float* state_data;
 	float* value_data;
@@ -31,9 +31,9 @@ struct TrainingGenerator {
 		this->position_steps = position_steps;
 		this->velocity_lower = velocity_lower;
 		this->velocity_steps = velocity_steps;
-		this->position_count = position_steps.Mult();
-		this->velocity_count = velocity_steps.Mult();
-		this->state_count = position_steps.Mult() * velocity_steps.Mult();
+		this->position_count = (unsigned long long)position_steps.Mult();
+		this->velocity_count = (unsigned long long)velocity_steps.Mult();
+		this->state_count = (unsigned long long)(position_steps.Mult() * velocity_steps.Mult());
 		this->float_count = this->state_count * this->dim;
 
 		CudaError::CheckError((cudaError_enum)cudaMalloc(&this->state_data, this->float_count * sizeof(float)), __FILE__, __LINE__);
@@ -42,13 +42,13 @@ struct TrainingGenerator {
 	}
 
 	__device__ void GenerateData() {
-		unsigned long long state_index = Indexer::FlatIndex2(threadIdx.x, blockIdx.x, blockDim.x);
+		unsigned long long state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, (unsigned long long)blockIdx.x, (unsigned long long)blockDim.x);
 
 		// ordering: p0, p1, p2, v0, v1, v2
-		Vector4 unpack_data = Indexer::InverseFlatIndex4(state_index, this->position_steps.x, this->position_steps.y, this->position_steps.z);
+		Vector4 unpack_data = Indexer::InverseFlatIndex4(state_index, (unsigned long long)this->position_steps.x, (unsigned long long)this->position_steps.y, (unsigned long long)this->position_steps.z);
 		
 		Vector3 position_steps{ unpack_data.x, unpack_data.y, unpack_data.z };
-		Vector3 velocity_steps = Indexer::InverseFlatIndex3(unpack_data.w, this->velocity_steps.x, this->velocity_steps.y);
+		Vector3 velocity_steps = Indexer::InverseFlatIndex3((unsigned long long)unpack_data.w, (unsigned long long)this->velocity_steps.x, (unsigned long long)this->velocity_steps.y);
 
 		Vector3 position_start = this->position_lower + position_steps;
 		Vector3 velocity_start = this->velocity_lower + velocity_steps;

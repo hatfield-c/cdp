@@ -21,7 +21,7 @@ struct Camera {
     Vector2 phash_data_stride;
     Vector2 box_filter_stride{ 8, 6 };
     Vector2 chunk_size;
-    Vector2 fov{ 1.309, 1.082 };
+    Vector2 fov{ 1.309f, 1.082f };
     Vector3 target_offset{ -1, 1, 0 };
 
     float min_render_distance = 0.05f;
@@ -53,15 +53,15 @@ struct Camera {
 		this->depth_texture = (byte*)depth_texture;
         this->phash_texture = (byte*)phash_texture;
         this->height_texture = (byte*)phash_derotated_texture;
-        this->camera_pixel_count = this->camera_size.x * this->camera_size.y;
-        this->phash_pixel_count = this->phash_texture_size.x * this->phash_texture_size.y;
-        this->phash_data_count = this->phash_data_size.x * this->phash_data_size.y;
+        this->camera_pixel_count = (unsigned long long)(this->camera_size.x * this->camera_size.y);
+        this->phash_pixel_count = (unsigned long long)(this->phash_texture_size.x * this->phash_texture_size.y);
+        this->phash_data_count = (unsigned long long)(this->phash_data_size.x * this->phash_data_size.y);
         this->phash_data_stride = (this->camera_size / this->phash_data_size).Ceil();
         this->chunk_size = (this->camera_size / this->phash_data_size).Ceil();
 
-        int phash_memory_size = this->phash_data_count * sizeof(byte);
-        int cloud_memory_size = this->phash_data_count * sizeof(Vector3);
-        int depth_memroy_size = this->phash_data_count * sizeof(float);
+        int phash_memory_size = (int)this->phash_data_count * sizeof(byte);
+        int cloud_memory_size = (int)this->phash_data_count * sizeof(Vector3);
+        int depth_memroy_size = (int)this->phash_data_count * sizeof(float);
 
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->phash_data, phash_memory_size), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMalloc(&this->depth_phash, depth_memroy_size), __FILE__, __LINE__);
@@ -84,7 +84,7 @@ struct Camera {
 
     float* GetPhashAsFloat() {
         float* phash_cpu = new float[this->phash_data_count];
-        int phash_memory_size = this->phash_data_count * sizeof(float);
+        int phash_memory_size = (int)this->phash_data_count * sizeof(float);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMemcpy(phash_cpu, this->depth_phash, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -95,7 +95,7 @@ struct Camera {
 
     byte* GetPhashAsByte() {
         byte* phash_cpu = new byte[this->phash_data_count];
-        int phash_memory_size = this->phash_data_count * sizeof(byte);
+        int phash_memory_size = (int)this->phash_data_count * sizeof(byte);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMemcpy(phash_cpu, this->phash_data, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -106,7 +106,7 @@ struct Camera {
 
     Vector3* GetCloud() {
         Vector3* render_cloud = new Vector3[this->phash_data_count];
-        int phash_memory_size = this->phash_data_count * sizeof(Vector3);
+        int phash_memory_size = (int)this->phash_data_count * sizeof(Vector3);
 
         CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
         CudaError::CheckError((cudaError_enum)cudaMemcpy(render_cloud, this->render_cloud, phash_memory_size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -117,8 +117,8 @@ struct Camera {
 
     __device__ void Render(SpaceData space_data) {
         Vector2 phash_position{ 
-            threadIdx.x, 
-            Indexer::FlatIndex2(threadIdx.y, blockIdx.y, blockDim.y)
+            (float)threadIdx.x, 
+            (float)Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y)
         };
         Vector2 pixel_position;
 
@@ -126,7 +126,7 @@ struct Camera {
             return;
         }
 
-        float min_distance = 9999999999;
+        float min_distance = 9999999999.0f;
 
         Vector4 rotation = this->transform.rotation;
         if (this->is_rotation_noise) {
@@ -138,15 +138,15 @@ struct Camera {
             //return;
         //}
 
-        for (int i = 0; i < this->chunk_size.x; i += this->box_filter_stride.x) {
-            pixel_position.x = Indexer::FlatIndex2(i, phash_position.x, this->chunk_size.x);
+        for (int i = 0; i < (int)this->chunk_size.x; i += (int)this->box_filter_stride.x) {
+            pixel_position.x = (float)Indexer::FlatIndex2((float)i, phash_position.x, this->chunk_size.x);
 
             if (pixel_position.x >= this->camera_size.x) {
                 continue;
             }
 
-            for (int j = 0; j < this->chunk_size.y; j+= this->box_filter_stride.y) {
-                pixel_position.y = Indexer::FlatIndex2(j, phash_position.y, this->chunk_size.y);
+            for (int j = 0; j < (int)this->chunk_size.y; j+= (int)this->box_filter_stride.y) {
+                pixel_position.y = (float)Indexer::FlatIndex2((float)j, phash_position.y, this->chunk_size.y);
 
                 if (pixel_position.y >= this->camera_size.y) {
                     continue;
@@ -166,7 +166,7 @@ struct Camera {
                 }
 
                 byte depth_pixel_val = this->DepthToInversePixel(depth);
-                Vector4 depth_color{ depth_pixel_val, depth_pixel_val, depth_pixel_val, 255 };
+                Vector4 depth_color{ (float)depth_pixel_val, (float)depth_pixel_val, (float)depth_pixel_val, 255.0f };
 
                 for (int w = 0; w < this->box_filter_stride.x; w++) {
                     for (int h = 0; h < this->box_filter_stride.x; h++) {
@@ -182,7 +182,7 @@ struct Camera {
         float depth_meters = min_distance / space_data.indices_per_meter;
 
         byte phash_pixel_value = this->DepthToPixel(min_distance);
-        Vector4 phash_color{ phash_pixel_value, phash_pixel_value, phash_pixel_value, 255 };
+        Vector4 phash_color{ (float)phash_pixel_value, (float)phash_pixel_value, (float)phash_pixel_value, 255.0f };
 
         Camera::WriteFloat(this->depth_phash, phash_position, this->phash_data_size, depth_meters);
         Camera::WriteByte(this->phash_data, phash_position, this->phash_data_size, phash_pixel_value);
@@ -209,7 +209,7 @@ struct Camera {
         }
 
         float pixel_value = ((cloud_position.y + 4) / 15) * 255;
-        pixel_value = Math::Clip(pixel_value, 0.0, 255.0);
+        pixel_value = (float)Math::Clip(pixel_value, 0.0f, 255.0f);
 
         Vector2 texture_position0{};
         Vector2 texture_position1{};
@@ -255,23 +255,23 @@ struct Camera {
     }
 
     __host__ __device__ byte DepthToPixel(float depth) {
-        float depth_pixel_val = Math::Clip(depth, 0.0, this->max_render_distance);
+        float depth_pixel_val = (float)Math::Clip(depth, 0.0, this->max_render_distance);
         depth_pixel_val = depth_pixel_val / this->max_render_distance;
         depth_pixel_val = 255 * depth_pixel_val;
-        depth_pixel_val = Math::Clip(depth_pixel_val, 0.0, 255.0);
+        depth_pixel_val = (float)Math::Clip(depth_pixel_val, 0.0, 255.0);
 
-        byte pixel_val = depth_pixel_val;
+        byte pixel_val = (byte)depth_pixel_val;
 
         return pixel_val;
     }
 
     __host__ __device__ byte DepthToInversePixel(float depth) {
-        float depth_pixel_val = Math::Clip(depth, 0.0, this->max_render_distance);
+        float depth_pixel_val = (float)Math::Clip(depth, 0.0, this->max_render_distance);
         depth_pixel_val = depth_pixel_val / this->max_render_distance;
         depth_pixel_val = 255 * (1 - depth_pixel_val);
-        depth_pixel_val = Math::Clip(depth_pixel_val, 0.0, 255.0);
+        depth_pixel_val = (float)Math::Clip(depth_pixel_val, 0.0, 255.0);
 
-        byte pixel_val = depth_pixel_val;
+        byte pixel_val = (byte)depth_pixel_val;
 
         return pixel_val;
     }
@@ -280,23 +280,23 @@ struct Camera {
         Vector4 rotation = this->transform.rotation;
 
         long noisy_bits = this->NextSample(this->seed);
-        float noise_x = (float)noisy_bits / 32768.0;
+        float noise_x = (float)noisy_bits / 32768.0f;
         noise_x = (2 * noise_x) - 1;
 
         noisy_bits = this->NextSample(noisy_bits);
-        float noise_y = (float)noisy_bits / 32768.0;
+        float noise_y = (float)noisy_bits / 32768.0f;
         noise_y = (2 * noise_y) - 1;
 
         noisy_bits = this->NextSample(noisy_bits);
-        float noise_z = (float)noisy_bits / 32768.0;
+        float noise_z = (float)noisy_bits / 32768.0f;
         noise_z = (2 * noise_z) - 1;
 
         noisy_bits = this->NextSample(noisy_bits);
-        float noise_w = (float)noisy_bits / 32768.0;
+        float noise_w = (float)noisy_bits / 32768.0f;
         noise_w = (2 * Math::Pi() * noise_w) - Math::Pi();
 
         Vector3 axis_noise{ noise_x, noise_y, noise_z };
-        noise_w = noise_w * 0.05;
+        noise_w = noise_w * 0.05f;
         
         this->seed = noisy_bits;
 
@@ -312,10 +312,10 @@ struct Camera {
         unsigned long long gpu_index_b = Indexer::FlatIndex3(2, pixel_position.x, pixel_position.y, 4, texture_size.x);
         unsigned long long gpu_index_a = Indexer::FlatIndex3(3, pixel_position.x, pixel_position.y, 4, texture_size.x);
 
-        texture[gpu_index_r] = rgba.x;
-        texture[gpu_index_g] = rgba.y;
-        texture[gpu_index_b] = rgba.z;
-        texture[gpu_index_a] = rgba.w;
+        texture[gpu_index_r] = (byte)rgba.x;
+        texture[gpu_index_g] = (byte)rgba.y;
+        texture[gpu_index_b] = (byte)rgba.z;
+        texture[gpu_index_a] = (byte)rgba.w;
     }
 
     static __device__ byte ReadByte(byte* data_array, Vector2 pixel_position, Vector2 texture_size) {
