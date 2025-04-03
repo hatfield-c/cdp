@@ -29,6 +29,8 @@
 #include "ihm/cuda/CudaIhm.cuh"
 #include "ihm/IhmEstimate.h"
 
+#include "polyfield/cuda/CudaPolyField.cuh"
+
 class CpuEngine {
 	public:
 		bool is_simulating = false;
@@ -54,6 +56,7 @@ class CpuEngine {
 		void DrawDronePosition();
 		void SaveProximityHash(GuiData* gui_data);
 		void GenerateHitPolyData(GuiData* gui_data);
+		void GeneratePolyFieldData(GuiData* gui_data);
 		void Playground(GuiData* gui_data);
 		void Cleanup();
 };

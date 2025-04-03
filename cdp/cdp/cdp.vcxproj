@@ -196,7 +196,10 @@
     <ClInclude Include="src\engine\ImageBuilder.h" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Math.h" />
+    <ClInclude Include="src\engine\polyfield\cuda\CudaPolyField.cuh" />
+    <ClInclude Include="src\engine\polyfield\PolyField.h" />
     <ClInclude Include="src\engine\Physics.h" />
+    <ClInclude Include="src\engine\polyfield\PolyFieldGenerator.h" />
     <ClInclude Include="src\engine\Quaternion.h" />
     <ClInclude Include="src\engine\RaycastHitData.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
@@ -228,6 +231,7 @@
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
     <CudaCompile Include="src\engine\ihm\hitpoly\cuda\CudaHitPoly.cu" />
+    <CudaCompile Include="src\engine\polyfield\cuda\CudaPolyField.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

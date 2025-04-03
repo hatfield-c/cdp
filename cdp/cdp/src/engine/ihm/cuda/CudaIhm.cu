@@ -12,7 +12,7 @@ __global__ void CudaIhm::UpdateChamferDistances_Kernel(IhmCortex ihm_cortex, Ihm
     ihm_cortex.UpdateChamferDistances(ihm_generator);
 }
 
-__global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
+__global__ void CudaIhm::GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm) {
     ihm_generator.Generate(space_data, &camera, ihm);
 }
 
@@ -54,11 +54,11 @@ void CudaIhm::UpdateChamferDistances(IhmCortex ihm_cortex, IhmGenerator ihm_gene
     //printf("        Done!\n");
 }
 
-void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm) {
+void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm) {
     dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
 
-    unsigned long long x_blocks = ihm_generator.state_count;
-    unsigned long long y_blocks = ceil(camera.phash_data_size.y / 2.0);
+    unsigned long long x_blocks = 150000;// ihm_generator.state_count;
+    unsigned long long y_blocks = ceil(camera.phash_data_size.y / 2.0f);
 
     dim3 blocks_per_grid(x_blocks, y_blocks, 1);
 
@@ -69,6 +69,7 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
     
     CudaError::CheckError((cudaError_enum)cudaPeekAtLastError(), __FILE__, __LINE__);
     CudaError::CheckError((cudaError_enum)cudaDeviceSynchronize(), __FILE__, __LINE__);
+
     printf("\n");
 }
 

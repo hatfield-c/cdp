@@ -18,6 +18,7 @@ struct IhmGenerator {
 	unsigned long long phash_count;
 	unsigned long long bit_count;
 
+	Vector2 pitch_bounds;
 	Vector3 world_origin;
 	Vector3 world_width;
 	Vector3 world_size;
@@ -29,8 +30,9 @@ struct IhmGenerator {
 	Vector3* directions_cpu;
 	Vector3* directions;
 
-	void Init(int direction_density, Vector3 world_origin, Vector3 world_width, Vector3 world_size, Vector3 world_stride, Vector2 phash_size) {
+	void Init(int direction_density, Vector2 pitch_bounds, Vector3 world_origin, Vector3 world_width, Vector3 world_size, Vector3 world_stride, Vector2 phash_size) {
 		this->direction_density = direction_density;
+		this->pitch_bounds = pitch_bounds;
 		this->PreBuildDirections(direction_density);
 
 		this->world_origin = world_origin;
@@ -61,9 +63,11 @@ struct IhmGenerator {
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->directions, this->directions_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}
 
-	__device__ void Generate(SpaceData space_data, Camera* camera, byte* ihm) {
+	__device__ void Generate(SpaceData space_data, Camera* camera, float* ihm) {
+		unsigned long long block_index = Indexer::FlatIndex2((unsigned long long)blockIdx.x, (unsigned long long)blockIdx.y, (unsigned long long)gridDim.x);
+		unsigned long long block_max = (unsigned long long)(gridDim.x * gridDim.y);
 
-		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 15 && threadIdx.y == 1) {
+		if (block_index % ((int)(block_max / 20)) == 0 && threadIdx.x == 15 && threadIdx.y == 1) {
 			printf("*");
 		}
 
@@ -114,6 +118,10 @@ struct IhmGenerator {
 				avg_count++;
 			}
 		}
+		
+		if (blockIdx.x > 150000 - 5) {
+
+		}
 
 		if (avg_count < 1) {
 			avg_distance = camera->max_render_distance;
@@ -122,10 +130,8 @@ struct IhmGenerator {
 
 		avg_distance = avg_distance / avg_count;
 
-		byte phash_pixel_value = camera->DepthToPixel(avg_distance);
-
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
-		ihm[data_index] = phash_pixel_value;
+		ihm[data_index] = avg_distance;
 	}
 
 	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* ihm, Vector3* ihm_clouds) {
@@ -210,6 +216,10 @@ struct IhmGenerator {
 		int vertex_index = 0;
 		Vector3* vertices = new Vector3[vertex_count];
 
+		float y_lower = sin(this->pitch_bounds.x);
+		float y_upper = sin(this->pitch_bounds.y);
+		float y_diff = abs(y_upper - y_lower);
+
 		for (int x = 0; x < segment_count; x++) {
 			for (int y = 0; y < segment_count; y++) {
 				for (int z = 0; z < segment_count; z++) {
@@ -240,6 +250,11 @@ struct IhmGenerator {
 					}
 
 					if (is_added) {
+						float y_val = (vertex.y + 1) / 2.0f;
+						y_val = y_val * y_diff;
+						y_val = y_val + y_lower;
+						vertex.y = y_val;
+
 						vertex = Transform::Unit3(vertex);
 						vertices[vertex_index] = vertex;
 						vertex_index++;

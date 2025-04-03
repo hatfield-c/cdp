@@ -6,6 +6,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 
 	this->ihm_generator.Init(
 		3,
+		Vector2{ -Math::Pi() / 4.0f, 0.0f },
 		Vector::ZERO3(),
 		this->world_space->space_data.world_size0,
 		this->world_space->space_data.world_size0,
@@ -35,11 +36,11 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	float rot_angle = -Math::Pi() / 4;
 	rot_angle = -(45.0f / 180.0f) * Math::Pi();
 	Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, rot_angle);
-	Vector4 quat = x_rot;// Quaternion::QuaternionFromEulerParams(Vector3{ 0, 1, 0 }, 3 * Math::Pi() / 4);
+	Vector4 quat = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 },  -Math::Pi() / 4);//x_rot;
 	//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
 	this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);
-	//this->drone_alpha.rigidbody.rotation = quat;
+	this->drone_alpha.rigidbody.rotation = quat;
 	//this->drone_alpha.rigidbody.velocity = direction;
 	//this->drone_alpha.rigidbody.velocity.z = -1;
 	//this->drone_alpha.rigidbody.angular_velocity.y = -0.2;
@@ -127,7 +128,7 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	}
 
 	this->DrawDronePosition();
-
+	
 	/*printf(
 		"[%lld] Pos:(%.2f, %.2f, %.2f) Rot:(%.2f, %.2f, %.2f, %.2f) Vel:(%.2f, %.2f, %.2f) AnV:(%.2f, %.2f, %.2f)\n",
 		gui_data->ihm_index,
@@ -200,6 +201,55 @@ void CpuEngine::DrawDronePosition() {
 
 void CpuEngine::GenerateHitPolyData(GuiData* gui_data) {
 	CudaHitPoly::GenerateTrainingData();
+}
+
+void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
+	IhmGenerator slice_generator{};
+	slice_generator.Init(
+		3,
+		Vector2{ -Math::Pi() / 4.0f, 0.0f },
+		Vector3{ 0, 50, 0 },
+		Vector3{ 1000, 30, 1000 },
+		this->world_space->space_data.world_size0,
+		Vector3{ 10, 10, 10 },
+		Vector2{ 16, 16 }
+	);
+
+	float* ihm;
+	cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
+	CudaIhm::GenerateIhm(this->world_space->space_data, *this->camera_list[0], slice_generator, ihm);
+
+	float* ihm_cpu = new float[slice_generator.bit_count];
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	printf("    Saving IHM...\n");
+	for (unsigned long long i = 0; i < slice_generator.state_count; i++) {
+		float* depth_frame = new float[slice_generator.phash_count];
+		byte* depth_img = new byte[slice_generator.phash_count];
+
+		i = 105367;
+
+		for (unsigned long long j = 0; j < 16; j++) {
+			for (unsigned long long k = 0; k < 16; k++) {
+				unsigned long long bit_index = Indexer::FlatIndex3(k, j, i, 16, 16);
+				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
+				
+				float depth_value = ihm_cpu[bit_index];
+				float depth_float = depth_value / this->world_space->space_data.indices_per_meter;
+				depth_float = 20.0f - depth_float;
+				depth_float = depth_float / 20.0f;
+				depth_float = 255.0f * depth_float;
+				byte pixel_value = (byte)depth_float;
+				
+				depth_frame[phash_index] = depth_value;
+				depth_img[phash_index] = pixel_value;
+			}
+		}
+		printf("        Saving image at index %lld\n", i);
+		stbi_write_jpg("data/results/test.jpg", 16, 16, 1, depth_img, 100);
+		break;
+	}
+	printf("        Done!");
 }
 
 void CpuEngine::Playground(GuiData* gui_data) {

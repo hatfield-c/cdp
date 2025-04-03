@@ -18,6 +18,7 @@ MainGui::MainGui(int camera_count) {
 
     this->ihm_generator.Init(
         3,
+        Vector2{ -Math::Pi() / 4.0f, 0},
         Vector::ZERO3(),
         Vector3{ 1000, 100, 1000 },
         Vector3{ 1000, 100, 1000 },
@@ -373,8 +374,9 @@ void MainGui::DrawInspector() {
         this->gui_data->is_stochastic_subtraction = ImGui::Button("Stochastic Subtraction");
     }
 
-    if (ImGui::CollapsingHeader("HitPoly")) {
-        this->gui_data->is_generate_hitpoly_data = ImGui::Button("Generate Data");
+    if (ImGui::CollapsingHeader("Training Data")) {
+        this->gui_data->is_generate_hitpoly_data = ImGui::Button("Hitpoly Data");
+        this->gui_data->is_generate_polyfield_data = ImGui::Button("Polyfield Data");
     }
 
     if (ImGui::CollapsingHeader("Testing")) {
