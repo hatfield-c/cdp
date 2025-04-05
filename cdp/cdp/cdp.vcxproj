@@ -75,18 +75,29 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NOMINMAX;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\lib\libtorch_debug\include\torch\csrc\api\include;C:\dev\lib\libtorch_debug\include;C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;C:\dev\lib\libtorch_debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;c10.lib;c10_cuda.lib;torch.lib;torch_cpu.lib;torch_cuda.lib;caffe2_nvrtc.lib;kineto.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>setlocal
+xcopy "$torch_debug_dir$\libtorch\lib" "$destinationdirectory$\x64\Debug" /D /Y
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp;amp; call :cmErrorLevel %errorlevel% &amp;amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -94,9 +105,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NOMINMAX;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\lib\libtorch_debug\include\torch\csrc\api\include;C:\dev\lib\libtorch_debug\include;C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
@@ -105,26 +116,48 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;C:\dev\lib\libtorch_debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;c10.lib;c10_cuda.lib;torch.lib;torch_cpu.lib;torch_cuda.lib;caffe2_nvrtc.lib;kineto.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>setlocal
+xcopy "$torch_debug_dir$\libtorch\lib" "$destinationdirectory$\x64\Debug" /D /Y
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp;amp; call :cmErrorLevel %errorlevel% &amp;amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NOMINMAX;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\lib\libtorch_debug\include\torch\csrc\api\include;C:\dev\lib\libtorch_debug\include;C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;C:\dev\lib\libtorch_debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;c10.lib;c10_cuda.lib;torch.lib;torch_cpu.lib;torch_cuda.lib;caffe2_nvrtc.lib;kineto.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>setlocal
+xcopy "$torch_debug_dir$\libtorch\lib" "$destinationdirectory$\x64\Debug" /D /Y
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp;amp; call :cmErrorLevel %errorlevel% &amp;amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -132,9 +165,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NOMINMAX;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\lib\libtorch_debug\include\torch\csrc\api\include;C:\dev\lib\libtorch_debug\include;C:\dev\projects\cdp\cdp\cdp\include\happly;C:\dev\projects\cdp\cdp\cdp\include\stb;C:\dev\projects\cdp\cdp\cdp\include\imgui;C:\dev\projects\cdp\cdp\cdp\include\imgui_filebrowser;C:\dev\lib\glfw-3.4.bin.WIN64\include;C:\dev\lib\VulkanSDK\1.3.290.0\Include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
@@ -143,9 +176,20 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\dev\lib\glfw-3.4.bin.WIN64\lib-vc2022;C:\dev\lib\VulkanSDK\1.3.290.0\Lib;C:\dev\lib\libtorch_debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;cuda.lib;cudart.lib;c10.lib;c10_cuda.lib;torch.lib;torch_cpu.lib;torch_cuda.lib;caffe2_nvrtc.lib;kineto.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>setlocal
+xcopy "$torch_debug_dir$\libtorch\lib" "$destinationdirectory$\x64\Debug" /D /Y
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp;amp; call :cmErrorLevel %errorlevel% &amp;amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="include\imgui\imgui.cpp" />
@@ -196,10 +240,7 @@
     <ClInclude Include="src\engine\ImageBuilder.h" />
     <ClInclude Include="src\engine\Indexer.h" />
     <ClInclude Include="src\engine\Math.h" />
-    <ClInclude Include="src\engine\polyfield\cuda\CudaPolyField.cuh" />
-    <ClInclude Include="src\engine\polyfield\PolyField.h" />
     <ClInclude Include="src\engine\Physics.h" />
-    <ClInclude Include="src\engine\polyfield\PolyFieldGenerator.h" />
     <ClInclude Include="src\engine\Quaternion.h" />
     <ClInclude Include="src\engine\RaycastHitData.h" />
     <ClInclude Include="src\engine\RigidBody.h" />
@@ -209,6 +250,7 @@
     <ClInclude Include="src\engine\WorldSpace.h" />
     <ClInclude Include="src\entity\ai\Pid.h" />
     <ClInclude Include="src\entity\ai\PlanStep.h" />
+    <ClInclude Include="src\entity\ai\PolyField.h" />
     <ClInclude Include="src\entity\ai\Wallrider.h" />
     <ClInclude Include="src\entity\Camera.h" />
     <ClInclude Include="src\entity\DroneAlpha.h" />
@@ -231,7 +273,6 @@
     <CudaCompile Include="src\engine\cuda\CudaCamera.cu" />
     <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
     <CudaCompile Include="src\engine\ihm\hitpoly\cuda\CudaHitPoly.cu" />
-    <CudaCompile Include="src\engine\polyfield\cuda\CudaPolyField.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

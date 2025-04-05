@@ -219,11 +219,7 @@
     <ClInclude Include="src\engine\ihm\hitpoly\NeuralGrid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine\polyfield\PolyField.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\engine\polyfield\cuda\CudaPolyField.cuh" />
-    <ClInclude Include="src\engine\polyfield\PolyFieldGenerator.h">
+    <ClInclude Include="src\entity\ai\PolyField.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -232,6 +228,5 @@
     <CudaCompile Include="src\engine\ihm\cuda\CudaIhm.cu" />
     <CudaCompile Include="src\engine\cuda\CudaWorld.cu" />
     <CudaCompile Include="src\engine\ihm\hitpoly\cuda\CudaHitPoly.cu" />
-    <CudaCompile Include="src\engine\polyfield\cuda\CudaPolyField.cu" />
   </ItemGroup>
 </Project>

@@ -57,7 +57,7 @@ void CudaIhm::UpdateChamferDistances(IhmCortex ihm_cortex, IhmGenerator ihm_gene
 void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm) {
     dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
 
-    unsigned long long x_blocks = 150000;// ihm_generator.state_count;
+    unsigned long long x_blocks = ihm_generator.state_count;
     unsigned long long y_blocks = ceil(camera.phash_data_size.y / 2.0f);
 
     dim3 blocks_per_grid(x_blocks, y_blocks, 1);

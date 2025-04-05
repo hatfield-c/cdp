@@ -29,8 +29,6 @@
 #include "ihm/cuda/CudaIhm.cuh"
 #include "ihm/IhmEstimate.h"
 
-#include "polyfield/cuda/CudaPolyField.cuh"
-
 class CpuEngine {
 	public:
 		bool is_simulating = false;

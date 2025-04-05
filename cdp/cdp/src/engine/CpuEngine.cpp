@@ -223,15 +223,39 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM...\n");
-	for (unsigned long long i = 0; i < slice_generator.state_count; i++) {
+	std::string save_path = "data/polyfield/ihm.float";
+
+	FILE* out_file;
+	fopen_s(&out_file, save_path.c_str(), "wb+");
+	if (out_file == NULL) {
+		printf("\n\nWarning: File did not open when saving depth frame:\n    %s!\n", save_path.c_str());
+		exit(1);
+	}
+	int result = (int)fwrite(ihm_cpu, sizeof(float), slice_generator.bit_count, out_file);
+	fclose(out_file);
+
+	for (int i = 0; i < 157; i++) {
+		unsigned long long index = i * (int)(slice_generator.state_count / 157);
+		IhmState ihm_state = slice_generator.GetIhmState(index, false);
+
+		std::string img_path = "data/polyfield/" 
+			+ std::to_string(index) 
+			+ "-"
+			+ std::to_string((int)ihm_state.position.x) + "_"
+			+ std::to_string((int)ihm_state.position.y) + "_"
+			+ std::to_string((int)ihm_state.position.z)
+			+ ""
+			+ "-"
+			+ std::to_string(ihm_state.direction_index)
+			+ ".jpg"
+		;
+
 		float* depth_frame = new float[slice_generator.phash_count];
 		byte* depth_img = new byte[slice_generator.phash_count];
 
-		i = 105367;
-
 		for (unsigned long long j = 0; j < 16; j++) {
 			for (unsigned long long k = 0; k < 16; k++) {
-				unsigned long long bit_index = Indexer::FlatIndex3(k, j, i, 16, 16);
+				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
 				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
 				
 				float depth_value = ihm_cpu[bit_index];
@@ -245,9 +269,9 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 				depth_img[phash_index] = pixel_value;
 			}
 		}
-		printf("        Saving image at index %lld\n", i);
-		stbi_write_jpg("data/results/test.jpg", 16, 16, 1, depth_img, 100);
-		break;
+
+		printf("        Saving image at index: %lld\n", index);
+		stbi_write_jpg(img_path.c_str(), 16, 16, 1, depth_img, 100);
 	}
 	printf("        Done!");
 }

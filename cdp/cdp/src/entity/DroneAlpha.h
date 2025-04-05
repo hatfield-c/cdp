@@ -2,10 +2,12 @@
 
 #include "../engine/RigidBody.h"
 #include "ai/Wallrider.h"
+#include "ai/PolyField.h"
 
 struct DroneAlpha {
 	Rigidbody rigidbody{};
 	Wallrider wallrider{};
+	PolyField poly_field{};
 
 	float forward_max = 1;
 	float climb_max = 1;
@@ -20,6 +22,7 @@ struct DroneAlpha {
 	void Init() {
 		this->rigidbody.Init();
 		this->wallrider.Init();
+		this->poly_field.Init();
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
