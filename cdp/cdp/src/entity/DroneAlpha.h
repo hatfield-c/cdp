@@ -22,11 +22,12 @@ struct DroneAlpha {
 	void Init() {
 		this->rigidbody.Init();
 		this->wallrider.Init();
-		this->poly_field.Init();
+		this->poly_field.Init(256, 256, 256, 2);
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->wallrider.Update(depth_phash, camera_cloud, this->rigidbody.velocity);
+		//this->poly_field.Update(depth_phash);
 	}
 
 	void Act() {
