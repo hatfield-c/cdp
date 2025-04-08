@@ -219,7 +219,14 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 	cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
 	CudaIhm::GenerateIhm(this->world_space->space_data, *this->camera_list[0], slice_generator, ihm);
 
+	float* shm;
+	cudaMalloc(&shm, slice_generator.state_count * 10 * 10 * sizeof(float));
+	CudaIhm::GenerateShm(this->world_space->space_data, slice_generator, ihm, shm);
+
 	float* ihm_cpu = new float[slice_generator.bit_count];
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	float* shm_cpu = new float[slice_generator.bit_count];
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM...\n");
@@ -238,7 +245,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 		unsigned long long index = i * (int)(slice_generator.state_count / 157);
 		IhmState ihm_state = slice_generator.GetIhmState(index, false);
 
-		std::string img_path = "data/polyfield/" 
+		std::string img_path = "data/polyfield/training/" 
 			+ std::to_string(index) 
 			+ "-"
 			+ std::to_string((int)ihm_state.position.x) + "_"
@@ -270,8 +277,27 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 			}
 		}
 
+		byte* shm_img = new byte[10 * 10];
+
+		for (unsigned long long j = 0; j < 10; j++) {
+			for (unsigned long long k = 0; k < 10; k++) {
+				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 10, 10);
+				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 10);
+
+				float s_value = ihm_cpu[bit_index];
+				
+				s_value = 10.0f - s_value;
+				s_value = s_value / 10.0f;
+				s_value = 255.0f * s_value;
+				byte pixel_value = (byte)s_value;
+
+				shm_img[phash_index] = pixel_value;
+			}
+		}
+
 		printf("        Saving image at index: %lld\n", index);
 		stbi_write_jpg(img_path.c_str(), 16, 16, 1, depth_img, 100);
+		stbi_write_jpg((img_path + "_shm.jpg").c_str(), 10, 10, 1, shm_img, 100);
 	}
 	printf("        Done!");
 }

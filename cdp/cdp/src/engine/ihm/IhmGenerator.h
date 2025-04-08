@@ -134,6 +134,59 @@ struct IhmGenerator {
 		ihm[data_index] = avg_distance;
 	}
 
+	__device__ void GenerateShm(SpaceData space_data, float* ihm, float* shm) {
+		unsigned long long shm_state_index = blockIdx.x;
+		unsigned long long pixel_index = Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y);
+		Vector2 shm_pixel = Indexer::InverseFlatIndex2((unsigned long long)pixel_index, 10);
+
+		if (pixel_index > 99) {
+			return;
+		}
+
+		if (shm_state_index % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 3 && threadIdx.y == 24) {
+			printf("*");
+		}
+
+		float lowest_norm = 999999999999;
+		for (unsigned long long i = 0; i < 10; i++) {
+			for (unsigned long long j = 0; j < 3; j++) {
+				for (unsigned long long k = 0; k < 10; k++) {
+					Vector3 ihm_voxel{ i + shm_pixel.x, j, k + shm_pixel.y };
+
+					for (unsigned long long r = 0; r < this->direction_count; r++) {
+						unsigned long long ihm_state_index = Indexer::FlatIndex4((float)r, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+
+						float frobenius = 0;
+						for (unsigned long long y = 0; y < 16; y++) {
+							for (unsigned long long x = 0; x < 16; x++) {
+								unsigned long long ihm_data_index = Indexer::FlatIndex3(x, y, ihm_state_index, 16, 16);
+								unsigned long long shm_source_index = Indexer::FlatIndex3(x, y, shm_state_index, 16, 16);
+
+								float difference = ihm[ihm_data_index] - ihm[shm_source_index];
+								difference = difference * difference;
+
+								frobenius += difference;
+							}
+						}
+
+						frobenius = sqrt(frobenius);
+
+						if (frobenius < lowest_norm) {
+							lowest_norm = frobenius;
+						}
+					}
+				}
+			}
+		}
+
+		if (lowest_norm > 10.0f) {
+			lowest_norm = 10.0f;
+		}
+
+		unsigned long long shm_data_index = Indexer::FlatIndex3(shm_pixel.x, shm_pixel.y, (float)shm_state_index, 10, 10);
+		shm[shm_data_index] = lowest_norm;
+	}
+
 	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* ihm, Vector3* ihm_clouds) {
 		
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 15 && threadIdx.y == 1) {

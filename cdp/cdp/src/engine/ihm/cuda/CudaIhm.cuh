@@ -12,12 +12,8 @@
 
 namespace CudaIhm {
 	__device__ void SyncThreads();
-	__global__ void UpdateNearestDistances_Kernel(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor);
-	__global__ void UpdateChamferDistances_Kernel(IhmCortex ihm_cortex, IhmGenerator ihm_generator);
 	__global__ void GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm);
-	__global__ void ExtractRenderClouds_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm, Vector3* ihm_clouds);
-	void UpdateNearestDistances(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor);
-	void UpdateChamferDistances(IhmCortex ihm_cortex, IhmGenerator ihm_generator, Vector3* camera_cloud, Vector3 anchor);
-	void ExtractRenderClouds(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, byte* ihm, Vector3* ihm_clouds);
+	__global__ void GenerateShm_Kernel(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm);
 	void GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm);
+	void GenerateShm(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm);
 }

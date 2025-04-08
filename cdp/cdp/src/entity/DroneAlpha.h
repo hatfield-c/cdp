@@ -28,6 +28,36 @@ struct DroneAlpha {
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->wallrider.Update(depth_phash, camera_cloud, this->rigidbody.velocity);
 		//this->poly_field.Update(depth_phash);
+
+		float* field = this->poly_field.field;
+
+		Vector2 rp{ this->rigidbody.position.x, this->rigidbody.position.z };
+
+		// todo: test specific images in python
+		//			then test those locations in c++ and see how data
+		//			flows through network in each
+
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				unsigned long long index = Indexer::FlatIndex2((unsigned long long)j, i, 16);
+
+				float result = field[index];
+
+				Vector2 pp{ j * 6.25, i * 6.25 };
+				float dist = Transform::Norm2(pp - rp);
+
+				if (dist < 2 * 6.25f) {
+					//printf("%.2f (%.2f %.2f) (%.2f %.2f) - <%.2f>\n", dist, rp.x, rp.y, pp.x, pp.y, result);
+				}
+
+				//(position * 6.25).Floor().Print();
+				//position.Print("", ": ");
+				//printf("[%d,%d - %.2f]", j, i, result);
+			}
+			//printf("\n");
+		}
+		//printf("\n");
+		//std::cin.ignore();
 	}
 
 	void Act() {
