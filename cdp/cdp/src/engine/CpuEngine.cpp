@@ -267,7 +267,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
 				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
 				
-				float depth_value = ihm_cpu[bit_index] / this->world_space->space_data.indices_per_meter;;
+				float depth_value = ihm_cpu[bit_index];
 				float depth_float = depth_value;
 				depth_float = 20.0f - depth_float;
 				depth_float = depth_float / 20.0f;

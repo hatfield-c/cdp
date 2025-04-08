@@ -131,7 +131,7 @@ struct IhmGenerator {
 		avg_distance = avg_distance / avg_count;
 
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
-		float depth = avg_distance / (space_data.indices_per_meter);
+		float depth = avg_distance / space_data.indices_per_meter;
 
 		if (depth > 20.0f) {
 			depth = 20.0f;
