@@ -13,7 +13,7 @@
 namespace CudaIhm {
 	__device__ void SyncThreads();
 	__global__ void GenerateIhm_Kernel(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm);
-	__global__ void GenerateShm_Kernel(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm);
+	__global__ void GenerateShm_Kernel(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm, float* buffer);
 	void GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_generator, float* ihm);
 	void GenerateShm(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm);
 }

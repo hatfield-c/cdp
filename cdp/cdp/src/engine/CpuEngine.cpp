@@ -204,6 +204,8 @@ void CpuEngine::GenerateHitPolyData(GuiData* gui_data) {
 }
 
 void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
+	std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
+
 	IhmGenerator slice_generator{};
 	slice_generator.Init(
 		3,
@@ -265,8 +267,8 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
 				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
 				
-				float depth_value = ihm_cpu[bit_index];
-				float depth_float = depth_value / this->world_space->space_data.indices_per_meter;
+				float depth_value = ihm_cpu[bit_index] / this->world_space->space_data.indices_per_meter;;
+				float depth_float = depth_value;
 				depth_float = 20.0f - depth_float;
 				depth_float = depth_float / 20.0f;
 				depth_float = 255.0f * depth_float;
@@ -300,6 +302,11 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 		stbi_write_jpg((img_path + "_shm.jpg").c_str(), 10, 10, 1, shm_img, 100);
 	}
 	printf("        Done!");
+
+	std::chrono::steady_clock::duration frame_time_passed = std::chrono::steady_clock::now() - frame_begin_time;
+	unsigned long long time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(frame_time_passed).count();
+
+	printf("\nTime elapsed: %lld s\n", time_lapsed);
 }
 
 void CpuEngine::Playground(GuiData* gui_data) {

@@ -140,9 +140,6 @@ struct IhmGenerator {
 		ihm[data_index] = depth;
 	}
 
-	// can we define each thread as a comparison between exactly two images, and then we do a second
-	// cuda call for reduction?
-
 	__device__ void GenerateShm(SpaceData space_data, float* ihm, float* shm, float* buffer, void(*SyncThreads)()) {
 		Vector2 extracted = Indexer::InverseFlatIndex2((float)blockIdx.x, 10 * 10);
 
