@@ -228,19 +228,28 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 	float* ihm_cpu = new float[slice_generator.bit_count];
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
-	float* shm_cpu = new float[slice_generator.bit_count];
-	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+	float* shm_cpu = new float[slice_generator.state_count * 10 * 10];
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(shm_cpu, shm, slice_generator.state_count * 10 * 10 * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM...\n");
 	std::string save_path = "data/polyfield/ihm.float";
+	std::string shm_path = "data/polyfield/shm.float";
 
 	FILE* out_file;
 	fopen_s(&out_file, save_path.c_str(), "wb+");
 	if (out_file == NULL) {
-		printf("\n\nWarning: File did not open when saving depth frame:\n    %s!\n", save_path.c_str());
+		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", save_path.c_str());
 		exit(1);
 	}
 	int result = (int)fwrite(ihm_cpu, sizeof(float), slice_generator.bit_count, out_file);
+	fclose(out_file);
+
+	fopen_s(&out_file, save_path.c_str(), "wb+");
+	if (out_file == NULL) {
+		printf("\n\nWarning: File did not open when saving SHM:\n    %s!\n", shm_path.c_str());
+		exit(1);
+	}
+	result = (int)fwrite(shm_cpu, sizeof(float), slice_generator.state_count * 10 * 10, out_file);
 	fclose(out_file);
 
 	for (int i = 0; i < 157; i++) {
@@ -286,8 +295,12 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 10, 10);
 				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 10);
 
-				float s_value = ihm_cpu[bit_index];
-				
+				float s_value = shm_cpu[bit_index];
+
+				if (index == 77945) {
+					printf("%.2f\n", s_value);
+				}
+
 				s_value = 10.0f - s_value;
 				s_value = s_value / 10.0f;
 				s_value = 255.0f * s_value;
@@ -297,7 +310,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 			}
 		}
 
-		printf("        Saving image at index: %lld\n", index);
+		//printf("        Saving image at index: %lld\n", index);
 		stbi_write_jpg(img_path.c_str(), 16, 16, 1, depth_img, 100);
 		stbi_write_jpg((img_path + "_shm.jpg").c_str(), 10, 10, 1, shm_img, 100);
 	}

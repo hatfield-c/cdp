@@ -71,6 +71,10 @@ struct IhmGenerator {
 			printf("*");
 		}
 
+		if (blockIdx.x < 75000 || blockIdx.x > 80000) {
+			return;
+		}
+
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 		Vector2 phash_position{
 			(float)threadIdx.x,
@@ -150,6 +154,29 @@ struct IhmGenerator {
 		unsigned long long shm_state_index = extracted.y;
 		unsigned long long direction_index = threadIdx.x;
 
+		if (shm_state_index < 79000) {
+			//return;
+		}
+
+		if (shm_state_index != 77945) {
+			return;
+		}
+		
+		if (shm_pixel_index == 0 && threadIdx.x == 0) {
+			for (unsigned long long i = 0; i < 16; i++) {
+				for (int j = 0; j < 16; j++) {
+					unsigned long long ihm_data_index = Indexer::FlatIndex3(j, i, 79364, 16, 16);
+					unsigned long long shm_source_index = Indexer::FlatIndex3(j, i, 77945, 16, 16);
+
+					float val0 = ihm[ihm_data_index];
+					float val1 = ihm[shm_source_index];
+
+				//	printf("[%.2f]", val0);
+				}
+				//printf("\n");
+			}
+		}
+
 		Vector2 shm_pixel = Indexer::InverseFlatIndex2(shm_pixel_index, 10);
 		unsigned long long buffer_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, shm_state_index, blockDim.x);
 
@@ -157,7 +184,7 @@ struct IhmGenerator {
 		for (unsigned long long i = 0; i < 10; i++) {
 			for (unsigned long long j = 0; j < 3; j++) {
 				for (unsigned long long k = 0; k < 10; k++) {
-					Vector3 ihm_voxel{ i + shm_pixel.x, j, k + shm_pixel.y };
+					Vector3 ihm_voxel{ i + (shm_pixel.x * 10), j, k + (shm_pixel.y * 10) };
 
 					unsigned long long ihm_state_index = Indexer::FlatIndex4((float)direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
@@ -177,6 +204,10 @@ struct IhmGenerator {
 					}
 
 					frobenius = sqrt(frobenius);
+
+					if (frobenius < 3.0f) {
+						printf("%.2f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
+					}
 
 					if (frobenius < lowest_norm) {
 						lowest_norm = frobenius;
@@ -210,6 +241,8 @@ struct IhmGenerator {
 				lowest_norm = norm;
 			}
 		}
+		
+		//printf("[%.2f %.2f] %.2f\n", shm_pixel.x, shm_pixel.y, lowest_norm);
 
 		unsigned long long shm_data_index = Indexer::FlatIndex3(shm_pixel.x, shm_pixel.y, (float)shm_state_index, 10, 10);
 		shm[shm_data_index] = lowest_norm;

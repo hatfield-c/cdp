@@ -35,7 +35,7 @@ void CudaIhm::GenerateIhm(SpaceData space_data, Camera camera, IhmGenerator ihm_
 void CudaIhm::GenerateShm(SpaceData space_data, IhmGenerator ihm_generator, float* ihm, float* shm) {
     dim3 threads_per_block(24, 1, 1);
 
-    unsigned long long x_blocks = (10 * 10) * ihm_generator.state_count;
+    unsigned long long x_blocks = (10 * 10) * 80000;// ihm_generator.state_count;
 
     dim3 blocks_per_grid(x_blocks, 1, 1);
 
