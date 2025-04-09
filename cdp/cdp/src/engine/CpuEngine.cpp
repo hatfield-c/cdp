@@ -298,11 +298,11 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 				float s_value = shm_cpu[bit_index];
 
 				if (index == 77945) {
-					printf("%.2f\n", s_value);
+					printf("%.8f\n", s_value);
 				}
 
-				s_value = 10.0f - s_value;
-				s_value = s_value / 10.0f;
+				s_value = s_value / 1.0f;
+				s_value = 1.0f - s_value;
 				s_value = 255.0f * s_value;
 				byte pixel_value = (byte)s_value;
 

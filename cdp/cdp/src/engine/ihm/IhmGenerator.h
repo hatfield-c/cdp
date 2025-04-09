@@ -71,10 +71,6 @@ struct IhmGenerator {
 			printf("*");
 		}
 
-		if (blockIdx.x < 75000 || blockIdx.x > 80000) {
-			return;
-		}
-
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 		Vector2 phash_position{
 			(float)threadIdx.x,
@@ -189,24 +185,38 @@ struct IhmGenerator {
 					unsigned long long ihm_state_index = Indexer::FlatIndex4((float)direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
 					float frobenius = 0;
+					int count = 0;
 					for (unsigned long long y = 0; y < 16; y++) {
 						for (unsigned long long x = 0; x < 16; x++) {
 							unsigned long long ihm_data_index = Indexer::FlatIndex3(x, y, ihm_state_index, 16, 16);
 							unsigned long long shm_source_index = Indexer::FlatIndex3(x, y, shm_state_index, 16, 16);
 
 							float val0 = ihm[ihm_data_index];
+							float val1 = ihm[shm_source_index];
 
-							float difference = (ihm[ihm_data_index] - ihm[shm_source_index]) / 20.0f;
+							float difference = (val0 - val1) / 20.0f;
 							difference = difference * difference;
 
+							if (ihm_state_index == 524639) {
+								printf("_[%.4f, %.4f] %.4f %.4f\n", val0, val1, difference, frobenius);
+							}
+
 							frobenius += difference;
+							count++;
 						}
 					}
 
-					frobenius = sqrt(frobenius);
+					if (count < 1) {
+						count = 1;
+					}
 
-					if (frobenius < 3.0f) {
-						printf("%.2f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
+					//frobenius = sqrt(frobenius);
+					frobenius = frobenius;
+
+					//if (frobenius < 0.30f) {
+					//if (shm_pixel.y > 1) {
+					if(ihm_state_index == 524639){
+						printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
 					}
 
 					if (frobenius < lowest_norm) {
@@ -220,8 +230,8 @@ struct IhmGenerator {
 			printf("*");
 		}
 
-		if (lowest_norm > 10.0f) {
-			lowest_norm = 10.0f;
+		if (lowest_norm > 1.0f) {
+			lowest_norm = 1.0f;
 		}
 
 		buffer[buffer_index] = lowest_norm;
