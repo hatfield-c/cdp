@@ -219,38 +219,43 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 
 	float* ihm;
 	cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
+	cudaMemset(ihm, 0, slice_generator.bit_count * sizeof(float));
 	CudaIhm::GenerateIhm(this->world_space->space_data, *this->camera_list[0], slice_generator, ihm);
 
 	float* shm;
 	cudaMalloc(&shm, slice_generator.state_count * 10 * 10 * sizeof(float));
+	cudaMemset(shm, 0, slice_generator.state_count * 10 * 10 * sizeof(float));
 	CudaIhm::GenerateShm(this->world_space->space_data, slice_generator, ihm, shm);
 
 	float* ihm_cpu = new float[slice_generator.bit_count];
+	memset(ihm_cpu, 0, slice_generator.bit_count * sizeof(float));
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	float* shm_cpu = new float[slice_generator.state_count * 10 * 10];
+	memset(shm_cpu, 0, slice_generator.state_count * 10 * 10 * sizeof(float));
 	CudaError::CheckError((cudaError_enum)cudaMemcpy(shm_cpu, shm, slice_generator.state_count * 10 * 10 * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 	printf("    Saving IHM...\n");
-	std::string save_path = "data/polyfield/ihm.float";
-	std::string shm_path = "data/polyfield/shm.float";
+	std::string save_path = "data/polyfield/training/ihm.float";
+	std::string shm_path = "data/polyfield/training/shm.float";
 
-	FILE* out_file;
-	fopen_s(&out_file, save_path.c_str(), "wb+");
-	if (out_file == NULL) {
+	FILE* ihm_file;
+	fopen_s(&ihm_file, save_path.c_str(), "wb+");
+	if (ihm_file == NULL) {
 		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", save_path.c_str());
 		exit(1);
 	}
-	int result = (int)fwrite(ihm_cpu, sizeof(float), slice_generator.bit_count, out_file);
-	fclose(out_file);
+	int result = (int)fwrite(ihm_cpu, sizeof(float), slice_generator.bit_count, ihm_file);
+	fclose(ihm_file);
 
-	fopen_s(&out_file, save_path.c_str(), "wb+");
-	if (out_file == NULL) {
+	FILE* shm_file;
+	fopen_s(&shm_file, shm_path.c_str(), "wb+");
+	if (shm_file == NULL) {
 		printf("\n\nWarning: File did not open when saving SHM:\n    %s!\n", shm_path.c_str());
 		exit(1);
 	}
-	result = (int)fwrite(shm_cpu, sizeof(float), slice_generator.state_count * 10 * 10, out_file);
-	fclose(out_file);
+	result = (int)fwrite(shm_cpu, sizeof(float), slice_generator.state_count * 10 * 10, shm_file);
+	fclose(shm_file);
 
 	for (int i = 0; i < 157; i++) {
 		unsigned long long index = i * (int)(slice_generator.state_count / 157);
@@ -297,12 +302,10 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 
 				float s_value = shm_cpu[bit_index];
 
-				if (index == 77945) {
-					printf("%.8f\n", s_value);
+				if (index == 55020) {
+					//printf("%.8f\n", s_value);
 				}
 
-				s_value = s_value / 1.0f;
-				s_value = 1.0f - s_value;
 				s_value = 255.0f * s_value;
 				byte pixel_value = (byte)s_value;
 
@@ -323,23 +326,41 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 }
 
 void CpuEngine::Playground(GuiData* gui_data) {
-	NeuralGrid hitpoly{};
-	hitpoly.Init();
+	std::string shm_path = "data/polyfield/training/shm.float";
 
-	Vector3 position{ 0, 4, -10 };
-	Vector3 velocity{ 0, 0, 5 };
+	IhmGenerator slice_generator{};
+	slice_generator.Init(
+		3,
+		Vector2{ -Math::Pi() / 4.0f, 0.0f },
+		Vector3{ 0, 50, 0 },
+		Vector3{ 1000, 30, 1000 },
+		this->world_space->space_data.world_size0,
+		Vector3{ 10, 10, 10 },
+		Vector2{ 16, 16 }
+	);
 
-	for (int i = 0; i < 12; i++) {
-		float signal = hitpoly.ForwardPass(position, velocity);
-		
-		if (signal > 0.95) {
-			position.Print("[Release]: ", "");
-			velocity.Print();
-		}
+	float* shm_cpu = new float[slice_generator.state_count * 10 * 10];
 
-		position.z++;
+	FILE* in_file;
+	fopen_s(&in_file, shm_path.c_str(), "rb");
+	if (in_file == NULL) {
+		printf("\n\n[Warning] file did not open when loading:\n    %s!\n", shm_path.c_str());
+		exit(1);
 	}
-}
+	int result = (int)fread(shm_cpu, sizeof(float), (size_t)(slice_generator.state_count * 10 * 10), in_file);
+	fclose(in_file);
+
+	//for (int i = 0; i < 256; i++) {
+		float s = shm_cpu[0];
+		printf("%.2f - ", s);
+		unsigned char* b = (unsigned char*)&s;
+
+		for (int j = 0; j < 4; j++) {
+			printf("%02x", b[j]);
+		}
+		printf("\n");
+	}
+//}
 
 void CpuEngine::SaveProximityHash(GuiData* gui_data) {
 	std::string save_path = gui_data->save_phash_path;

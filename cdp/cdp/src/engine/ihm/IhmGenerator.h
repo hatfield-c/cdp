@@ -71,6 +71,10 @@ struct IhmGenerator {
 			printf("*");
 		}
 
+		if (blockIdx.x > 77945) {
+			//return;
+		}
+
 		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
 		Vector2 phash_position{
 			(float)threadIdx.x,
@@ -119,10 +123,6 @@ struct IhmGenerator {
 			}
 		}
 		
-		if (blockIdx.x > 150000 - 5) {
-
-		}
-
 		if (avg_count < 1) {
 			avg_distance = camera->max_render_distance;
 			avg_count = 1;
@@ -140,43 +140,101 @@ struct IhmGenerator {
 		ihm[data_index] = depth;
 	}
 
-	// can we define each thread as a comparison between exactly two images, and then we do a second
-	// cuda call for reduction?
+	__device__ void SummationIhm(float* ihm, float* sums) {
+		unsigned long long ihm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
 
-	__device__ void GenerateShm(SpaceData space_data, float* ihm, float* shm, float* buffer, void(*SyncThreads)()) {
+		if (ihm_state_index >= this->state_count) {
+			return;
+		}
+
+		float sum = 0;
+		for (unsigned long long i = 0; i < 16; i++) {
+			for (unsigned long long j = 0; j < 16; j++) {
+				unsigned long long data_index = Indexer::FlatIndex3(j, i, ihm_state_index, 16, 16);
+				float value = ihm[data_index] / 20.0f;
+				sum += value;
+			}
+		}
+		
+		sums[ihm_state_index] = sum;
+	}
+
+	__device__ void SmoothShm(float* shm, float* buffer) {
+		unsigned long long shm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
+
+		if (shm_state_index >= this->state_count) {
+			return;
+		}
+
+		float max_val = 0;
+		for (int i = 0; i < 10; i++) {
+			for (int j = 0; j < 10; j++) {
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, i, (float)shm_state_index, 10, 10);
+				float value = shm[data_index];
+
+				if (value > max_val) {
+					max_val = value;
+				}
+
+				float kernel_value = 0;
+				for (int y = -5; y < 6; y++) {
+					for (int x = -5; x < 6; x++) {
+						int x_j = x + j;
+						int y_i = y + i;
+
+						if (x_j < 0 || x_j >= 10 || y_i < 0 || y_i >= 10) {
+							continue;
+						}
+
+						unsigned long long kernel_index = Indexer::FlatIndex3((float)x_j, y_i, (float)shm_state_index, 10, 10);
+						float local_value = shm[kernel_index];
+
+						Vector2 max_offset{ x, y };
+
+						float dist = Transform::Norm2(max_offset);
+						float mixer = 1 - expf(-0.78 * dist);
+						float mixed_value = (mixer * value) + ((1 - mixer) * local_value);
+
+						if (mixed_value > kernel_value) {
+							kernel_value = mixed_value;
+						}
+					}
+				}
+				
+				buffer[data_index] = kernel_value;
+			}
+		}
+
+		if (max_val == 0) {
+			max_val = 1;
+		}
+
+		for (int i = 0; i < 10; i++) {
+			for (int j = 0; j < 10; j++) {
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, i, (float)shm_state_index, 10, 10);
+
+				float value = buffer[data_index] / max_val;
+
+				shm[data_index] = value;
+			}
+		}
+	}
+
+	__device__ void GenerateShm(SpaceData space_data, float* ihm, float* shm, float* buffer, float* sums, void(*SyncThreads)()) {
 		Vector2 extracted = Indexer::InverseFlatIndex2((float)blockIdx.x, 10 * 10);
 
 		unsigned long long shm_pixel_index = extracted.x;
 		unsigned long long shm_state_index = extracted.y;
 		unsigned long long direction_index = threadIdx.x;
 
-		if (shm_state_index < 79000) {
+		if (shm_state_index != 55020) {
 			//return;
-		}
-
-		if (shm_state_index != 77945) {
-			return;
-		}
-		
-		if (shm_pixel_index == 0 && threadIdx.x == 0) {
-			for (unsigned long long i = 0; i < 16; i++) {
-				for (int j = 0; j < 16; j++) {
-					unsigned long long ihm_data_index = Indexer::FlatIndex3(j, i, 79364, 16, 16);
-					unsigned long long shm_source_index = Indexer::FlatIndex3(j, i, 77945, 16, 16);
-
-					float val0 = ihm[ihm_data_index];
-					float val1 = ihm[shm_source_index];
-
-				//	printf("[%.2f]", val0);
-				}
-				//printf("\n");
-			}
 		}
 
 		Vector2 shm_pixel = Indexer::InverseFlatIndex2(shm_pixel_index, 10);
 		unsigned long long buffer_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, shm_state_index, blockDim.x);
 
-		float lowest_norm = 999999999999;
+		float lowest_norm = 1.0f;
 		for (unsigned long long i = 0; i < 10; i++) {
 			for (unsigned long long j = 0; j < 3; j++) {
 				for (unsigned long long k = 0; k < 10; k++) {
@@ -184,8 +242,15 @@ struct IhmGenerator {
 
 					unsigned long long ihm_state_index = Indexer::FlatIndex4((float)direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
+					float sum_shm = sums[shm_state_index];
+					float sum_ihm = sums[ihm_state_index];
+					float diff = abs(sum_shm - sum_ihm) / 256.0f;
+					
+					if (diff > 0.1f || sum_shm > 250 || sum_ihm > 250  || sum_shm < 5 || sum_ihm < 5) {
+						continue;
+					}
+
 					float frobenius = 0;
-					int count = 0;
 					for (unsigned long long y = 0; y < 16; y++) {
 						for (unsigned long long x = 0; x < 16; x++) {
 							unsigned long long ihm_data_index = Indexer::FlatIndex3(x, y, ihm_state_index, 16, 16);
@@ -198,25 +263,19 @@ struct IhmGenerator {
 							difference = difference * difference;
 
 							if (ihm_state_index == 524639) {
-								printf("_[%.4f, %.4f] %.4f %.4f\n", val0, val1, difference, frobenius);
+								//printf("_[%.4f, %.4f] %.4f %.4f\n", val0, val1, difference, frobenius);
 							}
 
 							frobenius += difference;
-							count++;
 						}
 					}
 
-					if (count < 1) {
-						count = 1;
-					}
-
-					//frobenius = sqrt(frobenius);
 					frobenius = frobenius;
 
-					//if (frobenius < 0.30f) {
+					if (frobenius < 0.30f) {
 					//if (shm_pixel.y > 1) {
-					if(ihm_state_index == 524639){
-						printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
+					//if(ihm_state_index == 524639){
+						//printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
 					}
 
 					if (frobenius < lowest_norm) {
@@ -228,10 +287,6 @@ struct IhmGenerator {
 
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
-		}
-
-		if (lowest_norm > 1.0f) {
-			lowest_norm = 1.0f;
 		}
 
 		buffer[buffer_index] = lowest_norm;
@@ -252,10 +307,8 @@ struct IhmGenerator {
 			}
 		}
 		
-		//printf("[%.2f %.2f] %.2f\n", shm_pixel.x, shm_pixel.y, lowest_norm);
-
 		unsigned long long shm_data_index = Indexer::FlatIndex3(shm_pixel.x, shm_pixel.y, (float)shm_state_index, 10, 10);
-		shm[shm_data_index] = lowest_norm;
+		shm[shm_data_index] = 1.0f - lowest_norm;
 	}
 
 	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* ihm, Vector3* ihm_clouds) {
