@@ -142,7 +142,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\entity\ai\nav\cuda\CudaNavHash.cuh" />
-    <ClInclude Include="src\entity\ai\nav\PhmGenerator.h">
+    <ClInclude Include="src\entity\ai\nav\NavGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\engine\cuda\CudaWorld.cuh" />

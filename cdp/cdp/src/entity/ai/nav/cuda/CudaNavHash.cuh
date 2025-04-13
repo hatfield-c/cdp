@@ -7,16 +7,16 @@
 #include "../../../../system/CudaError.h"
 #include "../../../../engine/SpaceData.h"
 #include "../../../camera/Camera.h"
-#include "../PhmGenerator.h"
+#include "../NavGenerator.h"
 
 namespace CudaNavHash {
 	__device__ void SyncThreads();
-	__global__ void GeneratePhm_Kernel(SpaceData space_data, Camera camera, PhmGenerator ihm_generator, float* ihm);
-	__global__ void GenerateShm_Kernel(SpaceData space_data, PhmGenerator ihm_generator, float* ihm, float* shm, float* buffer, float* sums);
-	__global__ void SummationPhm_Kernel(PhmGenerator phm_generator, float* ihm, float* sums);
-	__global__ void SmoothShm_Kernel(PhmGenerator phm_generator, float* shm, float* buffer);
-	void GeneratePhm(SpaceData space_data, Camera camera, PhmGenerator phm_generator, float* ihm);
-	void GenerateShm(SpaceData space_data, PhmGenerator phm_generator, float* ihm, float* shm);
-	void SummationPhm(PhmGenerator phm_generator, float* ihm, float* sums);
-	void SmoothShm(PhmGenerator phm_generator, float* shm);
+	__global__ void GeneratePhm_Kernel(SpaceData space_data, Camera camera, NavGenerator ihm_generator, float* ihm);
+	__global__ void GenerateShm_Kernel(SpaceData space_data, NavGenerator ihm_generator, float* ihm, float* shm, float* buffer, float* sums);
+	__global__ void SummationPhm_Kernel(NavGenerator nav_generator, float* ihm, float* sums);
+	__global__ void SmoothShm_Kernel(NavGenerator nav_generator, float* shm, float* buffer);
+	void GeneratePhm(SpaceData space_data, Camera camera, NavGenerator nav_generator, float* ihm);
+	void GenerateShm(SpaceData space_data, NavGenerator nav_generator, float* ihm, float* shm);
+	void SummationPhm(NavGenerator nav_generator, float* ihm, float* sums);
+	void SmoothShm(NavGenerator nav_generator, float* shm);
 }

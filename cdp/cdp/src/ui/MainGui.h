@@ -13,12 +13,12 @@
 
 #include "../engine/Math.h"
 #include "../engine/Indexer.h"
-#include "../entity/ai/nav/PhmGenerator.h"
+#include "../entity/ai/nav/NavGenerator.h"
 #include "GuiData.h"
 
 struct MainGui {
 	int render_texture = 0;
-	PhmGenerator phm_generator{};
+	NavGenerator nav_generator{};
 
 	int camera_index = 0;
 	int camera_count = 0;
@@ -51,7 +51,7 @@ struct MainGui {
         this->vulkan_pipeline = new VulkanPipeline();
         this->vulkan_pipeline->Init(this->camera_count);
 
-        this->phm_generator.Init(
+        this->nav_generator.Init(
             3,
             Vector2{ -Math::Pi() / 4.0f, 0 },
             Vector::ZERO3(),
@@ -65,9 +65,9 @@ struct MainGui {
             this->gui_data->camera_position.x,
             this->gui_data->camera_position.y,
             this->gui_data->camera_position.z,
-            (float)this->phm_generator.direction_count,
-            this->phm_generator.world_width_strided.x,
-            this->phm_generator.world_width_strided.y
+            (float)this->nav_generator.direction_count,
+            this->nav_generator.world_width_strided.x,
+            this->nav_generator.world_width_strided.y
         );
     }
 
@@ -251,7 +251,7 @@ struct MainGui {
             }
             else if (this->gui_data->control_index == 1) {
                 camera_state_flag = ImGuiInputTextFlags_ReadOnly;
-                PhmState phm_state = this->phm_generator.GetPhmState(ihm_index, false);
+                PhmState phm_state = this->nav_generator.GetPhmState(ihm_index, false);
 
                 camera_position[0] = phm_state.position_strided.x;
                 camera_position[1] = phm_state.position_strided.y;
@@ -260,7 +260,7 @@ struct MainGui {
             }
             else if (this->gui_data->control_index == 2) {
                 ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
-                ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->phm_generator.direction_count, this->phm_generator.world_width_strided.x, this->phm_generator.world_width_strided.y);
+                ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->nav_generator.direction_count, this->nav_generator.world_width_strided.x, this->nav_generator.world_width_strided.y);
             }
             else if (this->gui_data->control_index == 3) {
                 ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
@@ -291,12 +291,12 @@ struct MainGui {
                     direction_index--;
                 }
 
-                camera_position[0] = (float)Math::Clip(camera_position[0], this->phm_generator.world_origin.x, this->phm_generator.world_width_strided.x - 1);
-                camera_position[1] = (float)Math::Clip(camera_position[1], this->phm_generator.world_origin.y, this->phm_generator.world_width_strided.y - 1);
-                camera_position[2] = (float)Math::Clip(camera_position[2], this->phm_generator.world_origin.z, this->phm_generator.world_width_strided.z - 1);
-                direction_index = (int)Math::Clip(direction_index, 0, this->phm_generator.direction_count - 1);
+                camera_position[0] = (float)Math::Clip(camera_position[0], this->nav_generator.world_origin.x, this->nav_generator.world_width_strided.x - 1);
+                camera_position[1] = (float)Math::Clip(camera_position[1], this->nav_generator.world_origin.y, this->nav_generator.world_width_strided.y - 1);
+                camera_position[2] = (float)Math::Clip(camera_position[2], this->nav_generator.world_origin.z, this->nav_generator.world_width_strided.z - 1);
+                direction_index = (int)Math::Clip(direction_index, 0, this->nav_generator.direction_count - 1);
 
-                ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->phm_generator.direction_count, this->phm_generator.world_width_strided.x, this->phm_generator.world_width_strided.y);
+                ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->nav_generator.direction_count, this->nav_generator.world_width_strided.x, this->nav_generator.world_width_strided.y);
             }
             else if (this->gui_data->control_index == 4) {
                 ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
@@ -322,7 +322,7 @@ struct MainGui {
                 }
             }
 
-            Vector3 direction = this->phm_generator.directions_cpu[direction_index];
+            Vector3 direction = this->nav_generator.directions_cpu[direction_index];
             float camera_direction[3] = { direction.x, direction.y, direction.z };
 
             ImGui::AlignTextToFramePadding();

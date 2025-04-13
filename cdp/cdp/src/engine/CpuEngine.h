@@ -24,7 +24,7 @@
 #include "../entity/ai/hitpoly/NeuralGrid.h"
 #include "../entity/ai/hitpoly/cuda/CudaHitpoly.cuh"
 #include "../entity/ai/nav/PhmState.h"
-#include "../entity/ai/nav/PhmGenerator.h"
+#include "../entity/ai/nav/NavGenerator.h"
 #include "../entity/ai/nav/cuda/CudaNavHash.cuh"
 
 struct CpuEngine {
@@ -34,7 +34,7 @@ struct CpuEngine {
 	std::vector<Camera*> camera_list{};
 	WorldSpace world_space;
 	ImageBuilder* image_builder;
-	PhmGenerator phm_generator{};
+	NavGenerator nav_generator{};
 	DroneAlpha drone_alpha{};
 	WindGenerator wind_generatior{};
 	byte* simulation_image;
@@ -43,7 +43,7 @@ struct CpuEngine {
 		this->world_space.Init();
 		this->image_builder->Init();
 
-		this->phm_generator.Init(
+		this->nav_generator.Init(
 			3,
 			Vector2{ -Math::Pi() / 4.0f, 0.0f },
 			Vector::ZERO3(),
@@ -127,7 +127,7 @@ struct CpuEngine {
 	void ScenarioUpdate(GuiData* gui_data) {
 		this->camera_list[0]->is_rotation_noise = gui_data->is_rotation_noise;
 
-		gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->phm_generator.world_stride).Floor();
+		gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->nav_generator.world_stride).Floor();
 		gui_data->drone_position = this->drone_alpha.rigidbody.position;
 		gui_data->drone_forward = Quaternion::RotatePoint(Vector::FORWARD(), this->drone_alpha.rigidbody.rotation);
 		gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
@@ -139,7 +139,7 @@ struct CpuEngine {
 			(float)this->drone_alpha.wallrider.steer_proximity[2]
 		};
 
-		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->phm_generator.world_stride;
+		this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->nav_generator.world_stride;
 		this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
 		float* depth_phash = this->camera_list[0]->GetPhashAsFloat();
@@ -160,7 +160,7 @@ struct CpuEngine {
 			this->drone_alpha.Act();
 		}
 		else {
-			PhmState ihm_state = this->phm_generator.GetPhmState(gui_data->ihm_index, false);
+			PhmState ihm_state = this->nav_generator.GetPhmState(gui_data->ihm_index, false);
 
 			this->camera_list[0]->transform.position = ihm_state.position;
 			this->camera_list[0]->transform.rotation = ihm_state.rotation;
@@ -186,7 +186,7 @@ struct CpuEngine {
 		this->drone_alpha.rigidbody.AirResistance(wind);
 		this->drone_alpha.rigidbody.Update();
 
-		this->drone_alpha.rigidbody.position = this->drone_alpha.rigidbody.position.Clip(Vector::ZERO3(), this->phm_generator.world_size_strided - 0.1f);
+		this->drone_alpha.rigidbody.position = this->drone_alpha.rigidbody.position.Clip(Vector::ZERO3(), this->nav_generator.world_size_strided - 0.1f);
 	}
 
 	void RenderUpdate(GuiData* gui_data) {
@@ -231,7 +231,7 @@ struct CpuEngine {
 	}
 
 	void DrawDronePosition() {
-		Vector3 position = this->drone_alpha.rigidbody.position * this->phm_generator.world_stride;
+		Vector3 position = this->drone_alpha.rigidbody.position * this->nav_generator.world_stride;
 		Vector2 render_position{ position.x, position.z };
 		Vector2 render_size{ this->world_space.space_data.world_size0.x, this->world_space.space_data.world_size0.z };
 
@@ -245,7 +245,7 @@ struct CpuEngine {
 	void GeneratePhm(GuiData* gui_data) {
 		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
 
-		PhmGenerator slice_generator{};
+		NavGenerator slice_generator{};
 		slice_generator.Init(
 			3,
 			Vector2{ -Math::Pi() / 4.0f, 0.0f },
@@ -326,7 +326,7 @@ struct CpuEngine {
 	void GenerateShm(GuiData* gui_data) {
 		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
 
-		PhmGenerator slice_generator{};
+		NavGenerator slice_generator{};
 		slice_generator.Init(
 			3,
 			Vector2{ -Math::Pi() / 4.0f, 0.0f },
@@ -448,7 +448,7 @@ struct CpuEngine {
 	void Playground(GuiData* gui_data) {
 		std::string shm_path = "data/polyfield/training/shm.float";
 
-		PhmGenerator slice_generator{};
+		NavGenerator slice_generator{};
 		slice_generator.Init(
 			3,
 			Vector2{ -Math::Pi() / 4.0f, 0.0f },

@@ -10,7 +10,7 @@
 #include "../../../engine/RaycastHitData.h"
 #include "../../camera/Camera.h"
 
-struct PhmGenerator {
+struct NavGenerator {
 	int direction_density;
 	int direction_count;
 	unsigned long long voxel_count;
