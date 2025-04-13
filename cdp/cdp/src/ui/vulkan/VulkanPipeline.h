@@ -24,23 +24,109 @@
 #include "VulkanCleaner.h"
 #include "VulkanTexture.h"
 
-class VulkanPipeline {
-	public:
+struct VulkanPipeline {
+	VulkanCore* vulkan_core;
+	VulkanRenderer* vulkan_renderer;
+	VulkanCleaner* vulkan_cleaner;
 
-		VulkanCore* vulkan_core;
-		VulkanRenderer* vulkan_renderer;
-		VulkanCleaner* vulkan_cleaner;
+	std::vector<VulkanTexture*> depth_textures;
+	std::vector<VulkanTexture*> phash_textures;
+	std::vector<VulkanTexture*> height_textures;
+	std::vector<VulkanTexture*> texture_list;
 
-		std::vector<VulkanTexture*> depth_textures;
-		std::vector<VulkanTexture*> phash_textures;
-		std::vector<VulkanTexture*> height_textures;
-		std::vector<VulkanTexture*> texture_list;
+    void Init(int camera_count) {
+        int ui_texture_count = 3;
+        int descriptor_count = (3 * camera_count) + ui_texture_count;
 
-		VulkanPipeline(int camera_count);
-		bool Update();
-		void Render();
-		void Cleanup();
-		std::vector<CUdeviceptr> GetDepthTextures();
-		std::vector<CUdeviceptr> GetPhashTextures();
-		std::vector<CUdeviceptr> GetHeightTextures();
+        this->vulkan_core = new VulkanCore();
+        this->vulkan_renderer = new VulkanRenderer();
+        this->vulkan_cleaner = new VulkanCleaner();
+
+        this->vulkan_core->Init(descriptor_count);
+        this->vulkan_renderer->Init(this->vulkan_core);
+        this->vulkan_cleaner->Init(this->vulkan_core);
+
+        VulkanTexture* desktop_texture = new VulkanTexture();
+        desktop_texture->Init(this->vulkan_core);
+        bool result = desktop_texture->LoadImage("data/media/desktop.jpg");
+
+        this->texture_list.push_back(desktop_texture);
+
+        VulkanTexture* viewport_texture = new VulkanTexture();
+        viewport_texture->Init(this->vulkan_core);
+        result = viewport_texture->LoadImage("data/media/viewport_default.jpg");
+
+        this->texture_list.push_back(viewport_texture);
+
+        for (int i = 0; i < camera_count; i++) {
+            VulkanTexture* depth_texture = new VulkanTexture();
+            VulkanTexture* phash_texture = new VulkanTexture();
+            VulkanTexture* centroid_texture = new VulkanTexture();
+
+            depth_texture->Init(this->vulkan_core);
+            phash_texture->Init(this->vulkan_core);
+            centroid_texture->Init(this->vulkan_core);
+
+            result = depth_texture->LoadImage("data/media/viewport_default.jpg");
+            result = phash_texture->LoadImage("data/media/phash_default.jpg");
+            result = centroid_texture->LoadImage("data/media/phash_default.jpg");
+
+            this->depth_textures.push_back(depth_texture);
+            this->phash_textures.push_back(phash_texture);
+            this->height_textures.push_back(centroid_texture);
+
+            this->texture_list.push_back(depth_texture);
+            this->texture_list.push_back(phash_texture);
+            this->texture_list.push_back(centroid_texture);
+        }
+    }
+
+    bool Update() {
+        return this->vulkan_renderer->Update();
+    }
+
+    void Render() {
+        this->vulkan_renderer->Render();
+    }
+
+    void Cleanup() {
+        this->vulkan_cleaner->Cleanup(this->texture_list);
+    }
+
+    std::vector<CUdeviceptr> GetDepthTextures() {
+        std::vector<CUdeviceptr> textures{};
+
+        for (int i = 0; i < this->depth_textures.size(); i++) {
+            CUdeviceptr gpu_texture = this->depth_textures[i]->ExportAsCuda();
+
+            textures.push_back(gpu_texture);
+        }
+
+        return textures;
+    }
+
+    std::vector<CUdeviceptr> GetPhashTextures() {
+        std::vector<CUdeviceptr> textures{};
+
+        for (int i = 0; i < this->depth_textures.size(); i++) {
+            CUdeviceptr gpu_texture = this->phash_textures[i]->ExportAsCuda();
+
+            textures.push_back(gpu_texture);
+        }
+
+        return textures;
+    }
+
+    std::vector<CUdeviceptr> GetHeightTextures() {
+        std::vector<CUdeviceptr> textures{};
+
+        for (int i = 0; i < this->height_textures.size(); i++) {
+            CUdeviceptr gpu_texture = this->height_textures[i]->ExportAsCuda();
+
+            textures.push_back(gpu_texture);
+        }
+
+        return textures;
+    }
+
 };

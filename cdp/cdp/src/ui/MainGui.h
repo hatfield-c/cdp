@@ -48,7 +48,8 @@ struct MainGui {
             this->camera_labels.push_back(camera_label);
         }
 
-        this->vulkan_pipeline = new VulkanPipeline(this->camera_count);
+        this->vulkan_pipeline = new VulkanPipeline();
+        this->vulkan_pipeline->Init(this->camera_count);
 
         this->phm_generator.Init(
             3,

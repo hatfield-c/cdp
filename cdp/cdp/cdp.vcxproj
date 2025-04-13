@@ -202,11 +202,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="src\main.cpp">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp" />
-    <ClCompile Include="src\ui\vulkan\VulkanCore.cpp" />
-    <ClCompile Include="src\ui\vulkan\VulkanPipeline.cpp" />
-    <ClCompile Include="src\ui\vulkan\VulkanRenderer.cpp" />
-    <ClCompile Include="src\ui\vulkan\VulkanTexture.cpp" />
     <ClCompile Include="src\system\WindowsSecurityAttributes.cpp" />
   </ItemGroup>
   <ItemGroup>
