@@ -199,13 +199,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="include\imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\engine\CpuEngine.cpp" />
-    <ClCompile Include="src\engine\WorldSpace.cpp" />
     <ClCompile Include="src\main.cpp">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="src\system\MainApplication.cpp" />
-    <ClCompile Include="src\ui\MainGui.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanCleaner.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanCore.cpp" />
     <ClCompile Include="src\ui\vulkan\VulkanPipeline.cpp" />

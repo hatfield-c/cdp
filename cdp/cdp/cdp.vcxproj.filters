@@ -39,9 +39,6 @@
     <ClCompile Include="src\ui\vulkan\VulkanPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ui\MainGui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\ui\vulkan\VulkanTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,15 +55,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\system\WindowsSecurityAttributes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\engine\WorldSpace.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\engine\CpuEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\system\MainApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

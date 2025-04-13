@@ -6,7 +6,8 @@
 
 int main(int, char**) {
 
-    MainApplication app = MainApplication();
+    MainApplication app;
+    app.Init();
     app.Run();
 
     return 0;
