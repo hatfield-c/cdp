@@ -141,12 +141,12 @@
     <ClInclude Include="src\engine\Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\entity\ai\phm\cuda\CudaPhm.cuh" />
-    <ClInclude Include="src\entity\ai\phm\PhmGenerator.h">
+    <ClInclude Include="src\entity\ai\nav\cuda\CudaNavHash.cuh" />
+    <ClInclude Include="src\entity\ai\nav\PhmGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\engine\cuda\CudaWorld.cuh" />
-    <ClInclude Include="src\entity\ai\phm\PhmState.h">
+    <ClInclude Include="src\entity\ai\nav\PhmState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\imgui_filebrowser\imfilebrowser.h">
@@ -183,13 +183,13 @@
     <ClInclude Include="src\entity\ai\hitpoly\NeuralGrid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\entity\ai\CentroidCortex.h">
+    <ClInclude Include="src\entity\ai\nav\CentroidCortex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\entity\camera\cuda\CudaCamera.cu" />
-    <CudaCompile Include="src\entity\ai\phm\cuda\CudaPhm.cu" />
+    <CudaCompile Include="src\entity\ai\nav\cuda\CudaNavHash.cu" />
     <CudaCompile Include="src\engine\cuda\CudaWorld.cu" />
     <CudaCompile Include="src\entity\ai\hitpoly\cuda\CudaHitPoly.cu" />
   </ItemGroup>

@@ -9,7 +9,7 @@
 #include "../../../camera/Camera.h"
 #include "../PhmGenerator.h"
 
-namespace CudaIhm {
+namespace CudaNavHash {
 	__device__ void SyncThreads();
 	__global__ void GeneratePhm_Kernel(SpaceData space_data, Camera camera, PhmGenerator ihm_generator, float* ihm);
 	__global__ void GenerateShm_Kernel(SpaceData space_data, PhmGenerator ihm_generator, float* ihm, float* shm, float* buffer, float* sums);

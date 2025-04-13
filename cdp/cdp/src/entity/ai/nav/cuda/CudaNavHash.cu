@@ -1,27 +1,27 @@
-#include "CudaPhm.cuh"
+#include "CudaNavHash.cuh"
 
-__device__ void CudaIhm::SyncThreads() {
+__device__ void CudaNavHash::SyncThreads() {
     __syncthreads();
 }
 
-__global__ void CudaIhm::GeneratePhm_Kernel(SpaceData space_data, Camera camera, PhmGenerator phm_generator, float* phm) {
+__global__ void CudaNavHash::GeneratePhm_Kernel(SpaceData space_data, Camera camera, PhmGenerator phm_generator, float* phm) {
     phm_generator.Generate(space_data, &camera, phm);
 }
 
-__global__ void CudaIhm::GenerateShm_Kernel(SpaceData space_data, PhmGenerator phm_generator, float* phm, float* shm, float* buffer, float* sums) {
-    void(*func_ptr)() = &CudaIhm::SyncThreads;
+__global__ void CudaNavHash::GenerateShm_Kernel(SpaceData space_data, PhmGenerator phm_generator, float* phm, float* shm, float* buffer, float* sums) {
+    void(*func_ptr)() = &CudaNavHash::SyncThreads;
     phm_generator.GenerateShm(space_data, phm, shm, buffer, sums, func_ptr);
 }
 
-__global__ void CudaIhm::SummationPhm_Kernel(PhmGenerator phm_generator, float* phm, float* sums) {
+__global__ void CudaNavHash::SummationPhm_Kernel(PhmGenerator phm_generator, float* phm, float* sums) {
     phm_generator.SummationPhm(phm, sums);
 }
 
-__global__ void CudaIhm::SmoothShm_Kernel(PhmGenerator phm_generator, float* shm, float* buffer) {
+__global__ void CudaNavHash::SmoothShm_Kernel(PhmGenerator phm_generator, float* shm, float* buffer) {
     phm_generator.SmoothShm(shm, buffer);
 }
 
-void CudaIhm::GeneratePhm(SpaceData space_data, Camera camera, PhmGenerator phm_generator, float* phm) {
+void CudaNavHash::GeneratePhm(SpaceData space_data, Camera camera, PhmGenerator phm_generator, float* phm) {
     dim3 threads_per_block(camera.phash_data_size.x, 2, 1);
 
     unsigned long long x_blocks = phm_generator.state_count;
@@ -40,7 +40,7 @@ void CudaIhm::GeneratePhm(SpaceData space_data, Camera camera, PhmGenerator phm_
     printf("\n");
 }
 
-void CudaIhm::GenerateShm(SpaceData space_data, PhmGenerator phm_generator, float* phm, float* shm) {
+void CudaNavHash::GenerateShm(SpaceData space_data, PhmGenerator phm_generator, float* phm, float* shm) {
     dim3 threads_per_block(24, 1, 1);
 
     unsigned long long x_blocks = (10 * 10) * phm_generator.state_count;
@@ -50,7 +50,7 @@ void CudaIhm::GenerateShm(SpaceData space_data, PhmGenerator phm_generator, floa
     printf("    Summing heuristics...\n");
     float* sums;
     cudaMalloc(&sums, phm_generator.state_count * sizeof(float));
-    CudaIhm::SummationPhm(phm_generator, phm, sums);
+    CudaNavHash::SummationPhm(phm_generator, phm, sums);
 
     float* buffer;
     cudaMalloc(&buffer, phm_generator.state_count * threads_per_block.x * sizeof(float));
@@ -69,7 +69,7 @@ void CudaIhm::GenerateShm(SpaceData space_data, PhmGenerator phm_generator, floa
     printf("\n");
 }
 
-void CudaIhm::SummationPhm(PhmGenerator phm_generator, float* phm, float* sums) {
+void CudaNavHash::SummationPhm(PhmGenerator phm_generator, float* phm, float* sums) {
     dim3 threads_per_block(32, 1, 1);
     unsigned long long x_blocks = ceil(phm_generator.state_count / 32);
     dim3 blocks_per_grid(x_blocks, 1, 1);
@@ -82,7 +82,7 @@ void CudaIhm::SummationPhm(PhmGenerator phm_generator, float* phm, float* sums) 
     printf("\n");
 }
 
-void CudaIhm::SmoothShm(PhmGenerator phm_generator, float* shm) {
+void CudaNavHash::SmoothShm(PhmGenerator phm_generator, float* shm) {
     dim3 threads_per_block(32, 1, 1);
     unsigned long long x_blocks = ceil(phm_generator.state_count / 32);
     dim3 blocks_per_grid(x_blocks, 1, 1);

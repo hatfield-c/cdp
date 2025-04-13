@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "../../engine/Transform.h"
-#include "../../engine/Indexer.h"
+#include "../../../engine/Transform.h"
+#include "../../../engine/Indexer.h"
 
 struct CentroidCortex {
 	Vector2 phash_size{ 16, 16 };

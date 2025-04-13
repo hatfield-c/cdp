@@ -23,9 +23,9 @@
 #include "../entity/WindGenerator.h"
 #include "../entity/ai/hitpoly/NeuralGrid.h"
 #include "../entity/ai/hitpoly/cuda/CudaHitpoly.cuh"
-#include "../entity/ai/phm/PhmState.h"
-#include "../entity/ai/phm/PhmGenerator.h"
-#include "../entity/ai/phm/cuda/CudaPhm.cuh"
+#include "../entity/ai/nav/PhmState.h"
+#include "../entity/ai/nav/PhmGenerator.h"
+#include "../entity/ai/nav/cuda/CudaNavHash.cuh"
 
 struct CpuEngine {
 	bool is_simulating = false;
@@ -259,14 +259,14 @@ struct CpuEngine {
 		float* phm;
 		cudaMalloc(&phm, slice_generator.bit_count * sizeof(float));
 		cudaMemset(phm, 0, slice_generator.bit_count * sizeof(float));
-		CudaIhm::GeneratePhm(this->world_space.space_data, *this->camera_list[0], slice_generator, phm);
+		CudaNavHash::GeneratePhm(this->world_space.space_data, *this->camera_list[0], slice_generator, phm);
 
 		float* phm_cpu = new float[slice_generator.bit_count];
 		memset(phm_cpu, 0, slice_generator.bit_count * sizeof(float));
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(phm_cpu, phm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 
 		printf("    Saving PHM...\n");
-		std::string phm_path = "data/phm/phm.float";
+		std::string phm_path = "data/nav/phm/phm.float";
 
 		FILE* ihm_file;
 		fopen_s(&ihm_file, phm_path.c_str(), "wb+");
@@ -281,7 +281,7 @@ struct CpuEngine {
 			unsigned long long index = i * (int)(slice_generator.state_count / 157);
 			PhmState phm_state = slice_generator.GetPhmState(index, false);
 
-			std::string img_path = "data/phm/"
+			std::string img_path = "data/nav/phm/"
 				+ std::to_string(index)
 				+ "-"
 				+ std::to_string((int)phm_state.position.x) + "_"
@@ -340,12 +340,12 @@ struct CpuEngine {
 		float* ihm;
 		cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
 		cudaMemset(ihm, 0, slice_generator.bit_count * sizeof(float));
-		CudaIhm::GeneratePhm(this->world_space.space_data, *this->camera_list[0], slice_generator, ihm);
+		CudaNavHash::GeneratePhm(this->world_space.space_data, *this->camera_list[0], slice_generator, ihm);
 
 		float* shm;
 		cudaMalloc(&shm, slice_generator.state_count * 10 * 10 * sizeof(float));
 		cudaMemset(shm, 0, slice_generator.state_count * 10 * 10 * sizeof(float));
-		CudaIhm::GenerateShm(this->world_space.space_data, slice_generator, ihm, shm);
+		CudaNavHash::GenerateShm(this->world_space.space_data, slice_generator, ihm, shm);
 
 		float* ihm_cpu = new float[slice_generator.bit_count];
 		memset(ihm_cpu, 0, slice_generator.bit_count * sizeof(float));

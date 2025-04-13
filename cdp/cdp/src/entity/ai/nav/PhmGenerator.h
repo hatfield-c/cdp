@@ -169,7 +169,7 @@ struct PhmGenerator {
 		float max_val = 0;
 		for (int i = 0; i < 10; i++) {
 			for (int j = 0; j < 10; j++) {
-				unsigned long long data_index = Indexer::FlatIndex3((float)j, i, (float)shm_state_index, 10, 10);
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 10.0f, 10.0f);
 				float value = shm[data_index];
 
 				if (value > max_val) {
@@ -186,13 +186,13 @@ struct PhmGenerator {
 							continue;
 						}
 
-						unsigned long long kernel_index = Indexer::FlatIndex3((float)x_j, y_i, (float)shm_state_index, 10, 10);
+						unsigned long long kernel_index = Indexer::FlatIndex3((float)x_j, (float)y_i, (float)shm_state_index, 10.0f, 10.0f);
 						float local_value = shm[kernel_index];
 
-						Vector2 max_offset{ x, y };
+						Vector2 max_offset{ (float)x, (float)y };
 
 						float dist = Transform::Norm2(max_offset);
-						float mixer = 1 - expf(-0.78 * dist);
+						float mixer = 1 - expf(-0.78f * dist);
 						float mixed_value = (mixer * value) + ((1 - mixer) * local_value);
 
 						if (mixed_value > kernel_value) {
@@ -211,7 +211,7 @@ struct PhmGenerator {
 
 		for (int i = 0; i < 10; i++) {
 			for (int j = 0; j < 10; j++) {
-				unsigned long long data_index = Indexer::FlatIndex3((float)j, i, (float)shm_state_index, 10, 10);
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 10.0f, 10.0f);
 
 				float value = buffer[data_index] / max_val;
 
@@ -223,9 +223,9 @@ struct PhmGenerator {
 	__device__ void GenerateShm(SpaceData space_data, float* phm, float* shm, float* buffer, float* sums, void(*SyncThreads)()) {
 		Vector2 extracted = Indexer::InverseFlatIndex2((float)blockIdx.x, 10 * 10);
 
-		unsigned long long shm_pixel_index = extracted.x;
-		unsigned long long shm_state_index = extracted.y;
-		unsigned long long direction_index = threadIdx.x;
+		unsigned long long shm_pixel_index = (unsigned long long)extracted.x;
+		unsigned long long shm_state_index = (unsigned long long)extracted.y;
+		unsigned long long direction_index = (unsigned long long)threadIdx.x;
 
 		if (shm_state_index != 55020) {
 			//return;
@@ -238,9 +238,9 @@ struct PhmGenerator {
 		for (unsigned long long i = 0; i < 10; i++) {
 			for (unsigned long long j = 0; j < 3; j++) {
 				for (unsigned long long k = 0; k < 10; k++) {
-					Vector3 phm_voxel{ i + (shm_pixel.x * 10), j, k + (shm_pixel.y * 10) };
+					Vector3 phm_voxel{ (float)i + (shm_pixel.x * 10.0f), (float)j, (float)k + (shm_pixel.y * 10.0f) };
 
-					unsigned long long phm_state_index = Indexer::FlatIndex4((float)direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+					unsigned long long phm_state_index = Indexer::FlatIndex4((float)direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
 					float sum_shm = sums[shm_state_index];
 					float sum_phm = sums[phm_state_index];
@@ -296,7 +296,7 @@ struct PhmGenerator {
 			return;
 		}
 
-		lowest_norm = 999999999999;
+		lowest_norm = 999999999999.0f;
 		for (unsigned long long i = 0; i < blockDim.x; i++) {
 			unsigned long long buffer_index = Indexer::FlatIndex2(i, shm_state_index, blockDim.x);
 

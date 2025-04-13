@@ -21,8 +21,8 @@ struct WorldSpace {
 	SpaceBuilder space_builder;
 		
 	void Init() {
-		this->space_data.voxel_count0 = this->space_data.world_size0.Mult();
-		this->space_data.voxel_count1 = this->space_data.world_size1.Mult();
+		this->space_data.voxel_count0 = (unsigned long long)this->space_data.world_size0.Mult();
+		this->space_data.voxel_count1 = (unsigned long long)this->space_data.world_size1.Mult();
 
 		this->space_data.memory_size0 = this->space_data.voxel_count0 * sizeof(VoxelData);
 		this->space_data.memory_size1 = this->space_data.voxel_count1 * sizeof(VoxelData);
@@ -99,7 +99,7 @@ struct WorldSpace {
 	}
 
 	Vector3* WritePointsToCuda(std::vector<std::array<double, 3>> point_list) {
-		int memory_size = point_list.size() * sizeof(Vector3);
+		int memory_size = (int)(point_list.size() * sizeof(Vector3));
 
 		VoxelData voxel_data{ 1, 1 };
 		Vector3* points = (Vector3*)malloc(memory_size);

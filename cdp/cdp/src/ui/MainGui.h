@@ -13,7 +13,7 @@
 
 #include "../engine/Math.h"
 #include "../engine/Indexer.h"
-#include "../entity/ai/phm/PhmGenerator.h"
+#include "../entity/ai/nav/PhmGenerator.h"
 #include "GuiData.h"
 
 struct MainGui {

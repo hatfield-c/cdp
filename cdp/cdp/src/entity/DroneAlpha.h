@@ -34,7 +34,7 @@ struct DroneAlpha {
 
 				float result = 0;// field[index];
 
-				Vector2 pp{ j * 6.25, i * 6.25 };
+				Vector2 pp{ (float)j * 6.25f, (float)i * 6.25f };
 				float dist = Transform::Norm2(pp - rp);
 
 				if (dist < 2 * 6.25f) {
