@@ -48,8 +48,12 @@ void MainApplication::GuiAction(GuiData* gui_data) {
         this->engine->GenerateHitPolyData(gui_data);
     }
 
-    if (gui_data->is_generate_polyfield_data) {
-        this->engine->GeneratePolyFieldData(gui_data);
+    if (gui_data->is_generate_phm_data) {
+        this->engine->GeneratePhm(gui_data);
+    }
+
+    if (gui_data->is_generate_shm_data) {
+        this->engine->GenerateShm(gui_data);
     }
 
     if (is_state_changed && !this->engine->is_simulating) {

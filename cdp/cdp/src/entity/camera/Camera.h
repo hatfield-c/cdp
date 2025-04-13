@@ -1,14 +1,14 @@
-#pragma once
+ #pragma once
 
 #include <string>
 
 #include "cuda.h"
 
-#include "../engine/WorldSpace.h"
-#include "../engine/Physics.h"
-#include "../engine/Transform.h"
-#include "../engine/Quaternion.h"
-#include "../engine/Indexer.h"
+#include "../../engine/WorldSpace.h"
+#include "../../engine/Physics.h"
+#include "../../engine/Transform.h"
+#include "../../engine/Quaternion.h"
+#include "../../engine/Indexer.h"
 
 typedef unsigned char byte;
 

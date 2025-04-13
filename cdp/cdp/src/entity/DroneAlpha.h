@@ -2,12 +2,10 @@
 
 #include "../engine/RigidBody.h"
 #include "ai/Wallrider.h"
-#include "ai/PolyField.h"
 
 struct DroneAlpha {
 	Rigidbody rigidbody{};
 	Wallrider wallrider{};
-	PolyField poly_field{};
 
 	float forward_max = 1;
 	float climb_max = 1;
@@ -22,26 +20,19 @@ struct DroneAlpha {
 	void Init() {
 		this->rigidbody.Init();
 		this->wallrider.Init();
-		this->poly_field.Init(256, 256, 256, 2);
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->wallrider.Update(depth_phash, camera_cloud, this->rigidbody.velocity);
 		//this->poly_field.Update(depth_phash);
 
-		float* field = this->poly_field.field;
-
 		Vector2 rp{ this->rigidbody.position.x, this->rigidbody.position.z };
-
-		// todo: test specific images in python
-		//			then test those locations in c++ and see how data
-		//			flows through network in each
 
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 16; j++) {
 				unsigned long long index = Indexer::FlatIndex2((unsigned long long)j, i, 16);
 
-				float result = field[index];
+				float result = 0;// field[index];
 
 				Vector2 pp{ j * 6.25, i * 6.25 };
 				float dist = Transform::Norm2(pp - rp);

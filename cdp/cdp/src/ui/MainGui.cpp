@@ -16,7 +16,7 @@ MainGui::MainGui(int camera_count) {
 
     this->vulkan_pipeline = new VulkanPipeline(this->camera_count);
 
-    this->ihm_generator.Init(
+    this->phm_generator.Init(
         3,
         Vector2{ -Math::Pi() / 4.0f, 0},
         Vector::ZERO3(),
@@ -30,9 +30,9 @@ MainGui::MainGui(int camera_count) {
         this->gui_data->camera_position.x, 
         this->gui_data->camera_position.y,
         this->gui_data->camera_position.z,
-        (float)this->ihm_generator.direction_count, 
-        this->ihm_generator.world_width_strided.x, 
-        this->ihm_generator.world_width_strided.y
+        (float)this->phm_generator.direction_count, 
+        this->phm_generator.world_width_strided.x, 
+        this->phm_generator.world_width_strided.y
     );
 }
 
@@ -215,16 +215,16 @@ void MainGui::DrawInspector() {
         }
         else if (this->gui_data->control_index == 1) {
             camera_state_flag = ImGuiInputTextFlags_ReadOnly;
-            IhmState ihm_state = this->ihm_generator.GetIhmState(ihm_index, false);
+            PhmState phm_state = this->phm_generator.GetPhmState(ihm_index, false);
 
-            camera_position[0] = ihm_state.position_strided.x;
-            camera_position[1] = ihm_state.position_strided.y;
-            camera_position[2] = ihm_state.position_strided.z;
-            direction_index = ihm_state.direction_index;
+            camera_position[0] = phm_state.position_strided.x;
+            camera_position[1] = phm_state.position_strided.y;
+            camera_position[2] = phm_state.position_strided.z;
+            direction_index = phm_state.direction_index;
         }
         else if (this->gui_data->control_index == 2) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
-            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
+            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->phm_generator.direction_count, this->phm_generator.world_width_strided.x, this->phm_generator.world_width_strided.y);
         }
         else if (this->gui_data->control_index == 3) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
@@ -255,12 +255,12 @@ void MainGui::DrawInspector() {
                 direction_index--;
             }
 
-            camera_position[0] = (float)Math::Clip(camera_position[0], this->ihm_generator.world_origin.x, this->ihm_generator.world_width_strided.x - 1);
-            camera_position[1] = (float)Math::Clip(camera_position[1], this->ihm_generator.world_origin.y, this->ihm_generator.world_width_strided.y - 1);
-            camera_position[2] = (float)Math::Clip(camera_position[2], this->ihm_generator.world_origin.z, this->ihm_generator.world_width_strided.z - 1);
-            direction_index = (int)Math::Clip(direction_index, 0, this->ihm_generator.direction_count - 1);
+            camera_position[0] = (float)Math::Clip(camera_position[0], this->phm_generator.world_origin.x, this->phm_generator.world_width_strided.x - 1);
+            camera_position[1] = (float)Math::Clip(camera_position[1], this->phm_generator.world_origin.y, this->phm_generator.world_width_strided.y - 1);
+            camera_position[2] = (float)Math::Clip(camera_position[2], this->phm_generator.world_origin.z, this->phm_generator.world_width_strided.z - 1);
+            direction_index = (int)Math::Clip(direction_index, 0, this->phm_generator.direction_count - 1);
 
-            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->ihm_generator.direction_count, this->ihm_generator.world_width_strided.x, this->ihm_generator.world_width_strided.y);
+            ihm_index = Indexer::FlatIndex4((float)direction_index, camera_position[0], camera_position[1], camera_position[2], (float)this->phm_generator.direction_count, this->phm_generator.world_width_strided.x, this->phm_generator.world_width_strided.y);
         }
         else if (this->gui_data->control_index == 4) {
             ihm_index_flag = ImGuiInputTextFlags_ReadOnly;
@@ -286,7 +286,7 @@ void MainGui::DrawInspector() {
             }
         }
 
-        Vector3 direction = this->ihm_generator.directions_cpu[direction_index];
+        Vector3 direction = this->phm_generator.directions_cpu[direction_index];
         float camera_direction[3] = { direction.x, direction.y, direction.z };
 
         ImGui::AlignTextToFramePadding();
@@ -376,7 +376,8 @@ void MainGui::DrawInspector() {
 
     if (ImGui::CollapsingHeader("Training Data")) {
         this->gui_data->is_generate_hitpoly_data = ImGui::Button("Hitpoly Data");
-        this->gui_data->is_generate_polyfield_data = ImGui::Button("Polyfield Data");
+        this->gui_data->is_generate_phm_data = ImGui::Button("Perceptual Hash Matrix");
+        this->gui_data->is_generate_shm_data = ImGui::Button("Similarity Hash Matrix");
     }
 
     if (ImGui::CollapsingHeader("Testing")) {

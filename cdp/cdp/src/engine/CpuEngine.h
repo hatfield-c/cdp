@@ -13,21 +13,19 @@
 #include "Transform.h"
 #include "Quaternion.h"
 #include "WorldSpace.h"
-#include "../entity/Camera.h"
-#include "../entity/DroneAlpha.h"
-#include "../entity/WindGenerator.h"
 #include "ImageBuilder.h"
-#include "ihm/hitpoly/NeuralGrid.h"
 
-#include "ihm/IhmState.h"
-#include "ihm/IhmGenerator.h"
-#include "ihm/IhmCortex.h"
 #include "../ui/GuiData.h"
 
-#include "cuda/CudaCamera.cuh"
-#include "ihm/hitpoly/cuda/CudaHitPoly.cuh"
-#include "ihm/cuda/CudaIhm.cuh"
-#include "ihm/IhmEstimate.h"
+#include "../entity/camera/Camera.h"
+#include "../entity/camera/cuda/CudaCamera.cuh"
+#include "../entity/DroneAlpha.h"
+#include "../entity/WindGenerator.h"
+#include "../entity/ai/hitpoly/NeuralGrid.h"
+#include "../entity/ai/hitpoly/cuda/CudaHitpoly.cuh"
+#include "../entity/ai/phm/PhmState.h"
+#include "../entity/ai/phm/PhmGenerator.h"
+#include "../entity/ai/phm/cuda/CudaPhm.cuh"
 
 class CpuEngine {
 	public:
@@ -37,8 +35,7 @@ class CpuEngine {
 		std::vector<Camera*> camera_list{};
 		WorldSpace* world_space;
 		ImageBuilder* image_builder;
-		IhmGenerator ihm_generator{};
-		IhmCortex ihm_cortex{};
+		PhmGenerator phm_generator{};
 		DroneAlpha drone_alpha{};
 		WindGenerator wind_generatior{};
 		byte* simulation_image;
@@ -54,7 +51,8 @@ class CpuEngine {
 		void DrawDronePosition();
 		void SaveProximityHash(GuiData* gui_data);
 		void GenerateHitPolyData(GuiData* gui_data);
-		void GeneratePolyFieldData(GuiData* gui_data);
+		void GeneratePhm(GuiData* gui_data);
+		void GenerateShm(GuiData* gui_data);
 		void Playground(GuiData* gui_data);
 		void Cleanup();
 };

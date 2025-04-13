@@ -2,8 +2,8 @@
 
 #include <fstream>
 
-#include "../../Transform.h"
-#include "../../Indexer.h"
+#include "../../../engine/Transform.h"
+#include "../../../engine/Indexer.h"
 
 struct NeuralGrid {
 	float* w0 = new float[6 * 256];

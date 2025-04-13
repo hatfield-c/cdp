@@ -4,8 +4,9 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include "../SpaceData.h"
-#include "../../entity/Camera.h"
+#include "../../../system/CudaError.h"
+#include "../../../engine/SpaceData.h"
+#include "../Camera.h"
 
 namespace CudaCamera {
 	__device__ void SyncThreads();

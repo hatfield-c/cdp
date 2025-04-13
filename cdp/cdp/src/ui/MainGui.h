@@ -13,13 +13,13 @@
 
 #include "../engine/Math.h"
 #include "../engine/Indexer.h"
-#include "../engine/ihm/IhmGenerator.h"
+#include "../entity/ai/phm/PhmGenerator.h"
 #include "GuiData.h"
 
 class MainGui {
 	public:
 		int render_texture = 0;
-		IhmGenerator ihm_generator{};
+		PhmGenerator phm_generator{};
 
 		int camera_index = 0;
 		int camera_count = 0;

@@ -4,7 +4,7 @@ CpuEngine::CpuEngine(std::vector<CUdeviceptr> depth_textures, std::vector<CUdevi
 	this->world_space = new WorldSpace();
 	this->image_builder->Init();
 
-	this->ihm_generator.Init(
+	this->phm_generator.Init(
 		3,
 		Vector2{ -Math::Pi() / 4.0f, 0.0f },
 		Vector::ZERO3(),
@@ -88,7 +88,7 @@ void CpuEngine::End(GuiData* gui_data) {
 void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 	this->camera_list[0]->is_rotation_noise = gui_data->is_rotation_noise;
 
-	gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride).Floor();
+	gui_data->drone_voxel = (this->drone_alpha.rigidbody.position * this->phm_generator.world_stride).Floor();
 	gui_data->drone_position = this->drone_alpha.rigidbody.position;
 	gui_data->drone_forward = Quaternion::RotatePoint(Vector::FORWARD(), this->drone_alpha.rigidbody.rotation);
 	gui_data->drone_quaternion = this->drone_alpha.rigidbody.rotation;
@@ -100,7 +100,7 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 		(float)this->drone_alpha.wallrider.steer_proximity[2]
 	};
 
-	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+	this->camera_list[0]->transform.position = this->drone_alpha.rigidbody.position * this->phm_generator.world_stride;
 	this->camera_list[0]->transform.rotation = this->drone_alpha.rigidbody.ForwardQuaternion();
 
 	float* depth_phash = this->camera_list[0]->GetPhashAsFloat();
@@ -121,7 +121,7 @@ void CpuEngine::ScenarioUpdate(GuiData* gui_data) {
 		this->drone_alpha.Act();
 	}
 	else  {
-		IhmState ihm_state = this->ihm_generator.GetIhmState(gui_data->ihm_index, false);
+		PhmState ihm_state = this->phm_generator.GetPhmState(gui_data->ihm_index, false);
 
 		this->camera_list[0]->transform.position = ihm_state.position;
 		this->camera_list[0]->transform.rotation = ihm_state.rotation;
@@ -147,7 +147,7 @@ void CpuEngine::PhysicsUpdate(GuiData* gui_data) {
 	this->drone_alpha.rigidbody.AirResistance(wind);
 	this->drone_alpha.rigidbody.Update();
 
-	this->drone_alpha.rigidbody.position = this->drone_alpha.rigidbody.position.Clip(Vector::ZERO3(), this->ihm_generator.world_size_strided - 0.1f);
+	this->drone_alpha.rigidbody.position = this->drone_alpha.rigidbody.position.Clip(Vector::ZERO3(), this->phm_generator.world_size_strided - 0.1f);
 }
 
 void CpuEngine::RenderUpdate(GuiData* gui_data) {
@@ -192,7 +192,7 @@ void CpuEngine::SaveSimulationImage(GuiData* gui_data) {
 }
 
 void CpuEngine::DrawDronePosition() {
-	Vector3 position = this->drone_alpha.rigidbody.position * this->ihm_generator.world_stride;
+	Vector3 position = this->drone_alpha.rigidbody.position * this->phm_generator.world_stride;
 	Vector2 render_position{ position.x, position.z };
 	Vector2 render_size{ this->world_space->space_data.world_size0.x, this->world_space->space_data.world_size0.z };
 
@@ -203,10 +203,91 @@ void CpuEngine::GenerateHitPolyData(GuiData* gui_data) {
 	CudaHitPoly::GenerateTrainingData();
 }
 
-void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
+void CpuEngine::GeneratePhm(GuiData* gui_data) {
 	std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
 
-	IhmGenerator slice_generator{};
+	PhmGenerator slice_generator{};
+	slice_generator.Init(
+		3,
+		Vector2{ -Math::Pi() / 4.0f, 0.0f },
+		Vector3{ 0, 50, 0 },
+		Vector3{ 1000, 30, 1000 },
+		this->world_space->space_data.world_size0,
+		Vector3{ 10, 10, 10 },
+		Vector2{ 16, 16 }
+	);
+
+	float* phm;
+	cudaMalloc(&phm, slice_generator.bit_count * sizeof(float));
+	cudaMemset(phm, 0, slice_generator.bit_count * sizeof(float));
+	CudaIhm::GeneratePhm(this->world_space->space_data, *this->camera_list[0], slice_generator, phm);
+
+	float* phm_cpu = new float[slice_generator.bit_count];
+	memset(phm_cpu, 0, slice_generator.bit_count * sizeof(float));
+	CudaError::CheckError((cudaError_enum)cudaMemcpy(phm_cpu, phm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+	printf("    Saving PHM...\n");
+	std::string phm_path = "data/phm/phm.float";
+
+	FILE* ihm_file;
+	fopen_s(&ihm_file, phm_path.c_str(), "wb+");
+	if (ihm_file == NULL) {
+		printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", phm_path.c_str());
+		exit(1);
+	}
+	int result = (int)fwrite(phm_cpu, sizeof(float), slice_generator.bit_count, ihm_file);
+	fclose(ihm_file);
+
+	for (int i = 0; i < 157; i++) {
+		unsigned long long index = i * (int)(slice_generator.state_count / 157);
+		PhmState phm_state = slice_generator.GetPhmState(index, false);
+
+		std::string img_path = "data/phm/"
+			+ std::to_string(index)
+			+ "-"
+			+ std::to_string((int)phm_state.position.x) + "_"
+			+ std::to_string((int)phm_state.position.y) + "_"
+			+ std::to_string((int)phm_state.position.z)
+			+ ""
+			+ "-"
+			+ std::to_string(phm_state.direction_index)
+			+ ".jpg"
+			;
+
+		float* depth_frame = new float[slice_generator.phash_count];
+		byte* depth_img = new byte[slice_generator.phash_count];
+
+		for (unsigned long long j = 0; j < 16; j++) {
+			for (unsigned long long k = 0; k < 16; k++) {
+				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
+				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
+
+				float depth_value = phm_cpu[bit_index];
+				float depth_float = depth_value;
+				depth_float = 20.0f - depth_float;
+				depth_float = depth_float / 20.0f;
+				depth_float = 255.0f * depth_float;
+				byte pixel_value = (byte)depth_float;
+
+				depth_frame[phash_index] = depth_value;
+				depth_img[phash_index] = pixel_value;
+			}
+		}
+
+		stbi_write_jpg(img_path.c_str(), 16, 16, 1, depth_img, 100);
+	}
+	printf("        Done!");
+
+	std::chrono::steady_clock::duration frame_time_passed = std::chrono::steady_clock::now() - frame_begin_time;
+	unsigned long long time_lapsed = std::chrono::duration_cast<std::chrono::seconds>(frame_time_passed).count();
+
+	printf("\nTime elapsed: %lld s\n", time_lapsed);
+}
+
+void CpuEngine::GenerateShm(GuiData* gui_data) {
+	std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
+
+	PhmGenerator slice_generator{};
 	slice_generator.Init(
 		3,
 		Vector2{ -Math::Pi() / 4.0f, 0.0f },
@@ -220,7 +301,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 	float* ihm;
 	cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
 	cudaMemset(ihm, 0, slice_generator.bit_count * sizeof(float));
-	CudaIhm::GenerateIhm(this->world_space->space_data, *this->camera_list[0], slice_generator, ihm);
+	CudaIhm::GeneratePhm(this->world_space->space_data, *this->camera_list[0], slice_generator, ihm);
 
 	float* shm;
 	cudaMalloc(&shm, slice_generator.state_count * 10 * 10 * sizeof(float));
@@ -259,10 +340,10 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 
 	for (int i = 0; i < 157; i++) {
 		unsigned long long index = i * (int)(slice_generator.state_count / 157);
-		IhmState ihm_state = slice_generator.GetIhmState(index, false);
+		PhmState ihm_state = slice_generator.GetPhmState(index, false);
 
-		std::string img_path = "data/polyfield/training/" 
-			+ std::to_string(index) 
+		std::string img_path = "data/polyfield/training/"
+			+ std::to_string(index)
 			+ "-"
 			+ std::to_string((int)ihm_state.position.x) + "_"
 			+ std::to_string((int)ihm_state.position.y) + "_"
@@ -271,7 +352,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 			+ "-"
 			+ std::to_string(ihm_state.direction_index)
 			+ ".jpg"
-		;
+			;
 
 		float* depth_frame = new float[slice_generator.phash_count];
 		byte* depth_img = new byte[slice_generator.phash_count];
@@ -280,14 +361,14 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 			for (unsigned long long k = 0; k < 16; k++) {
 				unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
 				unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
-				
+
 				float depth_value = ihm_cpu[bit_index];
 				float depth_float = depth_value;
 				depth_float = 20.0f - depth_float;
 				depth_float = depth_float / 20.0f;
 				depth_float = 255.0f * depth_float;
 				byte pixel_value = (byte)depth_float;
-				
+
 				depth_frame[phash_index] = depth_value;
 				depth_img[phash_index] = pixel_value;
 			}
@@ -328,7 +409,7 @@ void CpuEngine::GeneratePolyFieldData(GuiData* gui_data) {
 void CpuEngine::Playground(GuiData* gui_data) {
 	std::string shm_path = "data/polyfield/training/shm.float";
 
-	IhmGenerator slice_generator{};
+	PhmGenerator slice_generator{};
 	slice_generator.Init(
 		3,
 		Vector2{ -Math::Pi() / 4.0f, 0.0f },
@@ -393,11 +474,6 @@ void CpuEngine::SaveProximityHash(GuiData* gui_data) {
 
 void CpuEngine::Cleanup() {
 	printf("Cleaning CudaEngine...\n");
-	printf("    Freeing GPU IHM...\n");
-	cudaFree(this->ihm_cortex.ihm);
-	printf("    Freeing CPU IHM...\n");
-	free(this->ihm_cortex.ihm_cpu);
-
 	this->world_space->Cleanup();
 	printf("    Done!\n");
 }

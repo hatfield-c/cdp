@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../../system/CudaError.h"
+#include "../../../system/CudaError.h"
 
-#include "IhmState.h"
-#include "../WorldSpace.h"
-#include "../Transform.h"
-#include "../Quaternion.h"
-#include "../Indexer.h"
-#include "../RaycastHitData.h"
-#include "../../entity/Camera.h"
+#include "PhmState.h"
+#include "../../../engine/WorldSpace.h"
+#include "../../../engine/Transform.h"
+#include "../../../engine/Quaternion.h"
+#include "../../../engine/Indexer.h"
+#include "../../../engine/RaycastHitData.h"
+#include "../../camera/Camera.h"
 
-struct IhmGenerator {
+struct PhmGenerator {
 	int direction_density;
 	int direction_count;
 	unsigned long long voxel_count;
@@ -63,7 +63,7 @@ struct IhmGenerator {
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->directions, this->directions_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}
 
-	__device__ void Generate(SpaceData space_data, Camera* camera, float* ihm) {
+	__device__ void Generate(SpaceData space_data, Camera* camera, float* phm) {
 		unsigned long long block_index = Indexer::FlatIndex2((unsigned long long)blockIdx.x, (unsigned long long)blockIdx.y, (unsigned long long)gridDim.x);
 		unsigned long long block_max = (unsigned long long)(gridDim.x * gridDim.y);
 
@@ -75,7 +75,7 @@ struct IhmGenerator {
 			//return;
 		}
 
-		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
+		PhmState phm_state = this->GetPhmState(blockIdx.x, true);
 		Vector2 phash_position{
 			(float)threadIdx.x,
 			(float)Indexer::FlatIndex2((unsigned long long)threadIdx.y, (unsigned long long)blockIdx.y, (unsigned long long)blockDim.y)
@@ -86,7 +86,7 @@ struct IhmGenerator {
 			return;
 		}
 
-		unsigned long long world_index = Indexer::FlatIndex3(ihm_state.position.x, ihm_state.position.y, ihm_state.position.z, space_data.world_size0.x, space_data.world_size0.y);
+		unsigned long long world_index = Indexer::FlatIndex3(phm_state.position.x, phm_state.position.y, phm_state.position.z, space_data.world_size0.x, space_data.world_size0.y);
 		VoxelData voxel_data = space_data.space0[world_index];
 
 		if (voxel_data.entity_id != 0) {
@@ -110,8 +110,8 @@ struct IhmGenerator {
 					continue;
 				}
 
-				Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, ihm_state.rotation);
-				RaycastHitData hit_data = Physics::Raycast(space_data, ihm_state.position, ray_direction, camera->max_render_distance);
+				Vector3 ray_direction = Camera::GetCameraRayDirection(pixel_position, camera->camera_size, camera->fov, phm_state.rotation);
+				RaycastHitData hit_data = Physics::Raycast(space_data, phm_state.position, ray_direction, camera->max_render_distance);
 				float depth = hit_data.distance;
 
 				if (hit_data.voxel_data.entity_id == 0) {
@@ -137,26 +137,26 @@ struct IhmGenerator {
 			depth = 20.0f;
 		}
 
-		ihm[data_index] = depth;
+		phm[data_index] = depth;
 	}
 
-	__device__ void SummationIhm(float* ihm, float* sums) {
-		unsigned long long ihm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
+	__device__ void SummationPhm(float* phm, float* sums) {
+		unsigned long long phm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
 
-		if (ihm_state_index >= this->state_count) {
+		if (phm_state_index >= this->state_count) {
 			return;
 		}
 
 		float sum = 0;
 		for (unsigned long long i = 0; i < 16; i++) {
 			for (unsigned long long j = 0; j < 16; j++) {
-				unsigned long long data_index = Indexer::FlatIndex3(j, i, ihm_state_index, 16, 16);
-				float value = ihm[data_index] / 20.0f;
+				unsigned long long data_index = Indexer::FlatIndex3(j, i, phm_state_index, 16, 16);
+				float value = phm[data_index] / 20.0f;
 				sum += value;
 			}
 		}
 		
-		sums[ihm_state_index] = sum;
+		sums[phm_state_index] = sum;
 	}
 
 	__device__ void SmoothShm(float* shm, float* buffer) {
@@ -220,7 +220,7 @@ struct IhmGenerator {
 		}
 	}
 
-	__device__ void GenerateShm(SpaceData space_data, float* ihm, float* shm, float* buffer, float* sums, void(*SyncThreads)()) {
+	__device__ void GenerateShm(SpaceData space_data, float* phm, float* shm, float* buffer, float* sums, void(*SyncThreads)()) {
 		Vector2 extracted = Indexer::InverseFlatIndex2((float)blockIdx.x, 10 * 10);
 
 		unsigned long long shm_pixel_index = extracted.x;
@@ -238,31 +238,31 @@ struct IhmGenerator {
 		for (unsigned long long i = 0; i < 10; i++) {
 			for (unsigned long long j = 0; j < 3; j++) {
 				for (unsigned long long k = 0; k < 10; k++) {
-					Vector3 ihm_voxel{ i + (shm_pixel.x * 10), j, k + (shm_pixel.y * 10) };
+					Vector3 phm_voxel{ i + (shm_pixel.x * 10), j, k + (shm_pixel.y * 10) };
 
-					unsigned long long ihm_state_index = Indexer::FlatIndex4((float)direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+					unsigned long long phm_state_index = Indexer::FlatIndex4((float)direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
 					float sum_shm = sums[shm_state_index];
-					float sum_ihm = sums[ihm_state_index];
-					float diff = abs(sum_shm - sum_ihm) / 256.0f;
+					float sum_phm = sums[phm_state_index];
+					float diff = abs(sum_shm - sum_phm) / 256.0f;
 					
-					if (diff > 0.1f || sum_shm > 250 || sum_ihm > 250  || sum_shm < 5 || sum_ihm < 5) {
+					if (diff > 0.1f || sum_shm > 250 || sum_phm > 250  || sum_shm < 5 || sum_phm < 5) {
 						continue;
 					}
 
 					float frobenius = 0;
 					for (unsigned long long y = 0; y < 16; y++) {
 						for (unsigned long long x = 0; x < 16; x++) {
-							unsigned long long ihm_data_index = Indexer::FlatIndex3(x, y, ihm_state_index, 16, 16);
+							unsigned long long phm_data_index = Indexer::FlatIndex3(x, y, phm_state_index, 16, 16);
 							unsigned long long shm_source_index = Indexer::FlatIndex3(x, y, shm_state_index, 16, 16);
 
-							float val0 = ihm[ihm_data_index];
-							float val1 = ihm[shm_source_index];
+							float val0 = phm[phm_data_index];
+							float val1 = phm[shm_source_index];
 
 							float difference = (val0 - val1) / 20.0f;
 							difference = difference * difference;
 
-							if (ihm_state_index == 524639) {
+							if (phm_state_index == 524639) {
 								//printf("_[%.4f, %.4f] %.4f %.4f\n", val0, val1, difference, frobenius);
 							}
 
@@ -274,8 +274,8 @@ struct IhmGenerator {
 
 					if (frobenius < 0.30f) {
 					//if (shm_pixel.y > 1) {
-					//if(ihm_state_index == 524639){
-						//printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, ihm_state_index, direction_index, ihm_voxel.x, ihm_voxel.y, ihm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
+					//if(phm_state_index == 524639){
+						//printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, phm_state_index, direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
 					}
 
 					if (frobenius < lowest_norm) {
@@ -311,7 +311,7 @@ struct IhmGenerator {
 		shm[shm_data_index] = 1.0f - lowest_norm;
 	}
 
-	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* ihm, Vector3* ihm_clouds) {
+	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* phm, Vector3* phm_clouds) {
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && blockIdx.y == 0 && threadIdx.x == 15 && threadIdx.y == 1) {
 			printf("*");
 		}
@@ -326,35 +326,35 @@ struct IhmGenerator {
 		}
 
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
-		byte depth_val = ihm[data_index];
+		byte depth_val = phm[data_index];
 
-		IhmState ihm_state = this->GetIhmState(blockIdx.x, true);
+		PhmState phm_state = this->GetPhmState(blockIdx.x, true);
 
-		Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), ihm_state.rotation);
+		Vector3 quat_dir = Quaternion::RotatePoint(Vector::RIGHT(), phm_state.rotation);
 		Vector3 angles = Quaternion::EulerAnglesFromDirection(quat_dir);
 		Vector4 remove_y = Quaternion::QuaternionFromEulerAngles(Vector3{ 0, -angles.y, 0 });
 
-		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, ihm_state.rotation, true);
+		Vector4 ray_rotation = Quaternion::MultiplyQuaternions(remove_y, phm_state.rotation, true);
 		Vector3 ray_direction = Camera::GetCameraRayDirection(phash_position, this->phash_size, camera->fov, ray_rotation);
 		float depth = ((float)depth_val / 256.0f) * camera->max_distance;
 
-		ihm_clouds[data_index] = ray_direction * depth;
+		phm_clouds[data_index] = ray_direction * depth;
 	}
 
-	__host__ __device__ IhmState GetIhmState(unsigned long long position_index, bool is_gpu) {
-		IhmState ihm_state;
+	__host__ __device__ PhmState GetPhmState(unsigned long long position_index, bool is_gpu) {
+		PhmState phm_state;
 		Vector4 state_data = Indexer::InverseFlatIndex4((float)position_index, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 		
-		ihm_state.position_strided.x = state_data.y;
-		ihm_state.position_strided.y = state_data.z;
-		ihm_state.position_strided.z = state_data.w;
+		phm_state.position_strided.x = state_data.y;
+		phm_state.position_strided.y = state_data.z;
+		phm_state.position_strided.z = state_data.w;
 
-		ihm_state.position.x = state_data.y * this->world_stride.x;
-		ihm_state.position.y = state_data.z * this->world_stride.y;
-		ihm_state.position.z = state_data.w * this->world_stride.z;
+		phm_state.position.x = state_data.y * this->world_stride.x;
+		phm_state.position.y = state_data.z * this->world_stride.y;
+		phm_state.position.z = state_data.w * this->world_stride.z;
 
-		ihm_state.position_strided += this->world_origin;
-		ihm_state.position += this->world_origin;
+		phm_state.position_strided += this->world_origin;
+		phm_state.position += this->world_origin;
 
 		int direction_index = (int)state_data.x;
 		Vector3 direction{};
@@ -366,10 +366,10 @@ struct IhmGenerator {
 			direction = this->directions_cpu[direction_index];
 		}
 
-		ihm_state.direction_index = direction_index;
-		ihm_state.rotation = Quaternion::QuaternionFromDirection(direction);
+		phm_state.direction_index = direction_index;
+		phm_state.rotation = Quaternion::QuaternionFromDirection(direction);
 
-		return ihm_state;
+		return phm_state;
 	}
 
 	void PreBuildDirections(int segment_count) {
