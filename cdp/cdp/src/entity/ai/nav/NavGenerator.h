@@ -9,6 +9,7 @@
 #include "../../../engine/Indexer.h"
 #include "../../../engine/RaycastHitData.h"
 #include "../../camera/Camera.h"
+#include "CentroidCortex.h"
 
 struct NavGenerator {
 	int direction_density;
@@ -63,7 +64,7 @@ struct NavGenerator {
 		CudaError::CheckError((cudaError_enum)cudaMemcpy(this->directions, this->directions_cpu, memory_size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 	}
 
-	__device__ void Generate(SpaceData space_data, Camera* camera, float* phm) {
+	__device__ void GeneratePhm(SpaceData space_data, Camera* camera, float* phm) {
 		unsigned long long block_index = Indexer::FlatIndex2((unsigned long long)blockIdx.x, (unsigned long long)blockIdx.y, (unsigned long long)gridDim.x);
 		unsigned long long block_max = (unsigned long long)(gridDim.x * gridDim.y);
 
@@ -140,6 +141,74 @@ struct NavGenerator {
 		phm[data_index] = depth;
 	}
 
+
+	__device__ void GenerateShm(SpaceData space_data, CentroidCortex centroid_cortex, float* phm, float* shm) {
+		unsigned long long shm_data_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
+
+		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
+			printf("*");
+		}
+
+		if (shm_data_index >= 100 * 100 * centroid_cortex.centroid_count) {
+			return;
+		}
+
+		Vector3 extracted = Indexer::InverseFlatIndex3((float)shm_data_index, 100, 100);
+		Vector2 shm_pixel{ extracted.x, extracted.y };
+		unsigned long long centroid_index = extracted.z;
+
+		if (centroid_index != 243 || shm_pixel.x != 1 || shm_pixel.y != 30) {
+			//return;
+		}
+
+		float max_norm = 0.01f;
+		float lowest_norm = max_norm;
+		for (unsigned long long i = 0; i < 3; i++) {
+			for (unsigned long long j = 0; j < 24; j++) {
+
+				//if (j != 12 || i != 1) {
+					//continue;
+				//}
+
+				unsigned long long phm_state_index = Indexer::FlatIndex4((float)j, shm_pixel.x, (float)i, shm_pixel.y, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+
+				float mse = 0;
+				for (unsigned long long y = 0; y < 16; y++) {
+					for (unsigned long long x = 0; x < 16; x++) {
+						unsigned long long phm_data_index = Indexer::FlatIndex3(x, y, phm_state_index, 16, 16);
+						unsigned long long centroid_data_index = Indexer::FlatIndex3(x, y, centroid_index, 16, 16);
+
+						float val0 = phm[phm_data_index];
+						float val1 = centroid_cortex.centroids[centroid_data_index];
+
+						float difference = (val0 - val1) / 20.0f;
+						difference = difference * difference;
+						//printf("[%lld %lld] %.2f %.2f %.2f %.2f\n", x, y, val0, val1, difference, mse);
+
+						mse += difference;
+					}
+				}
+
+				mse = mse / 256.0f;
+
+				if (mse < lowest_norm) {
+					lowest_norm = mse;
+				}
+			}
+		}
+		// the issue is we are using frobenius norm on a blurred centroid. Thus even if an area should be a perfect match, it won't score high enough due to errors
+		// with the centroid
+
+		//printf("%.4f [%.2f %.2f]\n", lowest_norm, shm_pixel.x, shm_pixel.y);
+		//lowest_norm = lowest_norm / max_norm;
+		//float similarity = 1.0f - lowest_norm;
+		float similarity = 0;
+		if (lowest_norm < max_norm) {
+			similarity = 1;
+		}
+		shm[shm_data_index] = similarity;
+	}
+
 	__device__ void SummationPhm(float* phm, float* sums) {
 		unsigned long long phm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
 
@@ -162,14 +231,14 @@ struct NavGenerator {
 	__device__ void SmoothShm(float* shm, float* buffer) {
 		unsigned long long shm_state_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
 
-		if (shm_state_index >= this->state_count) {
+		if (shm_state_index >= 256) {
 			return;
 		}
 
 		float max_val = 0;
-		for (int i = 0; i < 10; i++) {
-			for (int j = 0; j < 10; j++) {
-				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 10.0f, 10.0f);
+		for (int i = 0; i < 100; i++) {
+			for (int j = 0; j < 100; j++) {
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 100.0f, 100.0f);
 				float value = shm[data_index];
 
 				if (value > max_val) {
@@ -182,11 +251,11 @@ struct NavGenerator {
 						int x_j = x + j;
 						int y_i = y + i;
 
-						if (x_j < 0 || x_j >= 10 || y_i < 0 || y_i >= 10) {
+						if (x_j < 0 || x_j >= 100 || y_i < 0 || y_i >= 100) {
 							continue;
 						}
 
-						unsigned long long kernel_index = Indexer::FlatIndex3((float)x_j, (float)y_i, (float)shm_state_index, 10.0f, 10.0f);
+						unsigned long long kernel_index = Indexer::FlatIndex3((float)x_j, (float)y_i, (float)shm_state_index, 100.0f, 100.0f);
 						float local_value = shm[kernel_index];
 
 						Vector2 max_offset{ (float)x, (float)y };
@@ -209,106 +278,15 @@ struct NavGenerator {
 			max_val = 1;
 		}
 
-		for (int i = 0; i < 10; i++) {
-			for (int j = 0; j < 10; j++) {
-				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 10.0f, 10.0f);
+		for (int i = 0; i < 100; i++) {
+			for (int j = 0; j < 100; j++) {
+				unsigned long long data_index = Indexer::FlatIndex3((float)j, (float)i, (float)shm_state_index, 100.0f, 100.0f);
 
 				float value = buffer[data_index] / max_val;
 
 				shm[data_index] = value;
 			}
 		}
-	}
-
-	__device__ void GenerateShm(SpaceData space_data, float* phm, float* shm, float* buffer, float* sums, void(*SyncThreads)()) {
-		Vector2 extracted = Indexer::InverseFlatIndex2((float)blockIdx.x, 10 * 10);
-
-		unsigned long long shm_pixel_index = (unsigned long long)extracted.x;
-		unsigned long long shm_state_index = (unsigned long long)extracted.y;
-		unsigned long long direction_index = (unsigned long long)threadIdx.x;
-
-		if (shm_state_index != 55020) {
-			//return;
-		}
-
-		Vector2 shm_pixel = Indexer::InverseFlatIndex2(shm_pixel_index, 10);
-		unsigned long long buffer_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, shm_state_index, blockDim.x);
-
-		float lowest_norm = 1.0f;
-		for (unsigned long long i = 0; i < 10; i++) {
-			for (unsigned long long j = 0; j < 3; j++) {
-				for (unsigned long long k = 0; k < 10; k++) {
-					Vector3 phm_voxel{ (float)i + (shm_pixel.x * 10.0f), (float)j, (float)k + (shm_pixel.y * 10.0f) };
-
-					unsigned long long phm_state_index = Indexer::FlatIndex4((float)direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
-
-					float sum_shm = sums[shm_state_index];
-					float sum_phm = sums[phm_state_index];
-					float diff = abs(sum_shm - sum_phm) / 256.0f;
-					
-					if (diff > 0.1f || sum_shm > 250 || sum_phm > 250  || sum_shm < 5 || sum_phm < 5) {
-						continue;
-					}
-
-					float frobenius = 0;
-					for (unsigned long long y = 0; y < 16; y++) {
-						for (unsigned long long x = 0; x < 16; x++) {
-							unsigned long long phm_data_index = Indexer::FlatIndex3(x, y, phm_state_index, 16, 16);
-							unsigned long long shm_source_index = Indexer::FlatIndex3(x, y, shm_state_index, 16, 16);
-
-							float val0 = phm[phm_data_index];
-							float val1 = phm[shm_source_index];
-
-							float difference = (val0 - val1) / 20.0f;
-							difference = difference * difference;
-
-							if (phm_state_index == 524639) {
-								//printf("_[%.4f, %.4f] %.4f %.4f\n", val0, val1, difference, frobenius);
-							}
-
-							frobenius += difference;
-						}
-					}
-
-					frobenius = frobenius;
-
-					if (frobenius < 0.30f) {
-					//if (shm_pixel.y > 1) {
-					//if(phm_state_index == 524639){
-						//printf("\n%.6f %lld - %lld - %lld [%.2f %.2f %.2f] [%.2f %.2f] %lld %lld\n", frobenius, shm_state_index, phm_state_index, direction_index, phm_voxel.x, phm_voxel.y, phm_voxel.z, shm_pixel.x, shm_pixel.y, i, k);
-					}
-
-					if (frobenius < lowest_norm) {
-						lowest_norm = frobenius;
-					}
-				}
-			}
-		}
-
-		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
-			printf("*");
-		}
-
-		buffer[buffer_index] = lowest_norm;
-		SyncThreads();
-
-		if (threadIdx.x > 0) {
-			return;
-		}
-
-		lowest_norm = 999999999999.0f;
-		for (unsigned long long i = 0; i < blockDim.x; i++) {
-			unsigned long long buffer_index = Indexer::FlatIndex2(i, shm_state_index, blockDim.x);
-
-			float norm = buffer[buffer_index];
-
-			if (norm < lowest_norm) {
-				lowest_norm = norm;
-			}
-		}
-		
-		unsigned long long shm_data_index = Indexer::FlatIndex3(shm_pixel.x, shm_pixel.y, (float)shm_state_index, 10, 10);
-		shm[shm_data_index] = 1.0f - lowest_norm;
 	}
 
 	__device__ void ExtractRenderClouds(SpaceData space_data, Camera* camera, byte* phm, Vector3* phm_clouds) {

@@ -23,6 +23,7 @@
 #include "../entity/WindGenerator.h"
 #include "../entity/ai/hitpoly/NeuralGrid.h"
 #include "../entity/ai/hitpoly/cuda/CudaHitpoly.cuh"
+#include "../entity/ai/nav/CentroidCortex.h"
 #include "../entity/ai/nav/PhmState.h"
 #include "../entity/ai/nav/NavGenerator.h"
 #include "../entity/ai/nav/cuda/CudaNavHash.cuh"
@@ -268,14 +269,14 @@ struct CpuEngine {
 		printf("    Saving PHM...\n");
 		std::string phm_path = "data/nav/phm/phm.float";
 
-		FILE* ihm_file;
-		fopen_s(&ihm_file, phm_path.c_str(), "wb+");
-		if (ihm_file == NULL) {
+		FILE* phm_file;
+		fopen_s(&phm_file, phm_path.c_str(), "wb+");
+		if (phm_file == NULL) {
 			printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", phm_path.c_str());
 			exit(1);
 		}
-		int result = (int)fwrite(phm_cpu, sizeof(float), slice_generator.bit_count, ihm_file);
-		fclose(ihm_file);
+		int result = (int)fwrite(phm_cpu, sizeof(float), slice_generator.bit_count, phm_file);
+		fclose(phm_file);
 
 		for (int i = 0; i < 157; i++) {
 			unsigned long long index = i * (int)(slice_generator.state_count / 157);
@@ -325,7 +326,7 @@ struct CpuEngine {
 
 	void GenerateShm(GuiData* gui_data) {
 		std::chrono::steady_clock::time_point frame_begin_time = std::chrono::steady_clock::now();
-
+		
 		NavGenerator slice_generator{};
 		slice_generator.Init(
 			3,
@@ -337,36 +338,35 @@ struct CpuEngine {
 			Vector2{ 16, 16 }
 		);
 
-		float* ihm;
-		cudaMalloc(&ihm, slice_generator.bit_count * sizeof(float));
-		cudaMemset(ihm, 0, slice_generator.bit_count * sizeof(float));
-		CudaNavHash::GeneratePhm(this->world_space.space_data, *this->camera_list[0], slice_generator, ihm);
+		CentroidCortex centroid_cortex{};
+		centroid_cortex.Init();
 
-		float* shm;
-		cudaMalloc(&shm, slice_generator.state_count * 10 * 10 * sizeof(float));
-		cudaMemset(shm, 0, slice_generator.state_count * 10 * 10 * sizeof(float));
-		CudaNavHash::GenerateShm(this->world_space.space_data, slice_generator, ihm, shm);
-
-		float* ihm_cpu = new float[slice_generator.bit_count];
-		memset(ihm_cpu, 0, slice_generator.bit_count * sizeof(float));
-		CudaError::CheckError((cudaError_enum)cudaMemcpy(ihm_cpu, ihm, slice_generator.bit_count * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-
-		float* shm_cpu = new float[slice_generator.state_count * 10 * 10];
-		memset(shm_cpu, 0, slice_generator.state_count * 10 * 10 * sizeof(float));
-		CudaError::CheckError((cudaError_enum)cudaMemcpy(shm_cpu, shm, slice_generator.state_count * 10 * 10 * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-
-		printf("    Saving IHM...\n");
-		std::string save_path = "data/polyfield/training/ihm.float";
-		std::string shm_path = "data/polyfield/training/shm.float";
-
-		FILE* ihm_file;
-		fopen_s(&ihm_file, save_path.c_str(), "wb+");
-		if (ihm_file == NULL) {
-			printf("\n\nWarning: File did not open when saving IHM:\n    %s!\n", save_path.c_str());
+		std::string phm_path = "data/nav/phm/phm.float";
+		float* phm_cpu = new float[slice_generator.bit_count];
+		FILE* phm_file;
+		fopen_s(&phm_file, phm_path.c_str(), "rb");
+		if (phm_file == NULL) {
+			printf("\n\n[Warning] file did not open when loading:\n    %s!\n", phm_path.c_str());
 			exit(1);
 		}
-		int result = (int)fwrite(ihm_cpu, sizeof(float), slice_generator.bit_count, ihm_file);
-		fclose(ihm_file);
+		fread(phm_cpu, sizeof(float), (size_t)slice_generator.bit_count, phm_file);
+		fclose(phm_file);
+
+		float* phm;
+		cudaMalloc(&phm, slice_generator.bit_count * sizeof(float));
+		CudaError::CheckError((cudaError_enum)cudaMemcpy(phm, phm_cpu, slice_generator.bit_count * sizeof(float), cudaMemcpyHostToDevice), __FILE__, __LINE__);
+
+		float* shm;
+		cudaMalloc(&shm, centroid_cortex.centroid_count * 100 * 100 * sizeof(float));
+		cudaMemset(shm, 0, centroid_cortex.centroid_count * 100 * 100 * sizeof(float));
+		CudaNavHash::GenerateShm(this->world_space.space_data, slice_generator, centroid_cortex, phm, shm);
+
+		float* shm_cpu = new float[centroid_cortex.centroid_count * 100 * 100];
+		memset(shm_cpu, 0, centroid_cortex.centroid_count * 100 * 100 * sizeof(float));
+		CudaError::CheckError((cudaError_enum)cudaMemcpy(shm_cpu, shm, centroid_cortex.centroid_count * 100 * 100 * sizeof(float), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+
+		printf("    Saving SHM...\n");
+		std::string shm_path = "data/nav/shm/shm.float";
 
 		FILE* shm_file;
 		fopen_s(&shm_file, shm_path.c_str(), "wb+");
@@ -374,34 +374,21 @@ struct CpuEngine {
 			printf("\n\nWarning: File did not open when saving SHM:\n    %s!\n", shm_path.c_str());
 			exit(1);
 		}
-		result = (int)fwrite(shm_cpu, sizeof(float), slice_generator.state_count * 10 * 10, shm_file);
+		fwrite(shm_cpu, sizeof(float), centroid_cortex.centroid_count * 100 * 100, shm_file);
 		fclose(shm_file);
 
-		for (int i = 0; i < 157; i++) {
-			unsigned long long index = i * (int)(slice_generator.state_count / 157);
-			PhmState ihm_state = slice_generator.GetPhmState(index, false);
-
-			std::string img_path = "data/polyfield/training/"
-				+ std::to_string(index)
-				+ "-"
-				+ std::to_string((int)ihm_state.position.x) + "_"
-				+ std::to_string((int)ihm_state.position.y) + "_"
-				+ std::to_string((int)ihm_state.position.z)
-				+ ""
-				+ "-"
-				+ std::to_string(ihm_state.direction_index)
-				+ ".jpg"
-				;
+		for (int i = 0; i < centroid_cortex.centroid_count; i++) {
+			std::string img_path = "data/nav/shm/" + std::to_string(i) + ".jpg";
 
 			float* depth_frame = new float[slice_generator.phash_count];
 			byte* depth_img = new byte[slice_generator.phash_count];
 
 			for (unsigned long long j = 0; j < 16; j++) {
 				for (unsigned long long k = 0; k < 16; k++) {
-					unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 16, 16);
+					unsigned long long bit_index = Indexer::FlatIndex3(k, j, i, 16, 16);
 					unsigned long long phash_index = Indexer::FlatIndex2(k, j, 16);
 
-					float depth_value = ihm_cpu[bit_index];
+					float depth_value = centroid_cortex.centroids_cpu[bit_index];
 					float depth_float = depth_value;
 					depth_float = 20.0f - depth_float;
 					depth_float = depth_float / 20.0f;
@@ -413,18 +400,14 @@ struct CpuEngine {
 				}
 			}
 
-			byte* shm_img = new byte[10 * 10];
+			byte* shm_img = new byte[100 * 100];
 
-			for (unsigned long long j = 0; j < 10; j++) {
-				for (unsigned long long k = 0; k < 10; k++) {
-					unsigned long long bit_index = Indexer::FlatIndex3(k, j, index, 10, 10);
-					unsigned long long phash_index = Indexer::FlatIndex2(k, j, 10);
+			for (unsigned long long j = 0; j < 100; j++) {
+				for (unsigned long long k = 0; k < 100; k++) {
+					unsigned long long bit_index = Indexer::FlatIndex3(k, j, i, 100, 100);
+					unsigned long long phash_index = Indexer::FlatIndex2(k, j, 100);
 
 					float s_value = shm_cpu[bit_index];
-
-					if (index == 55020) {
-						//printf("%.8f\n", s_value);
-					}
 
 					s_value = 255.0f * s_value;
 					byte pixel_value = (byte)s_value;
@@ -435,7 +418,7 @@ struct CpuEngine {
 
 			//printf("        Saving image at index: %lld\n", index);
 			stbi_write_jpg(img_path.c_str(), 16, 16, 1, depth_img, 100);
-			stbi_write_jpg((img_path + "_shm.jpg").c_str(), 10, 10, 1, shm_img, 100);
+			stbi_write_jpg((img_path + "_shm.jpg").c_str(), 100, 100, 1, shm_img, 100);
 		}
 		printf("        Done!");
 
