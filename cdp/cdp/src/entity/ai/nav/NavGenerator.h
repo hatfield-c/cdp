@@ -143,70 +143,62 @@ struct NavGenerator {
 
 
 	__device__ void GenerateShm(SpaceData space_data, CentroidCortex centroid_cortex, float* phm, float* shm) {
-		unsigned long long shm_data_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
+		unsigned long long shm_pixel_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);
 
 		if (blockIdx.x % ((int)(gridDim.x / 20)) == 0 && threadIdx.x == 0) {
 			printf("*");
 		}
 
-		if (shm_data_index >= 100 * 100 * centroid_cortex.centroid_count) {
+		if (shm_pixel_index >= 100 * 100) {
 			return;
 		}
 
-		Vector3 extracted = Indexer::InverseFlatIndex3((float)shm_data_index, 100, 100);
-		Vector2 shm_pixel{ extracted.x, extracted.y };
-		unsigned long long centroid_index = extracted.z;
+		Vector2 shm_pixel = Indexer::InverseFlatIndex2((float)shm_pixel_index, 100.0f);
 
-		if (centroid_index != 243 || shm_pixel.x != 1 || shm_pixel.y != 30) {
+		if (shm_pixel.x != 1 || shm_pixel.y != 30) {
 			//return;
 		}
 
-		float max_norm = 0.01f;
-		float lowest_norm = max_norm;
 		for (unsigned long long i = 0; i < 3; i++) {
 			for (unsigned long long j = 0; j < 24; j++) {
+				unsigned long long phm_state_index = Indexer::FlatIndex4((float)j, shm_pixel.x, (float)i, shm_pixel.y, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
 
 				//if (j != 12 || i != 1) {
 					//continue;
 				//}
 
-				unsigned long long phm_state_index = Indexer::FlatIndex4((float)j, shm_pixel.x, (float)i, shm_pixel.y, (float)this->direction_count, this->world_width_strided.x, this->world_width_strided.y);
+				float lowest_norm = 99999999;
+				unsigned long long centroid_index = -1;
+				for (unsigned long long k = 0; k < centroid_cortex.centroid_count; k++) {
 
-				float mse = 0;
-				for (unsigned long long y = 0; y < 16; y++) {
-					for (unsigned long long x = 0; x < 16; x++) {
-						unsigned long long phm_data_index = Indexer::FlatIndex3(x, y, phm_state_index, 16, 16);
-						unsigned long long centroid_data_index = Indexer::FlatIndex3(x, y, centroid_index, 16, 16);
+					float norm = 0;
+					for (unsigned long long y = 0; y < 16; y++) {
+						for (unsigned long long x = 0; x < 16; x++) {
+							unsigned long long phm_data_index = Indexer::FlatIndex3(x, y, phm_state_index, 16, 16);
+							unsigned long long centroid_data_index = Indexer::FlatIndex3(x, y, k, 16, 16);
 
-						float val0 = phm[phm_data_index];
-						float val1 = centroid_cortex.centroids[centroid_data_index];
+							float val0 = phm[phm_data_index];
+							float val1 = centroid_cortex.centroids[centroid_data_index];
 
-						float difference = (val0 - val1) / 20.0f;
-						difference = difference * difference;
-						//printf("[%lld %lld] %.2f %.2f %.2f %.2f\n", x, y, val0, val1, difference, mse);
+							float difference = (val0 - val1) / 20.0f;
+							difference = difference * difference;
+							norm += difference;
+							//printf("[%lld %lld] %.2f %.2f %.2f %.2f\n", x, y, val0, val1, difference, mse);
+						}
+					}
 
-						mse += difference;
+					norm = sqrt(norm);
+
+					if (norm < lowest_norm) {
+						lowest_norm = norm;
+						centroid_index = k;
 					}
 				}
 
-				mse = mse / 256.0f;
-
-				if (mse < lowest_norm) {
-					lowest_norm = mse;
-				}
+				unsigned long long shm_data_index = Indexer::FlatIndex3(shm_pixel.x, shm_pixel.y, (float)centroid_index, 100, 100);
+				shm[shm_data_index] = 1;
 			}
 		}
-		// the issue is we are using frobenius norm on a blurred centroid. Thus even if an area should be a perfect match, it won't score high enough due to errors
-		// with the centroid
-
-		//printf("%.4f [%.2f %.2f]\n", lowest_norm, shm_pixel.x, shm_pixel.y);
-		//lowest_norm = lowest_norm / max_norm;
-		//float similarity = 1.0f - lowest_norm;
-		float similarity = 0;
-		if (lowest_norm < max_norm) {
-			similarity = 1;
-		}
-		shm[shm_data_index] = similarity;
 	}
 
 	__device__ void SummationPhm(float* phm, float* sums) {

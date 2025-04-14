@@ -43,7 +43,7 @@ void CudaNavHash::GeneratePhm(SpaceData space_data, Camera camera, NavGenerator 
 void CudaNavHash::GenerateShm(SpaceData space_data, NavGenerator nav_generator, CentroidCortex centroid_cortex, float* phm, float* shm) {
     dim3 threads_per_block(32, 1, 1);
 
-    unsigned long long x_blocks = (100 * 100) * centroid_cortex.centroid_count;
+    unsigned long long x_blocks = (100 * 100);// *centroid_cortex.centroid_count;
     x_blocks = ceil(x_blocks / threads_per_block.x);
 
     dim3 blocks_per_grid(x_blocks, 1, 1);
