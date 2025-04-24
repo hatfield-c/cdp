@@ -94,8 +94,7 @@ struct NavGenerator {
 			return;
 		}
 
-		float avg_distance = 0;
-		int avg_count = 0;
+		float min_depth = 20.0f;
 
 		for (int i = 0; i < (int)camera->chunk_size.x; i += (int)camera->box_filter_stride.x) {
 			pixel_position.x = (float)Indexer::FlatIndex2((float)i, phash_position.x, camera->chunk_size.x);
@@ -119,28 +118,18 @@ struct NavGenerator {
 					depth = camera->max_render_distance;
 				}
 
-				avg_distance += depth;
-				avg_count++;
+				depth = depth / space_data.indices_per_meter;
+
+				if (depth < min_depth) {
+					min_depth = depth;
+				}
 			}
 		}
 		
-		if (avg_count < 1) {
-			avg_distance = camera->max_render_distance;
-			avg_count = 1;
-		}
-
-		avg_distance = avg_distance / avg_count;
-
 		unsigned long long data_index = Indexer::FlatIndex3(phash_position.x, phash_position.y, (float)blockIdx.x, camera->phash_data_size.x, camera->phash_data_size.y);
-		float depth = avg_distance / space_data.indices_per_meter;
 
-		if (depth > 20.0f) {
-			depth = 20.0f;
-		}
-
-		phm[data_index] = depth;
+		phm[data_index] = min_depth;
 	}
-
 
 	__device__ void GenerateShm(SpaceData space_data, CentroidCortex centroid_cortex, float* phm, float* shm) {
 		unsigned long long shm_pixel_index = Indexer::FlatIndex2((unsigned long long)threadIdx.x, blockIdx.x, blockDim.x);

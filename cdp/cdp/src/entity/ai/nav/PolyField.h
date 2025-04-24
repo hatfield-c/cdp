@@ -26,15 +26,17 @@ struct PolyField {
 	float* bh;
 	float* bo;
 
-	float* buffer;
+	float* buffer0;
+	float* buffer1;
+	float* out_data;
 
 	void Init(unsigned long long in_nodes, unsigned long long h_nodes, unsigned long long out_nodes, unsigned long long h_depth) {
-		std::string wi_path = "data/nav/polyfield/wi.float";
-		std::string wh_path = "data/nav/polyfield/wh.float";
-		std::string wo_path = "data/nav/polyfield/wo.float";
-		std::string bi_path = "data/nav/polyfield/bi.float";
-		std::string bh_path = "data/nav/polyfield/bh.float";
-		std::string bo_path = "data/nav/polyfield/bo.float";
+		std::string wi_path = "data/nav/polyfield/w_in.float";
+		std::string wh_path = "data/nav/polyfield/w_h.float";
+		std::string wo_path = "data/nav/polyfield/w_out.float";
+		std::string bi_path = "data/nav/polyfield/b_in.float";
+		std::string bh_path = "data/nav/polyfield/b_h.float";
+		std::string bo_path = "data/nav/polyfield/b_out.float";
 
 		this->in_nodes = in_nodes;
 		this->h_nodes = h_nodes;
@@ -49,7 +51,9 @@ struct PolyField {
 		this->bh_size = h_nodes;
 		this->bo_size = out_nodes;
 
-		this->buffer = new float[h_nodes * h_nodes];
+		this->buffer0 = new float[h_nodes];
+		this->buffer1 = new float[h_nodes];
+		this->out_data = new float[out_nodes];
 
 		this->wi = new float[this->wi_size];
 		this->wh = new float[this->wh_size];
@@ -108,7 +112,15 @@ struct PolyField {
 		fclose(in_file);
 
 		printf("PolyField loaded.\n");
-
+		
+		for (unsigned long long j = 0; j < 2; j++) {
+			for (unsigned long long i = 0; i < 6; i++) {
+				unsigned long long index = Indexer::FlatIndex2(i, j, this->in_nodes);
+				printf("%.2f, ", this->wi[index]);
+			}
+			printf("\n");
+		}
+		printf("\n");
 		for (unsigned long long j = 0; j < 2; j++) {
 			for (unsigned long long i = 0; i < 6; i++) {
 				unsigned long long index = Indexer::FlatIndex3(i, j, 0, this->h_nodes, this->h_nodes);
@@ -125,11 +137,11 @@ struct PolyField {
 			printf("\n");
 		}
 		printf("\n");
-
-		exit(0);
+		//exit(0);
+		
 	}
 
-	float ForwardPass(float* in_data) {
+	void ForwardPass(float* in_data) {
 
 		for (int i = 0; i < this->h_nodes; i++) {
 			float node_value = 0;
@@ -138,51 +150,86 @@ struct PolyField {
 			for (int j = 0; j < this->in_nodes; j++) {
 				unsigned long long w_index = Indexer::FlatIndex2((unsigned long long)j, (unsigned long long)i, (unsigned long long)this->in_nodes);
 				float weight = this->wi[w_index];
-				float in_value = in_data[j];
+				float in_value = in_data[j] / 20.0f;
+
+				float connection_value = weight * in_value;
+				node_value += connection_value;
+
+				if (i == 1) {
+					//printf("[%.4f %.4f %.4f %.4f]\n", weight, in_value, node_value, bias);
+				}
+			}
+
+			node_value += bias;
+			node_value = this->ReLU(node_value);
+
+			this->buffer0[i] = node_value;
+		}
+
+		//printf("\n======\n");
+		for (int i = 0; i < 5; i++) {
+			//printf("%.4f, ", this->buffer0[i]);
+		}
+
+		//std::cin.ignore();
+		
+		for (int h = 0; h < this->h_depth; h++) {
+			float* in_buffer = this->buffer0;
+			float* out_buffer = this->buffer1;
+
+			if (h % 2 == 1) {
+				in_buffer = this->buffer1;
+				out_buffer = this->buffer0;
+			}
+
+			for (int i = 0; i < this->h_nodes; i++) {
+				float node_value = 0;
+				float bias = this->bh[i];
+
+				for (int j = 0; j < this->h_nodes; j++) {
+					unsigned long long w_index = Indexer::FlatIndex3((unsigned long long)j, (unsigned long long)i, (unsigned long long)h, (unsigned long long)this->h_nodes, (unsigned long long)this->h_nodes);
+					float weight = this->wh[w_index];
+					float in_value = in_buffer[j];
+
+					float connection_value = weight * in_value;
+					node_value += connection_value;
+				}
+				
+				node_value += bias;
+				node_value = this->ReLU(node_value);
+
+				out_buffer[i] = node_value;
+			}
+		}
+		//printf("\n\n");
+		for (int i = 0; i < 5; i++) {
+			//printf("%.4f, ", this->buffer0[i]);
+		}
+		//printf("\n======\n");
+		//std::cin.ignore();
+
+		float* in_buffer = this->buffer0;
+		if (this->h_depth % 2 == 1) {
+			in_buffer = this->buffer1;
+		}
+
+		for (int i = 0; i < this->out_nodes; i++) {
+			float node_value = 0;
+			float bias = this->bo[i];
+
+			for (int j = 0; j < this->h_nodes; j++) {
+				unsigned long long w_index = Indexer::FlatIndex2((unsigned long long)j, (unsigned long long)i, (unsigned long long)this->out_nodes);
+				float weight = this->wo[w_index];
+				float in_value = in_buffer[j];
 
 				float connection_value = weight * in_value;
 				node_value += connection_value;
 			}
 
 			node_value += bias;
-			node_value = this->ReLU(node_value);
 
-			this->buffer[i] = node_value;
+			this->out_data[i] = node_value;
 		}
-
-		for (int h = 0; h < this->h_depth; h++) {
-			for (int i = 0; i < this->h_nodes; i++) {
-				float node_value = 0;
-				float bias = this->bi[i];
-
-				for (int j = 0; j < this->in_nodes; j++) {
-					unsigned long long w_index = Indexer::FlatIndex3((unsigned long long)h, (unsigned long long)j, (unsigned long long)i, (unsigned long long)this->h_nodes, (unsigned long long)this->in_nodes);
-					float weight = this->wh[w_index];
-					float in_value = in_data[j];
-
-					float connection_value = weight * in_value;
-					node_value += connection_value;
-				}
-
-				node_value += bias;
-				node_value = this->ReLU(node_value);
-
-				this->buffer[i] = node_value;
-			}
-		}
-
-		float out_data = 0;
-		/*for (int i = 0; i < this->h_size; i++) {
-			float w_value = this->w1[i];
-			float h_value = this->h[i];
-
-			out_data += w_value * h_value;
-
-		}
-		out_data += this->b1[0];
-		out_data = this->Sigmoid(out_data);
-		*/
-		return out_data;
 	}
 
 	float ReLU(float value) {

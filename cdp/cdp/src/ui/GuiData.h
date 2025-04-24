@@ -16,8 +16,8 @@ struct GuiData {
 
 	// Camera
 	unsigned long long ihm_index = 0;//Indexer::FlatIndex4(0, 48, 4, 42, 24, 100, 30);
-	Vector3 camera_position{ 48, 4, 42 };
-	int camera_rotation_index = 12;
+	Vector3 camera_position{ 46, 6, 13 };
+	int camera_rotation_index = 10;
 	int camera_index = 0;
 	int control_index = 0;
 	bool is_rotation_noise = false;

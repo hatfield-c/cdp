@@ -22,15 +22,20 @@ struct DroneAlpha {
 	void Init() {
 		this->rigidbody.Init();
 		this->wallrider.Init();
-		this->poly_field.Init(256, 256, 256, 2);
+		this->poly_field.Init(256, 256, 1, 2);
 	}
 
 	void Update(float* depth_phash, Vector3* camera_cloud) {
 		this->wallrider.Update(depth_phash, camera_cloud, this->rigidbody.velocity);
-		//this->poly_field.Update(depth_phash);
+		this->poly_field.ForwardPass(depth_phash);
 
 		Vector2 rp{ this->rigidbody.position.x, this->rigidbody.position.z };
 
+		float out_data = this->poly_field.out_data[0];
+		out_data = 1.9163f - out_data;
+
+		printf("%.2f\n", out_data);
+		
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 16; j++) {
 				unsigned long long index = Indexer::FlatIndex2((unsigned long long)j, i, 16);
