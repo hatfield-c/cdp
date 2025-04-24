@@ -69,14 +69,14 @@ struct CpuEngine {
 
 		this->drone_alpha.Init();
 		this->drone_alpha.wallrider.height_texture = this->camera_list[0]->height_texture;
-		this->drone_alpha.rigidbody.position = Vector3{ 88.0f, 0.4f, 5.0f };
+		this->drone_alpha.rigidbody.position = Vector3{ 31.0f, 5.0f, 28.0f };
 		//this->drone_alpha.rigidbody.position = Vector3{ 24, 4, 34 };
 		//this->drone_alpha.rigidbody.position = Vector3{ 48, 4, 42 };
 
 		float rot_angle = -Math::Pi() / 4;
 		rot_angle = -(45.0f / 180.0f) * Math::Pi();
 		Vector4 x_rot = Quaternion::QuaternionFromEulerParams(Vector3{ 0, 0, 1 }, rot_angle);
-		Vector4 quat = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 4);//x_rot;
+		Vector4 quat = Quaternion::QuaternionFromEulerParams(Vector3{ 1, 0, 0 }, -Math::Pi() / 6);//x_rot;
 		//quat = Quaternion::MultiplyQuaternions(quat, x_rot, false);
 
 		this->drone_alpha.rigidbody.rotation = Quaternion::QuaternionFromDirection(direction);//this->ihm_generator.directions_cpu[12]);

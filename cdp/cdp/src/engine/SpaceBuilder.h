@@ -129,7 +129,7 @@ struct SpaceBuilder {
 			return;
 		}
 
-		int planar_width = 10;
+		int planar_width = 5;
 
 		Vector3 anchor = points[point_index];
 		Vector3 xy_buffer;

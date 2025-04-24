@@ -224,6 +224,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="src\entity\ai\hitpoly\NeuralGrid.h" />
     <ClInclude Include="src\entity\ai\hitpoly\TrainingGenerator.h" />
     <ClInclude Include="src\entity\ai\nav\NavGenerator.h" />
+    <ClInclude Include="src\entity\ai\nav\PolyField.h" />
     <ClInclude Include="src\entity\ai\nav\PhmState.h" />
     <ClInclude Include="src\engine\ImageBuilder.h" />
     <ClInclude Include="src\engine\Indexer.h" />

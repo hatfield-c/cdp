@@ -186,6 +186,9 @@
     <ClInclude Include="src\entity\ai\nav\CentroidCortex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\entity\ai\nav\PolyField.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\entity\camera\cuda\CudaCamera.cu" />

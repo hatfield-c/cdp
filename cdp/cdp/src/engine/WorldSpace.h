@@ -83,6 +83,10 @@ struct WorldSpace {
 		std::vector<std::array<double, 3>> vertices = plyIn.getVertexPositions();
 		printf("        Total Points: %lld\n", (unsigned long long)vertices.size());
 
+		for (int i = 0; i < 10; i++) {
+			printf("%.2f %.2f %.2f\n", vertices[i][0], vertices[i][1], vertices[i][2]);
+		}
+
 		printf("    Writing points to GPU world space...\n");
 		Vector3* points_cuda = this->WritePointsToCuda(vertices);
 
