@@ -32,7 +32,7 @@ struct DroneAlpha {
 		Vector2 rp{ this->rigidbody.position.x, this->rigidbody.position.z };
 
 		float out_data = this->poly_field.out_data[0];
-		out_data = 1.9163f - out_data;
+		out_data = 2.9644f - out_data;
 
 		printf("%.2f\n", out_data);
 		

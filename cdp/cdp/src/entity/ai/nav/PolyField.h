@@ -183,9 +183,10 @@ struct PolyField {
 			}
 
 			for (int i = 0; i < this->h_nodes; i++) {
-				float node_value = 0;
-				float bias = this->bh[i];
+				unsigned long long b_index = Indexer::FlatIndex2((unsigned long long)i, (unsigned long long)h, this->h_nodes);
+				float bias = this->bh[b_index];
 
+				float node_value = 0;
 				for (int j = 0; j < this->h_nodes; j++) {
 					unsigned long long w_index = Indexer::FlatIndex3((unsigned long long)j, (unsigned long long)i, (unsigned long long)h, (unsigned long long)this->h_nodes, (unsigned long long)this->h_nodes);
 					float weight = this->wh[w_index];
